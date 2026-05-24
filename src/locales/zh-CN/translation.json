@@ -10,7 +10,7 @@
     },
     "noteFiles": {
       "title": "将笔记保存为文件",
-      "description": "自动将笔记和转录保存为文件���磁盘，按文件夹分类",
+      "description": "自动将笔记和转录保存为磁盘上的文件，按文件夹分类",
       "path": "保存位置",
       "changePath": "更改位置",
       "rebuild": "重建所有文件",
