@@ -6,16 +6,10 @@ import { getAgentSystemPrompt } from "../../config/prompts";
 import { createToolRegistry } from "../../services/tools";
 import type { ToolRegistry } from "../../services/tools/ToolRegistry";
 import type { Message, AgentState, ToolCallInfo } from "./types";
+import { isLocalChatProvider, shouldEnableChatTools } from "./toolSupportPolicy";
 
 const RAG_NOTE_LIMIT = 5;
 const RAG_NOTE_SNIPPET_LENGTH = 500;
-
-const LOCAL_TOOL_MIN_PARAMS_B = 4;
-
-function estimateModelSizeB(modelId: string): number {
-  const match = modelId.match(/-([\d.]+)[bB]/);
-  return match ? parseFloat(match[1]) : 0;
-}
 
 async function buildRAGContext(userText: string): Promise<string> {
   if (!window.electronAPI?.semanticSearchNotes) return "";
@@ -99,13 +93,12 @@ export function useChatStreaming({
       const isLanAgent = chatAgentMode === "self-hosted" && !!settings.chatAgentRemoteUrl;
       const isCustomAgent =
         chatAgentMode === "providers" && settings.chatAgentProvider === "custom";
-      const isLocalProvider = !["openai", "groq", "custom", "anthropic", "gemini"].includes(
-        settings.chatAgentProvider
-      );
-      const localModelCanUseTool =
-        isLocalProvider && estimateModelSizeB(settings.chatAgentModel) >= LOCAL_TOOL_MIN_PARAMS_B;
-      const supportsTools =
-        isCloudAgent || (!isCustomAgent && !isLocalProvider) || localModelCanUseTool;
+      const isLocalProvider = isLocalChatProvider(settings.chatAgentProvider);
+      const supportsTools = shouldEnableChatTools({
+        isCloudAgent,
+        chatAgentProvider: settings.chatAgentProvider,
+        chatAgentModel: settings.chatAgentModel,
+      });
 
       let registry: ToolRegistry | null = null;
       if (supportsTools) {
