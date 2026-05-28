@@ -3,6 +3,7 @@ import { useSettingsStore } from "../../stores/settingsStore";
 import { en as enPrompts } from "../../locales/prompts";
 import { getLanguageInstruction } from "../../utils/languageSupport";
 import { PROMPT_KINDS, type PromptKind } from "./registry";
+import { buildDictionaryPrompt } from "../dictionaryPrompt.js";
 
 export { PROMPT_KINDS, PROMPT_KIND_LIST, type PromptKind } from "./registry";
 
@@ -32,12 +33,13 @@ export function appendDictionarySuffix(
   customDictionary?: string[],
   uiLanguage?: string
 ): string {
-  if (!customDictionary?.length) return prompt;
+  const dictionaryPrompt = buildDictionaryPrompt(customDictionary);
+  if (!dictionaryPrompt) return prompt;
   const locale = normalizeUiLanguage(uiLanguage || "en");
   const suffix = i18n.getFixedT(locale, "prompts")("dictionarySuffix", {
     defaultValue: enPrompts.dictionarySuffix,
   });
-  return prompt + suffix + customDictionary.join(", ");
+  return prompt + suffix + dictionaryPrompt;
 }
 
 function applySubstitutions(template: string, opts: ResolvePromptOptions): string {

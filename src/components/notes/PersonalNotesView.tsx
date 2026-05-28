@@ -57,6 +57,7 @@ import { cn } from "../lib/utils";
 import { MEETINGS_FOLDER_NAME, findDefaultFolder } from "./shared";
 import logger from "../../utils/logger";
 import { parseTranscriptSegments } from "../../utils/parseTranscriptSegments";
+import { buildNoteActionInput } from "./noteActionInput";
 import { serializeTranscriptSegments } from "../../utils/transcriptSpeakerState";
 import {
   useNotes,
@@ -985,38 +986,20 @@ export default function PersonalNotesView({
                   onRunAction={(action) => {
                     if (!editorNote) return;
                     const rawTranscript = realtimeTranscript || editorNote.transcript;
-                    const noteContent = editorNote.content;
-                    const hasNotes = !!noteContent.trim();
-                    if (!hasNotes && !rawTranscript) return;
+                    const actionInput = buildNoteActionInput({
+                      noteContent: editorNote.content,
+                      rawTranscript,
+                      speakerLabels: {
+                        you: t("notes.speaker.you"),
+                        them: t("notes.speaker.them"),
+                      },
+                    });
+                    if (!actionInput) return;
 
-                    let formattedTranscript = "";
-                    let isMeetingNote = false;
-                    if (rawTranscript) {
-                      const segments = parseTranscriptSegments(rawTranscript);
-                      if (segments.length > 0) {
-                        isMeetingNote = true;
-                        formattedTranscript = segments
-                          .map(
-                            (s) =>
-                              `${s.source === "mic" ? t("notes.speaker.you") : t("notes.speaker.them")}: ${s.text}`
-                          )
-                          .join("\n");
-                      }
-                      if (!formattedTranscript) {
-                        formattedTranscript = rawTranscript;
-                      }
-                    }
-
-                    const parts = [
-                      hasNotes ? noteContent : "",
-                      formattedTranscript ? `## Meeting Transcript\n${formattedTranscript}` : "",
-                    ]
-                      .filter(Boolean)
-                      .join("\n\n");
-                    runAction(action, parts, makeContentHash(noteContent), {
+                    runAction(action, actionInput.content, makeContentHash(editorNote.content), {
                       isCloudMode,
                       modelId: effectiveModelId,
-                      isMeetingNote,
+                      isMeetingNote: actionInput.isMeetingNote,
                     });
                   }}
                   onManageActions={() => setShowActionManager(true)}

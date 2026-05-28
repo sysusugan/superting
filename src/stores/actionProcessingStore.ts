@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import reasoningService from "../services/ReasoningService";
 import { getSettings } from "./settingsStore";
-import { appendDictionarySuffix } from "../config/prompts";
+import { buildNoteActionSystemPrompt } from "./noteActionPrompt";
 import { generateNoteTitle } from "../utils/generateTitle";
 import type { ActionItem } from "../types/electron";
 
@@ -53,37 +53,6 @@ export const useActionProcessingStore = create<ActionProcessingStoreState>()(() 
   errorEvents: [],
 }));
 
-const BASE_SYSTEM_PROMPT = `You are a note enhancement assistant. The user will provide raw notes — possibly voice-transcribed, rough, or unstructured. Your job is to clean them up according to the instructions below while preserving all original meaning and information. Output clean markdown.
-
-FORMAT RULES (strict):
-- Do NOT include any preamble: no title, no date/time/location, no attendee list, no topic header. Start directly with the content.
-- Do NOT use tables, horizontal rules, or block quotes.
-- Do NOT list or guess participant names/roles.
-- Keep the tone professional and concise. Bias toward brevity.
-
-Instructions: `;
-
-const MEETING_SYSTEM_PROMPT = `You are a professional meeting notes assistant. You will receive a dual-speaker transcript where "You:" marks the user's speech and "Them:" marks the other participant(s), along with any manual notes the user took.
-
-Your job is to produce clean, actionable meeting notes in markdown. Follow these rules:
-
-FORMAT RULES (strict):
-- Do NOT include any preamble: no title, no "# Meeting Notes", no date/time/location, no attendee list, no topic header. Start directly with the summary.
-- Do NOT use tables, horizontal rules, or block quotes.
-- Do NOT list or guess participant names/roles.
-- Start with a concise 1–2 sentence summary of what the meeting was about.
-- Use clear section headings: ## Key Discussion Points, ## Decisions Made, ## Action Items, ## Follow-ups (omit any section that has no content).
-- Under Action Items, use checkboxes (\`- [ ]\`) and attribute each item to "You" or "Them" where clear.
-
-CONTENT RULES:
-- Preserve important quotes or specific commitments verbatim when they carry meaning.
-- Remove filler, small talk, false starts, and repeated/redundant content.
-- Where speakers refer to the same topic across multiple turns, consolidate into a coherent point rather than listing every utterance.
-- If the user included manual notes alongside the transcript, integrate them — they represent the user's emphasis on what matters most.
-- Keep the tone professional and concise. Bias toward brevity.
-
-Instructions: `;
-
 export interface RunActionOptions {
   isCloudMode: boolean;
   modelId: string;
@@ -121,13 +90,12 @@ export function runBackgroundAction(
 
   (async () => {
     try {
-      const basePrompt = options.isMeetingNote ? MEETING_SYSTEM_PROMPT : BASE_SYSTEM_PROMPT;
       const settings = getSettings();
-      const systemPrompt = appendDictionarySuffix(
-        basePrompt + action.prompt,
-        options.isMeetingNote ? settings.customDictionary : undefined,
-        settings.uiLanguage
-      );
+      const systemPrompt = buildNoteActionSystemPrompt(action.prompt, {
+        isMeetingNote: options.isMeetingNote,
+        customDictionary: settings.customDictionary,
+        uiLanguage: settings.uiLanguage,
+      });
       const enhanced = await reasoningService.processText(noteContent, modelId, null, {
         systemPrompt,
         temperature: 0.3,
@@ -138,7 +106,12 @@ export function runBackgroundAction(
 
       let title: string | undefined;
       if (getSettings().autoGenerateNoteTitle) {
-        const generated = await generateNoteTitle(enhanced, modelId);
+        const generated = await generateNoteTitle(
+          enhanced,
+          modelId,
+          settings.customDictionary,
+          settings.uiLanguage
+        );
         if (generated) title = generated;
       }
 

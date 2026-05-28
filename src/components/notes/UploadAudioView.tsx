@@ -258,7 +258,8 @@ export default function UploadAudioView({ onNoteCreated, onOpenSettings }: Uploa
     if (!getSettings().autoGenerateNoteTitle) return "";
     const model = isCloudCleanup ? "" : effectiveCleanupModel || getAllReasoningModels()[0]?.value;
     if (!model && !isCloudCleanup) return "";
-    return generateNoteTitle(text, model);
+    const settings = getSettings();
+    return generateNoteTitle(text, model, settings.customDictionary, settings.uiLanguage);
   };
 
   const handleBrowse = async () => {
