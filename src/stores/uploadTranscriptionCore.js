@@ -72,6 +72,18 @@ function resetUploadTask(_current, options = {}) {
   });
 }
 
+function buildUploadNoteSaveArgs({ title, transcript, fileName, folderId }) {
+  return {
+    title,
+    content: transcript,
+    noteType: "upload",
+    sourceFile: fileName,
+    audioDuration: null,
+    folderId,
+    transcript,
+  };
+}
+
 module.exports = {
   IDLE_UPLOAD_TRANSCRIPTION_STATE,
   createInitialUploadTranscriptionState,
@@ -80,4 +92,5 @@ module.exports = {
   completeUploadTask,
   failUploadTask,
   resetUploadTask,
+  buildUploadNoteSaveArgs,
 };

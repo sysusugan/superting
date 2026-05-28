@@ -772,7 +772,8 @@ class DatabaseManager {
     noteType = "personal",
     sourceFile = null,
     audioDuration = null,
-    folderId = null
+    folderId = null,
+    transcript = null
   ) {
     try {
       if (!this.db) {
@@ -787,7 +788,7 @@ class DatabaseManager {
       }
       const clientNoteId = randomUUID();
       const stmt = this.db.prepare(
-        "INSERT INTO notes (title, content, note_type, source_file, audio_duration_seconds, folder_id, client_note_id) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO notes (title, content, note_type, source_file, audio_duration_seconds, folder_id, client_note_id, transcript) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
       );
       const result = stmt.run(
         title,
@@ -796,7 +797,8 @@ class DatabaseManager {
         sourceFile,
         audioDuration,
         folderId,
-        clientNoteId
+        clientNoteId,
+        transcript
       );
 
       const fetchStmt = this.db.prepare("SELECT * FROM notes WHERE id = ?");

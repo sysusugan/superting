@@ -569,7 +569,8 @@ declare global {
         noteType?: string,
         sourceFile?: string | null,
         audioDuration?: number | null,
-        folderId?: number | null
+        folderId?: number | null,
+        transcript?: string | null
       ) => Promise<{ success: boolean; note?: NoteItem }>;
       getNote: (id: number) => Promise<NoteItem | null>;
       getNotes: (

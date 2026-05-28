@@ -7,6 +7,7 @@ const {
   completeUploadTask,
   failUploadTask,
   resetUploadTask,
+  buildUploadNoteSaveArgs,
 } = require("../../src/stores/uploadTranscriptionCore");
 
 test("upload transcription task state survives view remounts until reset", () => {
@@ -56,4 +57,23 @@ test("upload transcription failures preserve selected file for retry", () => {
   assert.equal(failed.error, "whisper-server request timed out");
   assert.deepEqual(failed.file, file);
   assert.equal(failed.progress, 0);
+});
+
+test("upload note save args write uploaded transcript to both content and transcript", () => {
+  const args = buildUploadNoteSaveArgs({
+    title: "Meeting title",
+    transcript: "raw uploaded transcript",
+    fileName: "meeting.mp3",
+    folderId: 3,
+  });
+
+  assert.deepEqual(args, {
+    title: "Meeting title",
+    content: "raw uploaded transcript",
+    noteType: "upload",
+    sourceFile: "meeting.mp3",
+    audioDuration: null,
+    folderId: 3,
+    transcript: "raw uploaded transcript",
+  });
 });

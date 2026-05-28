@@ -944,14 +944,15 @@ class IPCHandlers {
 
     ipcMain.handle(
       "db-save-note",
-      async (event, title, content, noteType, sourceFile, audioDuration, folderId) => {
+      async (event, title, content, noteType, sourceFile, audioDuration, folderId, transcript) => {
         const result = this.databaseManager.saveNote(
           title,
           content,
           noteType,
           sourceFile,
           audioDuration,
-          folderId
+          folderId,
+          transcript
         );
         if (result?.success && result?.note) {
           setImmediate(() => this.broadcastToWindows("note-added", result.note));

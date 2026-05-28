@@ -6,6 +6,7 @@ import {
   completeUploadTask,
   failUploadTask,
   resetUploadTask,
+  buildUploadNoteSaveArgs,
 } from "./uploadTranscriptionCore";
 
 export type UploadTranscriptionState = "idle" | "selected" | "transcribing" | "complete" | "error";
@@ -48,7 +49,8 @@ export interface RunUploadTranscriptionOptions {
     noteType: string,
     sourceFile: string,
     audioDuration: number | null,
-    folderId: number | null
+    folderId: number | null,
+    transcript?: string | null
   ) => Promise<{ success: boolean; note?: { id: number }; error?: string }>;
   noSpeechMessage: string;
   transcriptionFailedMessage: string;
@@ -196,13 +198,20 @@ export const useUploadTranscriptionStore = create<UploadTranscriptionStoreState>
         if (get().activeTaskId !== taskId) return;
 
         const folderId = selectedFolderId ? Number(selectedFolderId) : null;
+        const noteArgs = buildUploadNoteSaveArgs({
+          title: aiTitle || fallbackTitle,
+          transcript: response.text,
+          fileName: file.name,
+          folderId,
+        });
         const noteResponse = await options.saveNote(
-          aiTitle || fallbackTitle,
-          response.text,
-          "upload",
-          file.name,
-          null,
-          folderId
+          noteArgs.title,
+          noteArgs.content,
+          noteArgs.noteType,
+          noteArgs.sourceFile,
+          noteArgs.audioDuration,
+          noteArgs.folderId,
+          noteArgs.transcript
         );
         if (get().activeTaskId !== taskId) return;
 

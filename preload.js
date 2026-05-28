@@ -68,7 +68,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   undoLearnedCorrections: (words) => ipcRenderer.invoke("undo-learned-corrections", words),
 
   // Note functions
-  saveNote: (title, content, noteType, sourceFile, audioDuration, folderId) =>
+  saveNote: (title, content, noteType, sourceFile, audioDuration, folderId, transcript) =>
     ipcRenderer.invoke(
       "db-save-note",
       title,
@@ -76,7 +76,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       noteType,
       sourceFile,
       audioDuration,
-      folderId
+      folderId,
+      transcript
     ),
   getNote: (id) => ipcRenderer.invoke("db-get-note", id),
   getNotes: (noteType, limit, folderId) =>
