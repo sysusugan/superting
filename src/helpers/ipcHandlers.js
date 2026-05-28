@@ -38,6 +38,7 @@ const {
   sanitizeWhisperVadConfig,
   resolveContextSileroEnabled,
 } = require("./whisperVadConfig");
+const { analyzePreviewPcmSpeech } = require("./dictationPreviewGate");
 const { resolveOpenWhisprApiUrl } = require("../config/openwhisprCloud");
 const { throwIfAborted } = require("./ffmpegUtils");
 const { LOCAL_STT_PRIORITY, LocalSttScheduler } = require("./localSttScheduler");
@@ -5169,19 +5170,15 @@ class IPCHandlers {
         const pcm = Buffer.concat(dictationPreviewBuffer);
         dictationPreviewBuffer = [];
 
-        const samples = new Int16Array(pcm.buffer, pcm.byteOffset, pcm.length / 2);
-        let sumSq = 0;
-        for (let i = 0; i < samples.length; i++) {
-          const n = samples[i] / 0x7fff;
-          sumSq += n * n;
-        }
-        const rms = Math.sqrt(sumSq / samples.length);
+        const speechDecision = analyzePreviewPcmSpeech(pcm);
         debugLogger.debug("Dictation preview chunk", {
           pcmBytes: pcm.length,
-          rms: rms.toFixed(6),
-          samples: samples.length,
+          rms: speechDecision.rms.toFixed(6),
+          peakAmplitude: speechDecision.peakAmplitude.toFixed(6),
+          samples: speechDecision.samples,
+          speechDecision: speechDecision.reason,
         });
-        if (rms < 0.002) return;
+        if (!speechDecision.shouldTranscribe) return;
 
         const wav = pcm16ToWav(pcm);
 
