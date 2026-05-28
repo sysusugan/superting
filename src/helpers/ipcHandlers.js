@@ -13,6 +13,7 @@ const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
 const OpenAIRealtimeStreaming = require("./openaiRealtimeStreaming");
 const AudioStorageManager = require("./audioStorage");
+const { buildAudioDownloadFilename } = require("./audioStorageFiles");
 const liveSpeakerIdentifier = require("./liveSpeakerIdentifier");
 const MeetingEchoLeakDetector = require("./meetingEchoLeakDetector");
 const {
@@ -1394,6 +1395,39 @@ class IPCHandlers {
         return { success: true };
       } catch (error) {
         debugLogger.error("Error exporting transcript", { error: error.message }, "notes");
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("download-note-audio", async (event, noteId) => {
+      try {
+        const note = this.databaseManager.getNote(noteId);
+        if (!note) return { success: false, error: "Note not found" };
+        if (!note.source_file) {
+          return { success: false, error: "Original audio is not available" };
+        }
+
+        const audioPath = this.audioStorageManager.getRetainedAudioPath(note.source_file);
+        if (!audioPath) {
+          return { success: false, error: "Audio file has been removed or is unavailable" };
+        }
+
+        const { dialog } = require("electron");
+        const defaultPath = buildAudioDownloadFilename(note.title, note.source_file);
+        const result = await dialog.showSaveDialog({
+          defaultPath,
+          filters: [
+            { name: "Audio", extensions: [path.extname(note.source_file).slice(1) || "wav"] },
+          ],
+        });
+        if (result.canceled || !result.filePath) {
+          return { success: false, canceled: true };
+        }
+
+        fs.copyFileSync(audioPath, result.filePath);
+        return { success: true };
+      } catch (error) {
+        debugLogger.error("Error downloading note audio", { error: error.message }, "notes");
         return { success: false, error: error.message };
       }
     });

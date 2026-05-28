@@ -1,3 +1,5 @@
+const path = require("path");
+
 const RETAINED_AUDIO_EXTENSIONS = new Set([".webm", ".wav"]);
 
 function formatTimestamp(timestamp) {
@@ -34,9 +36,34 @@ function isDictationAudioFile(filename) {
     .endsWith(".webm");
 }
 
+function resolveRetainedAudioPath(audioDir, filename) {
+  const name = String(filename || "");
+  if (!name || path.basename(name) !== name || !isRetainedAudioFile(name)) {
+    return null;
+  }
+
+  const resolvedDir = path.resolve(audioDir);
+  const resolvedPath = path.resolve(resolvedDir, name);
+  if (resolvedPath !== path.join(resolvedDir, name)) {
+    return null;
+  }
+  return resolvedPath;
+}
+
+function buildAudioDownloadFilename(title, sourceFilename) {
+  const ext = path.extname(String(sourceFilename || "")).toLowerCase();
+  const safeExt = RETAINED_AUDIO_EXTENSIONS.has(ext) ? ext : ".wav";
+  const safeTitle = String(title || "")
+    .replace(/[/\\?%*:|"<>]/g, "-")
+    .trim();
+  return `${safeTitle || "OpenWhispr-audio"}${safeExt}`;
+}
+
 module.exports = {
+  buildAudioDownloadFilename,
   buildDictationAudioFilename,
   buildMeetingAudioFilename,
   isDictationAudioFile,
   isRetainedAudioFile,
+  resolveRetainedAudioPath,
 };

@@ -7,6 +7,7 @@ const {
   buildMeetingAudioFilename,
   isDictationAudioFile,
   isRetainedAudioFile,
+  resolveRetainedAudioPath,
 } = require("./audioStorageFiles");
 
 class AudioStorageManager {
@@ -123,6 +124,17 @@ class AudioStorageManager {
       if (match) return path.join(this.audioDir, match);
     } catch {}
     return null;
+  }
+
+  getRetainedAudioPath(filename) {
+    const filePath = resolveRetainedAudioPath(this.audioDir, filename);
+    if (!filePath) return null;
+    try {
+      const stats = fs.statSync(filePath);
+      return stats.isFile() ? filePath : null;
+    } catch {
+      return null;
+    }
   }
 
   getAudioBuffer(transcriptionId) {

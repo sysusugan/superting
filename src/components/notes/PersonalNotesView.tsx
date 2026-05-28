@@ -502,6 +502,18 @@ export default function PersonalNotesView({
     [activeNoteId]
   );
 
+  const handleDownloadOriginalAudio = useCallback(async () => {
+    if (!activeNoteId) return;
+    const result = await window.electronAPI.downloadNoteAudio(activeNoteId);
+    if (!result.success && !result.canceled) {
+      toast({
+        title: t("notes.editor.audioDownloadFailed"),
+        description: result.error || t("notes.editor.audioUnavailableDescription"),
+        variant: "destructive",
+      });
+    }
+  }, [activeNoteId, t, toast]);
+
   useEffect(() => {
     if (!meetingRecordingRequest || activeNoteId !== meetingRecordingRequest.noteId) return;
     const note = notes.find((n) => n.id === meetingRecordingRequest.noteId);
@@ -933,6 +945,7 @@ export default function PersonalNotesView({
               onStopRecording={stopRecording}
               onExportNote={handleExportNote}
               onExportTranscript={handleExportTranscript}
+              onDownloadOriginalAudio={handleDownloadOriginalAudio}
               enhancement={
                 localEnhancedContent
                   ? {

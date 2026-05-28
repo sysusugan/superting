@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Download,
+  FileAudio,
   Loader2,
   FileText,
   Sparkles,
@@ -85,6 +86,7 @@ interface NoteEditorProps {
   onStopRecording: () => void;
   onExportNote?: (format: "md" | "txt") => void;
   onExportTranscript?: (format: "txt" | "srt" | "json" | "md") => void;
+  onDownloadOriginalAudio?: () => void;
   enhancement?: Enhancement;
   actionPicker?: React.ReactNode;
   actionProcessingState?: ActionProcessingState;
@@ -121,6 +123,7 @@ export default function NoteEditor({
   onStopRecording,
   onExportNote,
   onExportTranscript,
+  onDownloadOriginalAudio,
   enhancement,
   actionPicker,
   actionProcessingState,
@@ -815,7 +818,7 @@ export default function NoteEditor({
                   />
                 </button>
               )}
-              {(onExportNote || onExportTranscript) && (
+              {(onExportNote || onExportTranscript || onDownloadOriginalAudio) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -872,6 +875,19 @@ export default function NoteEditor({
                         >
                           <FileText size={13} className="text-foreground/40" />
                           {t("notes.editor.asPlainText")}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {onDownloadOriginalAudio && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => onDownloadOriginalAudio()}
+                          disabled={!note.source_file || isRecording}
+                          className="text-xs gap-2"
+                        >
+                          <FileAudio size={13} className="text-foreground/40" />
+                          {t("notes.editor.downloadOriginalAudio")}
                         </DropdownMenuItem>
                       </>
                     )}

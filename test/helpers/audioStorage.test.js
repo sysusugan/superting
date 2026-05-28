@@ -36,3 +36,18 @@ test("saveMeetingPcmAudio writes retained meeting wav and reports storage usage"
     totalBytes: pcmBytes.length + 44,
   });
 });
+
+test("getRetainedAudioPath returns existing retained audio and rejects missing or unsafe names", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const audioDir = path.join(root, "audio");
+  const storage = new AudioStorageManager({ audioDir });
+  const filename = "OpenWhispr-meeting-2026-05-28-06-07-08-12.wav";
+  const audioPath = path.join(audioDir, filename);
+  fs.writeFileSync(audioPath, Buffer.from("wav"));
+
+  assert.equal(storage.getRetainedAudioPath(filename), audioPath);
+  assert.equal(storage.getRetainedAudioPath("missing.wav"), null);
+  assert.equal(storage.getRetainedAudioPath("../secret.wav"), null);
+});
