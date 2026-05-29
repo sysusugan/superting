@@ -1940,7 +1940,9 @@
       "conversationWillAppear": "A conversa aparecerá aqui...",
       "linkedEvent": "Evento vinculado",
       "noFolder": "Sem pasta",
-      "participants": "Participantes"
+      "participants": "Participantes",
+      "downloadSavedAudio": "Baixar áudio salvo",
+      "chooseAudioFile": "Escolher arquivo de áudio"
     },
     "participants": {
       "attendee": "participante",

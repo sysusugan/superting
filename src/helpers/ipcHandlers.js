@@ -877,6 +877,7 @@ class IPCHandlers {
         if (rows.length > 0) {
           this.databaseManager.clearAudioFlags(rows.map((r) => r.id));
         }
+        this.databaseManager.clearNoteAudioFiles();
       } catch (error) {
         debugLogger.error(
           "Failed to clear audio flags after delete-all",
@@ -1446,25 +1447,63 @@ class IPCHandlers {
       }
     });
 
-    ipcMain.handle("download-note-audio", async (event, noteId) => {
+    ipcMain.handle("get-note-audio-files", async (_event, noteId) => {
       try {
         const note = this.databaseManager.getNote(noteId);
         if (!note) return { success: false, error: "Note not found" };
-        if (!note.source_file) {
+
+        const files = this.databaseManager
+          .getNoteAudioFiles(noteId)
+          .map((audioFile) => {
+            const audioPath = this.audioStorageManager.getRetainedAudioPath(audioFile.filename);
+            if (!audioPath) return null;
+            try {
+              const stats = fs.statSync(audioPath);
+              return {
+                ...audioFile,
+                size_bytes: stats.size,
+                extension: path.extname(audioFile.filename).slice(1) || "wav",
+              };
+            } catch {
+              return null;
+            }
+          })
+          .filter(Boolean);
+
+        return { success: true, files };
+      } catch (error) {
+        debugLogger.error("Error getting note audio files", { error: error.message }, "notes");
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("download-note-audio", async (_event, noteId, audioFileId = null) => {
+      try {
+        const note = this.databaseManager.getNote(noteId);
+        if (!note) return { success: false, error: "Note not found" };
+
+        let sourceFilename = note.source_file;
+        if (audioFileId != null) {
+          const audioFile = this.databaseManager.getNoteAudioFile(noteId, audioFileId);
+          if (!audioFile) return { success: false, error: "Audio file not found for this note" };
+          sourceFilename = audioFile.filename;
+        }
+
+        if (!sourceFilename) {
           return { success: false, error: "Original audio is not available" };
         }
 
-        const audioPath = this.audioStorageManager.getRetainedAudioPath(note.source_file);
+        const audioPath = this.audioStorageManager.getRetainedAudioPath(sourceFilename);
         if (!audioPath) {
           return { success: false, error: "Audio file has been removed or is unavailable" };
         }
 
         const { dialog } = require("electron");
-        const defaultPath = buildAudioDownloadFilename(note.title, note.source_file);
+        const defaultPath = buildAudioDownloadFilename(note.title, sourceFilename);
         const result = await dialog.showSaveDialog({
           defaultPath,
           filters: [
-            { name: "Audio", extensions: [path.extname(note.source_file).slice(1) || "wav"] },
+            { name: "Audio", extensions: [path.extname(sourceFilename).slice(1) || "wav"] },
           ],
         });
         if (result.canceled || !result.filePath) {
@@ -4173,13 +4212,21 @@ class IPCHandlers {
       }
 
       try {
-        const updateResult = this.databaseManager.updateNote(noteId, {
-          source_file: result.filename,
-          audio_duration_seconds: result.durationSeconds,
-        });
-        if (updateResult?.success && updateResult?.note) {
-          setImmediate(() => this.broadcastToWindows("note-updated", updateResult.note));
-          this._asyncMirrorWrite(updateResult.note);
+        const audioResult = this.databaseManager.addNoteAudioFile(
+          noteId,
+          result.filename,
+          result.durationSeconds,
+          {
+            recordedAt: audioStartedAt ? new Date(audioStartedAt).toISOString() : undefined,
+            updateLatest: true,
+          }
+        );
+        if (audioResult?.success) {
+          const updatedNote = this.databaseManager.getNote(noteId);
+          if (updatedNote) {
+            setImmediate(() => this.broadcastToWindows("note-updated", updatedNote));
+            this._asyncMirrorWrite(updatedNote);
+          }
         }
       } catch (error) {
         debugLogger.warn("Failed to update meeting note audio metadata", {

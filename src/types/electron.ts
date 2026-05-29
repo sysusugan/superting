@@ -64,6 +64,17 @@ export interface NoteItem {
   team_id?: string | null;
 }
 
+export interface NoteAudioFile {
+  id: number;
+  note_id: number;
+  filename: string;
+  duration_seconds: number | null;
+  created_at: string;
+  recorded_at: string | null;
+  size_bytes: number | null;
+  extension: string;
+}
+
 export type ShareVisibility = "private" | "link" | "domain" | "invited";
 
 export interface ShareSettings {
@@ -603,8 +614,12 @@ declare global {
         noteId: number,
         format: "txt" | "srt" | "json" | "md"
       ) => Promise<{ success: boolean; error?: string }>;
-      downloadNoteAudio: (
+      getNoteAudioFiles: (
         noteId: number
+      ) => Promise<{ success: boolean; files?: NoteAudioFile[]; error?: string }>;
+      downloadNoteAudio: (
+        noteId: number,
+        audioFileId?: number | null
       ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
       searchNotes: (query: string, limit?: number) => Promise<NoteItem[]>;
       semanticSearchNotes: (query: string, limit?: number) => Promise<NoteItem[]>;

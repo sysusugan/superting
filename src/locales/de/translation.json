@@ -1940,7 +1940,9 @@
       "conversationWillAppear": "Gespräch wird hier angezeigt...",
       "linkedEvent": "Verknüpftes Ereignis",
       "noFolder": "Kein Ordner",
-      "participants": "Teilnehmer"
+      "participants": "Teilnehmer",
+      "downloadSavedAudio": "Gespeichertes Audio herunterladen",
+      "chooseAudioFile": "Audiodatei auswählen"
     },
     "participants": {
       "attendee": "Teilnehmer",

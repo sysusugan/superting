@@ -2051,7 +2051,9 @@
       "conversationWillAppear": "La conversation apparaîtra ici...",
       "linkedEvent": "Événement lié",
       "noFolder": "Aucun dossier",
-      "participants": "Participants"
+      "participants": "Participants",
+      "downloadSavedAudio": "Télécharger l'audio enregistré",
+      "chooseAudioFile": "Choisir un fichier audio"
     },
     "participants": {
       "attendee": "participant",

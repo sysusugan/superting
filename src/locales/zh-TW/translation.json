@@ -1935,7 +1935,9 @@
       "conversationWillAppear": "對話將顯示在這裡...",
       "linkedEvent": "關聯行程",
       "noFolder": "無資料夾",
-      "participants": "參與者"
+      "participants": "參與者",
+      "downloadSavedAudio": "下載已儲存音訊",
+      "chooseAudioFile": "選擇音訊檔案"
     },
     "participants": {
       "attendee": "位與會者",

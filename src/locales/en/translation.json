@@ -2147,7 +2147,9 @@
       "conversationWillAppear": "Conversation will appear here...",
       "linkedEvent": "Linked event",
       "noFolder": "No folder",
-      "participants": "Participants"
+      "participants": "Participants",
+      "downloadSavedAudio": "Download saved audio",
+      "chooseAudioFile": "Choose audio file"
     },
     "participants": {
       "attendee": "attendee",

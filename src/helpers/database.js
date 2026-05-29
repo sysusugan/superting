@@ -4,10 +4,12 @@ const fs = require("fs");
 const { randomUUID } = require("crypto");
 const debugLogger = require("./debugLogger");
 const { app } = require("electron");
+const { isRetainedAudioFile } = require("./audioStorageFiles");
 
 class DatabaseManager {
-  constructor() {
+  constructor(options = {}) {
     this.db = null;
+    this.dbPath = options.dbPath || null;
     this.initDatabase();
   }
 
@@ -16,7 +18,7 @@ class DatabaseManager {
       const dbFileName =
         process.env.NODE_ENV === "development" ? "transcriptions-dev.db" : "transcriptions.db";
 
-      const dbPath = path.join(app.getPath("userData"), dbFileName);
+      const dbPath = this.dbPath || path.join(app.getPath("userData"), dbFileName);
 
       this.db = new Database(dbPath);
       this.db.pragma("journal_mode = WAL");
@@ -93,6 +95,24 @@ class DatabaseManager {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
+      `);
+
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS note_audio_files (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          note_id INTEGER NOT NULL,
+          filename TEXT NOT NULL,
+          duration_seconds REAL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          recorded_at DATETIME,
+          UNIQUE(note_id, filename),
+          FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE
+        )
+      `);
+
+      this.db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_note_audio_files_note_id_recorded_at
+        ON note_audio_files(note_id, recorded_at DESC, id DESC)
       `);
 
       try {
@@ -465,6 +485,8 @@ class DatabaseManager {
       } catch (err) {
         if (!err.message.includes("duplicate column")) throw err;
       }
+
+      this.backfillNoteAudioFiles();
       try {
         this.db.exec("ALTER TABLE folders ADD COLUMN cloud_id TEXT");
       } catch (err) {
@@ -889,6 +911,193 @@ class DatabaseManager {
       return { success: true, note };
     } catch (error) {
       debugLogger.error("Error updating note", { error: error.message }, "notes");
+      throw error;
+    }
+  }
+
+  backfillNoteAudioFiles() {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      this.db
+        .prepare(
+          `INSERT OR IGNORE INTO note_audio_files
+            (note_id, filename, duration_seconds, recorded_at)
+           SELECT id, source_file, audio_duration_seconds, created_at
+           FROM notes
+           WHERE source_file IS NOT NULL
+             AND TRIM(source_file) != ''
+             AND (LOWER(source_file) LIKE '%.wav' OR LOWER(source_file) LIKE '%.webm')`
+        )
+        .run();
+      return { success: true };
+    } catch (error) {
+      debugLogger.error("Error backfilling note audio files", { error: error.message }, "notes");
+      throw error;
+    }
+  }
+
+  addNoteAudioFile(noteId, filename, durationSeconds = null, options = {}) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const safeFilename = path.basename(String(filename || ""));
+      if (!safeFilename || safeFilename !== filename || !isRetainedAudioFile(safeFilename)) {
+        return { success: false, error: "Invalid audio filename" };
+      }
+
+      const recordedAt = options.recordedAt || new Date().toISOString();
+      const insert = this.db.prepare(
+        `INSERT OR IGNORE INTO note_audio_files
+          (note_id, filename, duration_seconds, recorded_at)
+         VALUES (?, ?, ?, ?)`
+      );
+      const fetch = this.db.prepare(
+        "SELECT * FROM note_audio_files WHERE note_id = ? AND filename = ?"
+      );
+
+      const transaction = this.db.transaction(() => {
+        insert.run(noteId, safeFilename, durationSeconds, recordedAt);
+        if (options.updateLatest) {
+          this.db
+            .prepare(
+              `UPDATE notes
+               SET source_file = ?,
+                   audio_duration_seconds = ?,
+                   updated_at = CURRENT_TIMESTAMP,
+                   sync_status = 'pending'
+               WHERE id = ?`
+            )
+            .run(safeFilename, durationSeconds, noteId);
+        }
+        return fetch.get(noteId, safeFilename);
+      });
+
+      return { success: true, audioFile: transaction() };
+    } catch (error) {
+      debugLogger.error("Error adding note audio file", { error: error.message }, "notes");
+      throw error;
+    }
+  }
+
+  getNoteAudioFiles(noteId) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      return this.db
+        .prepare(
+          `SELECT * FROM note_audio_files
+           WHERE note_id = ?
+           ORDER BY COALESCE(recorded_at, created_at) DESC, id DESC`
+        )
+        .all(noteId);
+    } catch (error) {
+      debugLogger.error("Error getting note audio files", { error: error.message }, "notes");
+      throw error;
+    }
+  }
+
+  getNoteAudioFile(noteId, audioFileId) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      return (
+        this.db
+          .prepare("SELECT * FROM note_audio_files WHERE note_id = ? AND id = ?")
+          .get(noteId, audioFileId) || null
+      );
+    } catch (error) {
+      debugLogger.error("Error getting note audio file", { error: error.message }, "notes");
+      throw error;
+    }
+  }
+
+  removeNoteAudioFilesByFilename(filenames, remainingFilenames = null) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const names = [...new Set((filenames || []).filter(Boolean))];
+      if (names.length === 0) return { success: true, affectedNotes: 0 };
+
+      const placeholders = names.map(() => "?").join(", ");
+      const remaining = remainingFilenames
+        ? new Set((remainingFilenames || []).filter(Boolean))
+        : null;
+
+      const transaction = this.db.transaction(() => {
+        const affected = this.db
+          .prepare(
+            `SELECT DISTINCT note_id
+             FROM note_audio_files
+             WHERE filename IN (${placeholders})`
+          )
+          .all(...names)
+          .map((row) => row.note_id);
+
+        this.db
+          .prepare(`DELETE FROM note_audio_files WHERE filename IN (${placeholders})`)
+          .run(...names);
+
+        for (const noteId of affected) {
+          const note = this.db.prepare("SELECT * FROM notes WHERE id = ?").get(noteId);
+          if (!note || !names.includes(note.source_file)) continue;
+
+          const candidates = this.db
+            .prepare(
+              `SELECT filename, duration_seconds
+               FROM note_audio_files
+               WHERE note_id = ?
+               ORDER BY COALESCE(recorded_at, created_at) DESC, id DESC`
+            )
+            .all(noteId);
+          const fallback = remaining
+            ? candidates.find((candidate) => remaining.has(candidate.filename))
+            : candidates[0];
+
+          this.db
+            .prepare(
+              `UPDATE notes
+               SET source_file = ?,
+                   audio_duration_seconds = ?,
+                   updated_at = CURRENT_TIMESTAMP,
+                   sync_status = 'pending'
+               WHERE id = ?`
+            )
+            .run(fallback?.filename || null, fallback?.duration_seconds || null, noteId);
+        }
+
+        return affected.length;
+      });
+
+      return { success: true, affectedNotes: transaction() };
+    } catch (error) {
+      debugLogger.error("Error removing note audio files", { error: error.message }, "notes");
+      throw error;
+    }
+  }
+
+  clearNoteAudioFiles() {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const transaction = this.db.transaction(() => {
+        const filenames = this.db
+          .prepare("SELECT DISTINCT filename FROM note_audio_files")
+          .all()
+          .map((row) => row.filename);
+        this.db.prepare("DELETE FROM note_audio_files").run();
+        if (filenames.length > 0) {
+          const placeholders = filenames.map(() => "?").join(", ");
+          this.db
+            .prepare(
+              `UPDATE notes
+               SET source_file = NULL,
+                   audio_duration_seconds = NULL,
+                   updated_at = CURRENT_TIMESTAMP,
+                   sync_status = 'pending'
+               WHERE source_file IN (${placeholders})`
+            )
+            .run(...filenames);
+        }
+      });
+      transaction();
+      return { success: true };
+    } catch (error) {
+      debugLogger.error("Error clearing note audio files", { error: error.message }, "notes");
       throw error;
     }
   }
@@ -1675,10 +1884,12 @@ class DatabaseManager {
         }
         this.db = null;
       }
-      const dbPath = path.join(
-        app.getPath("userData"),
-        process.env.NODE_ENV === "development" ? "transcriptions-dev.db" : "transcriptions.db"
-      );
+      const dbPath =
+        this.dbPath ||
+        path.join(
+          app.getPath("userData"),
+          process.env.NODE_ENV === "development" ? "transcriptions-dev.db" : "transcriptions.db"
+        );
       if (fs.existsSync(dbPath)) {
         fs.unlinkSync(dbPath);
       }

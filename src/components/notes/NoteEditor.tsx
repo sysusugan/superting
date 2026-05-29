@@ -87,6 +87,7 @@ interface NoteEditorProps {
   onExportNote?: (format: "md" | "txt") => void;
   onExportTranscript?: (format: "txt" | "srt" | "json" | "md") => void;
   onDownloadOriginalAudio?: () => void;
+  hasDownloadableAudio?: boolean;
   enhancement?: Enhancement;
   actionPicker?: React.ReactNode;
   actionProcessingState?: ActionProcessingState;
@@ -124,6 +125,7 @@ export default function NoteEditor({
   onExportNote,
   onExportTranscript,
   onDownloadOriginalAudio,
+  hasDownloadableAudio = !!note.source_file,
   enhancement,
   actionPicker,
   actionProcessingState,
@@ -883,11 +885,13 @@ export default function NoteEditor({
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => onDownloadOriginalAudio()}
-                          disabled={!note.source_file || isRecording}
+                          disabled={!hasDownloadableAudio}
                           className="text-xs gap-2"
                         >
                           <FileAudio size={13} className="text-foreground/40" />
-                          {t("notes.editor.downloadOriginalAudio")}
+                          {isRecording
+                            ? t("notes.editor.downloadSavedAudio")
+                            : t("notes.editor.downloadOriginalAudio")}
                         </DropdownMenuItem>
                       </>
                     )}

@@ -1,0 +1,90 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+
+const DatabaseManager = require("../../src/helpers/database");
+
+function createDatabase(t) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-db-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const db = new DatabaseManager({ dbPath: path.join(root, "transcriptions.db") });
+  t.after(() => db.cleanup());
+  return db;
+}
+
+test("note audio files retain multiple saved recordings for one note", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Meeting", "", "meeting").note;
+
+  db.addNoteAudioFile(note.id, "OpenWhispr-meeting-2026-05-29-10-00-00-1.wav", 60, {
+    recordedAt: "2026-05-29T10:00:00.000Z",
+  });
+  db.addNoteAudioFile(note.id, "OpenWhispr-meeting-2026-05-29-10-30-00-1.wav", 30, {
+    recordedAt: "2026-05-29T10:30:00.000Z",
+  });
+
+  const files = db.getNoteAudioFiles(note.id);
+
+  assert.deepEqual(
+    files.map((file) => file.filename),
+    ["OpenWhispr-meeting-2026-05-29-10-30-00-1.wav", "OpenWhispr-meeting-2026-05-29-10-00-00-1.wav"]
+  );
+  assert.equal(files[0].duration_seconds, 30);
+});
+
+test("existing note source files are backfilled once into note audio files", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote(
+    "Legacy",
+    "",
+    "meeting",
+    "OpenWhispr-meeting-2026-05-29-10-00-00-2.wav",
+    42
+  ).note;
+
+  db.backfillNoteAudioFiles();
+  db.backfillNoteAudioFiles();
+
+  const files = db.getNoteAudioFiles(note.id);
+  assert.equal(files.length, 1);
+  assert.equal(files[0].filename, "OpenWhispr-meeting-2026-05-29-10-00-00-2.wav");
+  assert.equal(files[0].duration_seconds, 42);
+});
+
+test("backfill ignores upload source files that are not retained local audio", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Upload", "", "upload", "customer-call.mp3", null).note;
+
+  db.backfillNoteAudioFiles();
+
+  assert.deepEqual(db.getNoteAudioFiles(note.id), []);
+});
+
+test("removing note audio files falls back note source_file to latest remaining recording", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Meeting", "", "meeting").note;
+  const older = "OpenWhispr-meeting-2026-05-29-10-00-00-3.wav";
+  const newer = "OpenWhispr-meeting-2026-05-29-10-30-00-3.wav";
+
+  db.addNoteAudioFile(note.id, older, 60, {
+    recordedAt: "2026-05-29T10:00:00.000Z",
+    updateLatest: true,
+  });
+  db.addNoteAudioFile(note.id, newer, 30, {
+    recordedAt: "2026-05-29T10:30:00.000Z",
+    updateLatest: true,
+  });
+
+  db.removeNoteAudioFilesByFilename([newer], [older]);
+
+  const updated = db.getNote(note.id);
+  assert.equal(updated.source_file, older);
+  assert.equal(updated.audio_duration_seconds, 60);
+  assert.deepEqual(
+    db.getNoteAudioFiles(note.id).map((file) => file.filename),
+    [older]
+  );
+});

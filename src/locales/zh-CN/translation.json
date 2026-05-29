@@ -1935,7 +1935,9 @@
       "conversationWillAppear": "对话将显示在这里...",
       "linkedEvent": "关联日程",
       "noFolder": "无文件夹",
-      "participants": "参与者"
+      "participants": "参与者",
+      "downloadSavedAudio": "下载已保存音频",
+      "chooseAudioFile": "选择音频文件"
     },
     "participants": {
       "attendee": "位参会者",

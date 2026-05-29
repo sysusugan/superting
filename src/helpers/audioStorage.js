@@ -175,6 +175,8 @@ class AudioStorageManager {
       const cutoffMs = Date.now() - retentionDays * 86400000;
       const files = fs.readdirSync(this.audioDir).filter(isRetainedAudioFile);
       const expiredIds = [];
+      const deletedFilenames = [];
+      const remainingFilenames = [];
       let kept = 0;
 
       for (const file of files) {
@@ -183,6 +185,7 @@ class AudioStorageManager {
           const stats = fs.statSync(filePath);
           if (stats.mtimeMs < cutoffMs) {
             fs.unlinkSync(filePath);
+            deletedFilenames.push(file);
             // Extract ID from "OpenWhispr-...-{id}.webm" or legacy "{id}.webm"
             if (isDictationAudioFile(file)) {
               const basename = path.basename(file, ".webm");
@@ -192,6 +195,7 @@ class AudioStorageManager {
             }
           } else {
             kept++;
+            remainingFilenames.push(file);
           }
         } catch (error) {
           debugLogger.error(
@@ -205,13 +209,16 @@ class AudioStorageManager {
       if (expiredIds.length > 0 && databaseManager) {
         databaseManager.clearAudioFlags(expiredIds);
       }
+      if (deletedFilenames.length > 0 && databaseManager?.removeNoteAudioFilesByFilename) {
+        databaseManager.removeNoteAudioFilesByFilename(deletedFilenames, remainingFilenames);
+      }
 
       debugLogger.info(
         "Audio cleanup complete",
-        { deleted: expiredIds.length, kept, retentionDays },
+        { deleted: deletedFilenames.length, kept, retentionDays },
         "audio-storage"
       );
-      return { deleted: expiredIds.length, kept };
+      return { deleted: deletedFilenames.length, kept };
     } catch (error) {
       debugLogger.error("Audio cleanup failed", { error: error.message }, "audio-storage");
       return { deleted: 0, kept: 0 };

@@ -51,3 +51,32 @@ test("getRetainedAudioPath returns existing retained audio and rejects missing o
   assert.equal(storage.getRetainedAudioPath("missing.wav"), null);
   assert.equal(storage.getRetainedAudioPath("../secret.wav"), null);
 });
+
+test("cleanupExpiredAudio reports deleted retained note audio filenames to database", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const audioDir = path.join(root, "audio");
+  const storage = new AudioStorageManager({ audioDir });
+  const expired = "OpenWhispr-meeting-2026-05-28-06-07-08-12.wav";
+  const retained = "OpenWhispr-meeting-2026-05-29-06-07-08-12.wav";
+  fs.writeFileSync(path.join(audioDir, expired), Buffer.from("old"));
+  fs.writeFileSync(path.join(audioDir, retained), Buffer.from("new"));
+
+  const oldTime = Date.now() - 40 * 86400000;
+  fs.utimesSync(path.join(audioDir, expired), oldTime / 1000, oldTime / 1000);
+
+  let deletedFilenames = null;
+  let remainingFilenames = null;
+  const result = storage.cleanupExpiredAudio(30, {
+    clearAudioFlags() {},
+    removeNoteAudioFilesByFilename(deleted, remaining) {
+      deletedFilenames = deleted;
+      remainingFilenames = remaining;
+    },
+  });
+
+  assert.equal(result.deleted, 1);
+  assert.deepEqual(deletedFilenames, [expired]);
+  assert.deepEqual(remainingFilenames, [retained]);
+});

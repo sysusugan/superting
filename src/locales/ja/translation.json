@@ -1846,7 +1846,9 @@
       "raw": "元のテキスト",
       "enhanced": "強化済み",
       "saving": "保存中",
-      "startWriting": "書き始める..."
+      "startWriting": "書き始める...",
+      "downloadSavedAudio": "保存済み音声をダウンロード",
+      "chooseAudioFile": "音声ファイルを選択"
     },
     "participants": {
       "attendee": "名の参加者",

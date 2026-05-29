@@ -1940,7 +1940,9 @@
       "conversationWillAppear": "Разговор появится здесь...",
       "linkedEvent": "Связанное событие",
       "noFolder": "Без папки",
-      "participants": "Участники"
+      "participants": "Участники",
+      "downloadSavedAudio": "Скачать сохраненное аудио",
+      "chooseAudioFile": "Выберите аудиофайл"
     },
     "participants": {
       "attendee": "участник",

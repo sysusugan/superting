@@ -12,6 +12,7 @@ import {
   Search,
   Sparkles,
   ExternalLink,
+  FileAudio,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import {
@@ -56,6 +57,7 @@ import { useNoteDragAndDrop } from "../../hooks/useNoteDragAndDrop";
 import { cn } from "../lib/utils";
 import { MEETINGS_FOLDER_NAME, findDefaultFolder } from "./shared";
 import logger from "../../utils/logger";
+import { normalizeDbDate } from "../../utils/dateFormatting";
 import { parseTranscriptSegments } from "../../utils/parseTranscriptSegments";
 import { buildNoteActionInput } from "./noteActionInput";
 import { serializeTranscriptSegments } from "../../utils/transcriptSpeakerState";
@@ -80,12 +82,39 @@ import {
 } from "../../stores/meetingRecordingStore";
 import { useNotesOnboarding } from "../../hooks/useNotesOnboarding";
 import NotesOnboarding from "./NotesOnboarding";
+import type { NoteAudioFile } from "../../types/electron";
 
 const FOLDER_INPUT_CLASS =
   "w-full h-6 bg-foreground/5 dark:bg-white/5 rounded px-2 text-xs text-foreground outline-none border border-primary/30 focus:border-primary/50";
 
+function formatAudioDuration(seconds: number | null): string {
+  if (!seconds || seconds <= 0) return "";
+  const total = Math.round(seconds);
+  const minutes = Math.floor(total / 60);
+  const remaining = total % 60;
+  return `${minutes}:${String(remaining).padStart(2, "0")}`;
+}
+
+function formatFileSize(bytes: number | null): string {
+  if (!bytes || bytes <= 0) return "";
+  const mb = bytes / 1024 / 1024;
+  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.round(bytes / 1024)} KB`;
+}
+
 function makeContentHash(content: string): string {
   return String(content.length) + "-" + content.slice(0, 50);
+}
+
+function formatAudioDate(dateStr: string): string {
+  const date = normalizeDbDate(dateStr);
+  if (Number.isNaN(date.getTime())) return "";
+  const datePart = date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const timePart = date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return `${datePart} \u00b7 ${timePart}`;
 }
 
 interface PersonalNotesViewProps {
@@ -118,6 +147,8 @@ export default function PersonalNotesView({
   const [localEnhancedContent, setLocalEnhancedContent] = useState<string | null>(null);
   const [showActionManager, setShowActionManager] = useState(false);
   const [showNewNoteDialog, setShowNewNoteDialog] = useState(false);
+  const [showAudioDownloadDialog, setShowAudioDownloadDialog] = useState(false);
+  const [noteAudioFiles, setNoteAudioFiles] = useState<NoteAudioFile[]>([]);
   const [newNoteFolderId, setNewNoteFolderId] = useState<string>("");
   const [isCreatingNewNoteFolder, setIsCreatingNewNoteFolder] = useState(false);
   const [newNoteFolderName, setNewNoteFolderName] = useState("");
@@ -205,6 +236,21 @@ export default function PersonalNotesView({
   );
 
   const activeNote = notes.find((n) => n.id === activeNoteId) ?? null;
+
+  const loadNoteAudioFiles = useCallback(async (noteId: number | null) => {
+    if (!noteId) {
+      setNoteAudioFiles([]);
+      return [];
+    }
+    const result = await window.electronAPI.getNoteAudioFiles?.(noteId);
+    const files = result?.success ? (result.files ?? []) : [];
+    setNoteAudioFiles(files);
+    return files;
+  }, []);
+
+  useEffect(() => {
+    loadNoteAudioFiles(activeNoteId);
+  }, [activeNoteId, activeNote?.source_file, loadNoteAudioFiles]);
 
   // Derive folder name and calendar event name for the metadata chips
   const activeFolderName = useMemo(() => {
@@ -503,17 +549,39 @@ export default function PersonalNotesView({
     [activeNoteId]
   );
 
+  const downloadAudioFile = useCallback(
+    async (audioFileId: number) => {
+      if (!activeNoteId) return;
+      const result = await window.electronAPI.downloadNoteAudio(activeNoteId, audioFileId);
+      if (!result.success && !result.canceled) {
+        toast({
+          title: t("notes.editor.audioDownloadFailed"),
+          description: result.error || t("notes.editor.audioUnavailableDescription"),
+          variant: "destructive",
+        });
+      }
+    },
+    [activeNoteId, t, toast]
+  );
+
   const handleDownloadOriginalAudio = useCallback(async () => {
     if (!activeNoteId) return;
-    const result = await window.electronAPI.downloadNoteAudio(activeNoteId);
-    if (!result.success && !result.canceled) {
+    const files =
+      noteAudioFiles.length > 0 ? noteAudioFiles : await loadNoteAudioFiles(activeNoteId);
+    if (files.length === 0) {
       toast({
-        title: t("notes.editor.audioDownloadFailed"),
-        description: result.error || t("notes.editor.audioUnavailableDescription"),
+        title: t("notes.editor.originalAudioUnavailable"),
+        description: t("notes.editor.audioUnavailableDescription"),
         variant: "destructive",
       });
+      return;
     }
-  }, [activeNoteId, t, toast]);
+    if (files.length === 1) {
+      await downloadAudioFile(files[0].id);
+      return;
+    }
+    setShowAudioDownloadDialog(true);
+  }, [activeNoteId, downloadAudioFile, loadNoteAudioFiles, noteAudioFiles, t, toast]);
 
   useEffect(() => {
     if (!meetingRecordingRequest || activeNoteId !== meetingRecordingRequest.noteId) return;
@@ -947,6 +1015,7 @@ export default function PersonalNotesView({
               onExportNote={handleExportNote}
               onExportTranscript={handleExportTranscript}
               onDownloadOriginalAudio={handleDownloadOriginalAudio}
+              hasDownloadableAudio={noteAudioFiles.length > 0}
               enhancement={
                 localEnhancedContent
                   ? {
@@ -1158,6 +1227,49 @@ export default function PersonalNotesView({
           onNotesAdded={handleNotesAdded}
         />
       )}
+
+      <Dialog open={showAudioDownloadDialog} onOpenChange={setShowAudioDownloadDialog}>
+        <DialogContent className="sm:max-w-105 p-6 gap-5">
+          <DialogHeader>
+            <DialogTitle>{t("notes.editor.chooseAudioFile")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {noteAudioFiles.map((file) => {
+              const recordedAt = file.recorded_at || file.created_at;
+              const dateLabel = recordedAt ? formatAudioDate(recordedAt) : file.filename;
+              const duration = formatAudioDuration(file.duration_seconds);
+              const size = formatFileSize(file.size_bytes);
+              const details = [duration, size, file.extension?.toUpperCase()].filter(Boolean);
+              return (
+                <button
+                  key={file.id}
+                  type="button"
+                  onClick={async () => {
+                    setShowAudioDownloadDialog(false);
+                    await downloadAudioFile(file.id);
+                  }}
+                  className="w-full flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-left hover:bg-muted transition-colors"
+                >
+                  <FileAudio size={16} className="text-foreground/50 shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-foreground truncate">
+                      {dateLabel}
+                    </span>
+                    <span className="block text-xs text-muted-foreground truncate">
+                      {details.join(" \u00b7 ") || file.filename}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowAudioDownloadDialog(false)}>
+              {t("common.cancel")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={showNewNoteDialog}

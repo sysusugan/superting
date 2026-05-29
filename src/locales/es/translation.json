@@ -1988,7 +1988,9 @@
       "conversationWillAppear": "La conversación aparecerá aquí...",
       "linkedEvent": "Evento vinculado",
       "noFolder": "Sin carpeta",
-      "participants": "Participantes"
+      "participants": "Participantes",
+      "downloadSavedAudio": "Descargar audio guardado",
+      "chooseAudioFile": "Elegir archivo de audio"
     },
     "participants": {
       "attendee": "asistente",
