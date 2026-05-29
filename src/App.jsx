@@ -284,6 +284,12 @@ export default function App() {
   };
 
   const micState = getMicState();
+  const commandMenuAlignClass =
+    panelStartPosition === "bottom-left"
+      ? "left-0"
+      : panelStartPosition === "center"
+        ? "left-1/2 -translate-x-1/2"
+        : "right-0";
 
   const getMicButtonProps = () => {
     const baseClasses =
@@ -458,7 +464,7 @@ export default function App() {
           {isCommandMenuOpen && (
             <div
               ref={commandMenuRef}
-              className="absolute bottom-full right-0 mb-3 w-48 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg backdrop-blur-sm"
+              className={`absolute bottom-full ${commandMenuAlignClass} mb-3 w-48 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg backdrop-blur-sm`}
               onMouseEnter={() => {
                 setWindowInteractivity(true);
               }}
