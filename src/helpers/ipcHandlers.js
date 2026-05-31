@@ -1450,6 +1450,55 @@ class IPCHandlers {
       }
     });
 
+    ipcMain.handle("export-selected-notes", async (_event, noteIds, options) => {
+      try {
+        const {
+          buildSelectedNoteExport,
+          normalizeExportOptions,
+          safeExportBaseName,
+          uniqueExportPath,
+        } = require("./noteExportFormatter");
+        const { dialog } = require("electron");
+        const fs = require("fs");
+
+        if (!Array.isArray(noteIds) || noteIds.length === 0) {
+          return { success: false, error: "No notes selected" };
+        }
+
+        const normalized = normalizeExportOptions(options);
+        if (normalized.fields.length === 0) {
+          return { success: false, error: "Select at least one field to export" };
+        }
+
+        const notes = noteIds.map((noteId) => this.databaseManager.getNote(noteId)).filter(Boolean);
+        if (notes.length === 0) {
+          return { success: false, error: "No notes found" };
+        }
+
+        const result = await dialog.showOpenDialog({
+          properties: ["openDirectory", "createDirectory"],
+          title: "Choose export folder",
+        });
+
+        if (result.canceled || !result.filePaths?.[0]) {
+          return { success: false, canceled: true };
+        }
+
+        const directory = result.filePaths[0];
+        for (const note of notes) {
+          const baseName = safeExportBaseName(note);
+          const filePath = uniqueExportPath(directory, baseName, normalized.format);
+          const exportContent = buildSelectedNoteExport(note, normalized);
+          fs.writeFileSync(filePath, exportContent, "utf-8");
+        }
+
+        return { success: true, exported: notes.length };
+      } catch (error) {
+        debugLogger.error("Error exporting selected notes", { error: error.message }, "notes");
+        return { success: false, error: error.message };
+      }
+    });
+
     ipcMain.handle("get-note-audio-files", async (_event, noteId) => {
       try {
         const note = this.databaseManager.getNote(noteId);

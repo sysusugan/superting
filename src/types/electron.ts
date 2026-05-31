@@ -64,6 +64,9 @@ export interface NoteItem {
   team_id?: string | null;
 }
 
+export type NoteExportField = "transcript" | "content" | "enhanced_content";
+export type NoteExportFormat = "md" | "txt";
+
 export interface NoteAudioFile {
   id: number;
   note_id: number;
@@ -616,6 +619,10 @@ declare global {
         noteId: number,
         format: "txt" | "srt" | "json" | "md"
       ) => Promise<{ success: boolean; error?: string }>;
+      exportSelectedNotes: (
+        noteIds: number[],
+        options: { fields: NoteExportField[]; format: NoteExportFormat }
+      ) => Promise<{ success: boolean; exported?: number; canceled?: boolean; error?: string }>;
       getNoteAudioFiles: (
         noteId: number
       ) => Promise<{ success: boolean; files?: NoteAudioFile[]; error?: string }>;

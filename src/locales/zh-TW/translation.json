@@ -1950,6 +1950,26 @@
       "transcriptNoSearch": "輸入要尋找的內容",
       "transcriptEditDisabledRecording": "停止錄音後才能編輯轉錄"
     },
+    "bulkExport": {
+      "select": "選擇",
+      "selectedCount": "已選 {{count}} 則",
+      "selectAll": "全選",
+      "exportSelected": "匯出選取筆記",
+      "title": "匯出選取筆記",
+      "fields": "欄位",
+      "fieldTranscript": "轉錄",
+      "fieldNotes": "筆記",
+      "fieldEnhanced": "增強內容",
+      "format": "格式",
+      "formatMarkdown": "Markdown (.md)",
+      "formatText": "文字 (.txt)",
+      "exportFiles": "匯出 {{count}} 個檔案",
+      "exporting": "正在匯出...",
+      "successTitle": "筆記已匯出",
+      "successDescription": "已匯出 {{count}} 個檔案。",
+      "errorTitle": "無法匯出筆記",
+      "errorDescription": "請重試或選擇其他資料夾。"
+    },
     "participants": {
       "attendee": "位與會者",
       "attendees": "位與會者",

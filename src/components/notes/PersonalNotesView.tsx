@@ -13,6 +13,8 @@ import {
   Sparkles,
   ExternalLink,
   FileAudio,
+  Download,
+  X,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import {
@@ -82,7 +84,7 @@ import {
 } from "../../stores/meetingRecordingStore";
 import { useNotesOnboarding } from "../../hooks/useNotesOnboarding";
 import NotesOnboarding from "./NotesOnboarding";
-import type { NoteAudioFile } from "../../types/electron";
+import type { NoteAudioFile, NoteExportField, NoteExportFormat } from "../../types/electron";
 
 const FOLDER_INPUT_CLASS =
   "w-full h-6 bg-foreground/5 dark:bg-white/5 rounded px-2 text-xs text-foreground outline-none border border-primary/30 focus:border-primary/50";
@@ -144,7 +146,17 @@ export default function PersonalNotesView({
   const [showActionManager, setShowActionManager] = useState(false);
   const [showNewNoteDialog, setShowNewNoteDialog] = useState(false);
   const [showAudioDownloadDialog, setShowAudioDownloadDialog] = useState(false);
+  const [showBulkExportDialog, setShowBulkExportDialog] = useState(false);
   const [noteAudioFiles, setNoteAudioFiles] = useState<NoteAudioFile[]>([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedNoteIds, setSelectedNoteIds] = useState<Set<number>>(new Set());
+  const [exportFields, setExportFields] = useState<NoteExportField[]>([
+    "transcript",
+    "content",
+    "enhanced_content",
+  ]);
+  const [exportFormat, setExportFormat] = useState<NoteExportFormat>("md");
+  const [isBulkExporting, setIsBulkExporting] = useState(false);
   const [newNoteFolderId, setNewNoteFolderId] = useState<string>("");
   const [isCreatingNewNoteFolder, setIsCreatingNewNoteFolder] = useState(false);
   const [newNoteFolderName, setNewNoteFolderName] = useState("");
@@ -232,6 +244,72 @@ export default function PersonalNotesView({
   );
 
   const activeNote = notes.find((n) => n.id === activeNoteId) ?? null;
+  const selectedCount = selectedNoteIds.size;
+
+  const clearNoteSelection = useCallback(() => {
+    setSelectedNoteIds(new Set());
+    setIsSelectionMode(false);
+  }, []);
+
+  const toggleNoteSelection = useCallback((noteId: number) => {
+    setSelectedNoteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(noteId)) next.delete(noteId);
+      else next.add(noteId);
+      return next;
+    });
+  }, []);
+
+  const toggleExportField = useCallback((field: NoteExportField) => {
+    setExportFields((prev) =>
+      prev.includes(field) ? prev.filter((item) => item !== field) : [...prev, field]
+    );
+  }, []);
+
+  const handleSelectAllVisibleNotes = useCallback(() => {
+    setSelectedNoteIds(new Set(notes.map((note) => note.id)));
+  }, [notes]);
+
+  const handleExportSelectedNotes = useCallback(async () => {
+    if (selectedNoteIds.size === 0 || exportFields.length === 0) return;
+    setIsBulkExporting(true);
+    try {
+      const result = await window.electronAPI.exportSelectedNotes([...selectedNoteIds], {
+        fields: exportFields,
+        format: exportFormat,
+      });
+      if (result.success) {
+        toast({
+          title: t("notes.bulkExport.successTitle"),
+          description: t("notes.bulkExport.successDescription", {
+            count: result.exported ?? selectedNoteIds.size,
+          }),
+        });
+        setShowBulkExportDialog(false);
+        clearNoteSelection();
+      } else if (!result.canceled) {
+        toast({
+          title: t("notes.bulkExport.errorTitle"),
+          description: result.error || t("notes.bulkExport.errorDescription"),
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsBulkExporting(false);
+    }
+  }, [clearNoteSelection, exportFields, exportFormat, selectedNoteIds, t, toast]);
+
+  useEffect(() => {
+    setSelectedNoteIds((prev) => {
+      const visibleIds = new Set(notes.map((note) => note.id));
+      const next = new Set([...prev].filter((id) => visibleIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [notes]);
+
+  useEffect(() => {
+    clearNoteSelection();
+  }, [activeFolderId, clearNoteSelection]);
 
   const loadNoteAudioFiles = useCallback(async (noteId: number | null) => {
     if (!noteId) {
@@ -894,19 +972,65 @@ export default function PersonalNotesView({
           <div className="mx-3 h-px bg-border/10 dark:bg-white/4 my-2" />
 
           {/* Notes list */}
-          <div className="flex items-center justify-between px-3 py-1">
+          <div className="flex items-center justify-between px-3 py-1 gap-1">
             <span className="text-xs font-medium uppercase tracking-wider text-foreground/50 dark:text-foreground/25">
-              {t("notes.list.title")}
+              {isSelectionMode
+                ? t("notes.bulkExport.selectedCount", { count: selectedCount })
+                : t("notes.list.title")}
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleNewNote}
-              aria-label={t("notes.list.newNote")}
-              className="h-5 w-5 rounded-md text-muted-foreground/50 dark:text-muted-foreground/30 hover:text-foreground/60 hover:bg-foreground/5"
-            >
-              <Plus size={13} />
-            </Button>
+            {isSelectionMode ? (
+              <div className="flex items-center gap-0.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSelectAllVisibleNotes}
+                  className="h-5 px-1.5 text-[11px] rounded-md text-muted-foreground/60 hover:text-foreground/70 hover:bg-foreground/5"
+                >
+                  {t("notes.bulkExport.selectAll")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowBulkExportDialog(true)}
+                  disabled={selectedCount === 0}
+                  aria-label={t("notes.bulkExport.exportSelected")}
+                  className="h-5 w-5 rounded-md text-muted-foreground/50 dark:text-muted-foreground/30 hover:text-foreground/60 hover:bg-foreground/5 disabled:opacity-30"
+                >
+                  <Download size={12} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={clearNoteSelection}
+                  aria-label={t("common.cancel")}
+                  className="h-5 w-5 rounded-md text-muted-foreground/50 dark:text-muted-foreground/30 hover:text-foreground/60 hover:bg-foreground/5"
+                >
+                  <X size={12} />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-0.5">
+                {notes.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsSelectionMode(true)}
+                    className="h-5 px-1.5 text-[11px] rounded-md text-muted-foreground/60 hover:text-foreground/70 hover:bg-foreground/5"
+                  >
+                    {t("notes.bulkExport.select")}
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleNewNote}
+                  aria-label={t("notes.list.newNote")}
+                  className="h-5 w-5 rounded-md text-muted-foreground/50 dark:text-muted-foreground/30 hover:text-foreground/60 hover:bg-foreground/5"
+                >
+                  <Plus size={13} />
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto">
@@ -1005,6 +1129,9 @@ export default function PersonalNotesView({
                   currentFolderId={activeFolderId}
                   onMoveToFolder={handleMoveToFolder}
                   onCreateFolderAndMove={handleCreateFolderAndMove}
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedNoteIds.has(note.id)}
+                  onToggleSelected={toggleNoteSelection}
                   dragHandlers={noteDragHandlers(note.id, note.title)}
                   isDragging={dragState.draggingNoteId === note.id}
                   noteFilesEnabled={noteFilesEnabled}
@@ -1247,6 +1374,93 @@ export default function PersonalNotesView({
           onNotesAdded={handleNotesAdded}
         />
       )}
+
+      <Dialog open={showBulkExportDialog} onOpenChange={setShowBulkExportDialog}>
+        <DialogContent className="sm:max-w-105 p-6 gap-5">
+          <DialogHeader>
+            <DialogTitle>{t("notes.bulkExport.title")}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-foreground/50">
+                {t("notes.bulkExport.fields")}
+              </p>
+              <div className="space-y-1">
+                {[
+                  ["transcript", t("notes.bulkExport.fieldTranscript")],
+                  ["content", t("notes.bulkExport.fieldNotes")],
+                  ["enhanced_content", t("notes.bulkExport.fieldEnhanced")],
+                ].map(([field, label]) => {
+                  const typedField = field as NoteExportField;
+                  const checked = exportFields.includes(typedField);
+                  return (
+                    <button
+                      key={field}
+                      type="button"
+                      onClick={() => toggleExportField(typedField)}
+                      className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs text-foreground/70 hover:bg-foreground/5 transition-colors"
+                    >
+                      <span
+                        className={cn(
+                          "h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors",
+                          checked
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-transparent"
+                        )}
+                      >
+                        <Check size={11} />
+                      </span>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground/50">
+                {t("notes.bulkExport.format")}
+              </label>
+              <Select
+                value={exportFormat}
+                onValueChange={(value) => setExportFormat(value as NoteExportFormat)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="md">{t("notes.bulkExport.formatMarkdown")}</SelectItem>
+                  <SelectItem value="txt">{t("notes.bulkExport.formatText")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setShowBulkExportDialog(false)}
+              disabled={isBulkExporting}
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleExportSelectedNotes}
+              disabled={isBulkExporting || selectedCount === 0 || exportFields.length === 0}
+            >
+              {isBulkExporting ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" />
+                  {t("notes.bulkExport.exporting")}
+                </>
+              ) : (
+                t("notes.bulkExport.exportFiles", { count: selectedCount })
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showAudioDownloadDialog} onOpenChange={setShowAudioDownloadDialog}>
         <DialogContent className="sm:max-w-105 p-6 gap-5">

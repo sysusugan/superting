@@ -1950,6 +1950,26 @@
       "transcriptNoSearch": "输入要查找的内容",
       "transcriptEditDisabledRecording": "停止录音后才能编辑转录"
     },
+    "bulkExport": {
+      "select": "选择",
+      "selectedCount": "已选 {{count}} 条",
+      "selectAll": "全选",
+      "exportSelected": "导出选中笔记",
+      "title": "导出选中笔记",
+      "fields": "字段",
+      "fieldTranscript": "转录",
+      "fieldNotes": "笔记",
+      "fieldEnhanced": "增强内容",
+      "format": "格式",
+      "formatMarkdown": "Markdown (.md)",
+      "formatText": "文本 (.txt)",
+      "exportFiles": "导出 {{count}} 个文件",
+      "exporting": "正在导出...",
+      "successTitle": "笔记已导出",
+      "successDescription": "已导出 {{count}} 个文件。",
+      "errorTitle": "无法导出笔记",
+      "errorDescription": "请重试或选择其他文件夹。"
+    },
     "participants": {
       "attendee": "位参会者",
       "attendees": "位参会者",

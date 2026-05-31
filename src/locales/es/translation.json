@@ -2003,6 +2003,26 @@
       "transcriptNoSearch": "Enter text to find",
       "transcriptEditDisabledRecording": "Stop recording before editing the transcript"
     },
+    "bulkExport": {
+      "select": "Select",
+      "selectedCount": "{{count}} selected",
+      "selectAll": "All",
+      "exportSelected": "Export selected notes",
+      "title": "Export selected notes",
+      "fields": "Fields",
+      "fieldTranscript": "Transcription",
+      "fieldNotes": "Notes",
+      "fieldEnhanced": "Enhanced content",
+      "format": "Format",
+      "formatMarkdown": "Markdown (.md)",
+      "formatText": "Text (.txt)",
+      "exportFiles": "Export {{count}} file(s)",
+      "exporting": "Exporting...",
+      "successTitle": "Notes exported",
+      "successDescription": "Exported {{count}} file(s).",
+      "errorTitle": "Could not export notes",
+      "errorDescription": "Try again or choose a different folder."
+    },
     "participants": {
       "attendee": "asistente",
       "attendees": "asistentes",
