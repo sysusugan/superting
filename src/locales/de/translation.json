@@ -2043,7 +2043,13 @@
       "errors": {
         "noModel": "Kein KI-Modell ausgewählt. Konfigurieren Sie eins in den Einstellungen.",
         "actionFailed": "Aktion fehlgeschlagen"
-      }
+      },
+      "outputTargetLabel": "Ergebnis speichern in",
+      "outputTargetNote": "Notizen",
+      "outputTargetEnhanced": "Verbessert",
+      "writeModeLabel": "Schreibmodus",
+      "writeModeOverwrite": "Ueberschreiben",
+      "writeModeAppend": "Anhaengen"
     },
     "empty": {
       "title": "Noch keine Notizen hier",

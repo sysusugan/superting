@@ -2038,7 +2038,13 @@
       "errors": {
         "noModel": "未选择 AI 模型。请在设置中配置。",
         "actionFailed": "操作失败"
-      }
+      },
+      "outputTargetLabel": "保存结果到",
+      "outputTargetNote": "笔记",
+      "outputTargetEnhanced": "增强",
+      "writeModeLabel": "写入方式",
+      "writeModeOverwrite": "覆盖",
+      "writeModeAppend": "追加"
     },
     "empty": {
       "title": "这里还没有笔记",

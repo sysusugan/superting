@@ -33,6 +33,7 @@ import {
 import { cn } from "../lib/utils";
 import type { NoteItem, FolderItem } from "../../types/electron";
 import type { ActionProcessingState } from "../../hooks/useActionProcessing";
+import type { ActionOutputTarget } from "../../stores/actionProcessingCore";
 import ActionProcessingOverlay from "./ActionProcessingOverlay";
 import NoteBottomBar from "./NoteBottomBar";
 import EmbeddedChat, { type EmbeddedChatMode } from "./EmbeddedChat";
@@ -92,6 +93,7 @@ interface NoteEditorProps {
   actionPicker?: React.ReactNode;
   actionProcessingState?: ActionProcessingState;
   actionName?: string | null;
+  actionOutputTarget?: ActionOutputTarget | null;
   diarizationSessionId?: string | null;
   meetingTranscript?: string;
   meetingSegments?: TranscriptSegment[];
@@ -130,6 +132,7 @@ export default function NoteEditor({
   actionPicker,
   actionProcessingState,
   actionName,
+  actionOutputTarget,
   diarizationSessionId,
   meetingTranscript,
   meetingSegments,
@@ -288,12 +291,14 @@ export default function NoteEditor({
     let cancelScheduledUpdate: (() => void) | undefined;
 
     if (prevProcessingStateRef.current === "processing" && actionProcessingState === "success") {
-      cancelScheduledUpdate = scheduleUiUpdate(() => setViewMode("enhanced"));
+      cancelScheduledUpdate = scheduleUiUpdate(() =>
+        setViewMode(actionOutputTarget === "content" ? "raw" : "enhanced")
+      );
     }
     prevProcessingStateRef.current = actionProcessingState;
 
     return cancelScheduledUpdate;
-  }, [actionProcessingState, scheduleUiUpdate]);
+  }, [actionOutputTarget, actionProcessingState, scheduleUiUpdate]);
 
   useEffect(() => {
     if (note.id !== prevNoteIdRef.current) {

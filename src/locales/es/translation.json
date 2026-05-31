@@ -2091,7 +2091,13 @@
       "errors": {
         "noModel": "No hay modelo de IA seleccionado. Configura uno en Ajustes.",
         "actionFailed": "La acción falló"
-      }
+      },
+      "outputTargetLabel": "Guardar resultado en",
+      "outputTargetNote": "Notas",
+      "outputTargetEnhanced": "Mejorado",
+      "writeModeLabel": "Modo de escritura",
+      "writeModeOverwrite": "Sobrescribir",
+      "writeModeAppend": "Anadir"
     },
     "empty": {
       "title": "Todavía no hay notas aquí",

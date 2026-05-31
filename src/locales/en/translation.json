@@ -2266,7 +2266,13 @@
       "errors": {
         "noModel": "No AI model selected. Configure one in Settings.",
         "actionFailed": "Action failed"
-      }
+      },
+      "outputTargetLabel": "Save result to",
+      "outputTargetNote": "Notes",
+      "outputTargetEnhanced": "Enhanced",
+      "writeModeLabel": "Write mode",
+      "writeModeOverwrite": "Overwrite",
+      "writeModeAppend": "Append"
     },
     "onboarding": {
       "llm": {

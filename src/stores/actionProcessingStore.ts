@@ -4,13 +4,18 @@ import { getSettings } from "./settingsStore";
 import { buildNoteActionSystemPrompt } from "./noteActionPrompt";
 import { generateNoteTitle } from "../utils/generateTitle";
 import type { ActionItem } from "../types/electron";
-import { shouldAutoGenerateActionTitle } from "./actionProcessingCore";
+import {
+  buildActionOutputUpdates,
+  shouldAutoGenerateActionTitle,
+  type ActionOutputTarget,
+} from "./actionProcessingCore";
 
 export type ActionProcessingStatus = "idle" | "processing" | "success";
 
 export interface NoteActionState {
   status: ActionProcessingStatus;
   actionName: string | null;
+  outputTarget: ActionOutputTarget | null;
 }
 
 export interface ActionErrorEvent {
@@ -27,7 +32,7 @@ const cancelledFlags = new Map<number, boolean>();
 const processingFlags = new Map<number, boolean>();
 const successTimers = new Map<number, NodeJS.Timeout>();
 
-const IDLE_STATE: NoteActionState = { status: "idle", actionName: null };
+const IDLE_STATE: NoteActionState = { status: "idle", actionName: null, outputTarget: null };
 
 function setNoteState(noteId: number, patch: Partial<NoteActionState>) {
   const { noteStates } = useActionProcessingStore.getState();
@@ -59,6 +64,8 @@ export interface RunActionOptions {
   modelId: string;
   isMeetingNote?: boolean;
   currentTitle?: string | null;
+  currentContent?: string | null;
+  currentEnhancedContent?: string | null;
 }
 
 export interface RunActionLabels {
@@ -88,7 +95,11 @@ export function runBackgroundAction(
 
   cancelledFlags.set(noteId, false);
   processingFlags.set(noteId, true);
-  setNoteState(noteId, { status: "processing", actionName: action.name });
+  setNoteState(noteId, {
+    status: "processing",
+    actionName: action.name,
+    outputTarget: action.output_target === "content" ? "content" : "enhanced_content",
+  });
 
   (async () => {
     try {
@@ -122,11 +133,15 @@ export function runBackgroundAction(
 
       if (cancelledFlags.get(noteId)) return;
 
-      const updates: Record<string, string> = {
-        enhanced_content: enhanced,
-        enhancement_prompt: action.prompt,
-        enhanced_at_content_hash: contentHash,
-      };
+      const updates = buildActionOutputUpdates({
+        outputTarget: action.output_target,
+        writeMode: action.write_mode,
+        generatedContent: enhanced,
+        existingContent: options.currentContent,
+        existingEnhancedContent: options.currentEnhancedContent,
+        actionPrompt: action.prompt,
+        contentHash,
+      });
       if (title) updates.title = title;
       await window.electronAPI.updateNote(noteId, updates);
 

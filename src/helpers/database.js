@@ -221,6 +221,8 @@ class DatabaseManager {
           description TEXT NOT NULL DEFAULT '',
           prompt TEXT NOT NULL,
           icon TEXT NOT NULL DEFAULT 'sparkles',
+          output_target TEXT NOT NULL DEFAULT 'enhanced_content',
+          write_mode TEXT NOT NULL DEFAULT 'overwrite',
           is_builtin INTEGER NOT NULL DEFAULT 0,
           sort_order INTEGER NOT NULL DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -230,6 +232,18 @@ class DatabaseManager {
 
       try {
         this.db.exec("ALTER TABLE actions ADD COLUMN translation_key TEXT");
+      } catch (err) {
+        if (!err.message.includes("duplicate column")) throw err;
+      }
+      try {
+        this.db.exec(
+          "ALTER TABLE actions ADD COLUMN output_target TEXT NOT NULL DEFAULT 'enhanced_content'"
+        );
+      } catch (err) {
+        if (!err.message.includes("duplicate column")) throw err;
+      }
+      try {
+        this.db.exec("ALTER TABLE actions ADD COLUMN write_mode TEXT NOT NULL DEFAULT 'overwrite'");
       } catch (err) {
         if (!err.message.includes("duplicate column")) throw err;
       }
@@ -1302,20 +1316,32 @@ class DatabaseManager {
     }
   }
 
-  createAction(name, description, prompt, icon = "sparkles") {
+  createAction(name, description, prompt, icon = "sparkles", options = {}) {
     try {
       if (!this.db) throw new Error("Database not initialized");
       const trimmedName = (name || "").trim();
       const trimmedPrompt = (prompt || "").trim();
       if (!trimmedName) return { success: false, error: "Action name is required" };
       if (!trimmedPrompt) return { success: false, error: "Action prompt is required" };
+      const actionOptions = options || {};
+      const outputTarget =
+        actionOptions.output_target === "content" ? "content" : "enhanced_content";
+      const writeMode = actionOptions.write_mode === "append" ? "append" : "overwrite";
       const maxOrder = this.db.prepare("SELECT MAX(sort_order) as max_order FROM actions").get();
       const sortOrder = (maxOrder?.max_order ?? 0) + 1;
       const result = this.db
         .prepare(
-          "INSERT INTO actions (name, description, prompt, icon, sort_order) VALUES (?, ?, ?, ?, ?)"
+          "INSERT INTO actions (name, description, prompt, icon, output_target, write_mode, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)"
         )
-        .run(trimmedName, (description || "").trim(), trimmedPrompt, icon || "sparkles", sortOrder);
+        .run(
+          trimmedName,
+          (description || "").trim(),
+          trimmedPrompt,
+          icon || "sparkles",
+          outputTarget,
+          writeMode,
+          sortOrder
+        );
       const action = this.db
         .prepare("SELECT * FROM actions WHERE id = ?")
         .get(result.lastInsertRowid);
@@ -1329,11 +1355,25 @@ class DatabaseManager {
   updateAction(id, updates) {
     try {
       if (!this.db) throw new Error("Database not initialized");
-      const allowedFields = ["name", "description", "prompt", "icon", "sort_order"];
+      const allowedFields = [
+        "name",
+        "description",
+        "prompt",
+        "icon",
+        "sort_order",
+        "output_target",
+        "write_mode",
+      ];
       const fields = [];
       const values = [];
       for (const [key, value] of Object.entries(updates)) {
         if (allowedFields.includes(key) && value !== undefined) {
+          if (key === "output_target" && !["content", "enhanced_content"].includes(value)) {
+            continue;
+          }
+          if (key === "write_mode" && !["overwrite", "append"].includes(value)) {
+            continue;
+          }
           fields.push(`${key} = ?`);
           values.push(value);
         }

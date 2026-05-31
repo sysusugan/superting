@@ -1895,7 +1895,13 @@
       "errors": {
         "noModel": "AIモデルが選択されていません。設定で構成してください。",
         "actionFailed": "アクションに失敗しました"
-      }
+      },
+      "outputTargetLabel": "保存先",
+      "outputTargetNote": "ノート",
+      "outputTargetEnhanced": "拡張",
+      "writeModeLabel": "書き込み方式",
+      "writeModeOverwrite": "上書き",
+      "writeModeAppend": "追記"
     },
     "empty": {
       "title": "まだノートがありません",

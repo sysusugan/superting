@@ -207,6 +207,8 @@ export interface ActionItem {
   description: string;
   prompt: string;
   icon: string;
+  output_target: "content" | "enhanced_content";
+  write_mode: "overwrite" | "append";
   is_builtin: number;
   sort_order: number;
   translation_key: string | null;
@@ -661,7 +663,11 @@ declare global {
         name: string,
         description: string,
         prompt: string,
-        icon?: string
+        icon?: string,
+        options?: {
+          output_target?: "content" | "enhanced_content";
+          write_mode?: "overwrite" | "append";
+        }
       ) => Promise<{ success: boolean; action?: ActionItem; error?: string }>;
       updateAction: (
         id: number,
@@ -671,6 +677,8 @@ declare global {
           prompt?: string;
           icon?: string;
           sort_order?: number;
+          output_target?: "content" | "enhanced_content";
+          write_mode?: "overwrite" | "append";
         }
       ) => Promise<{ success: boolean; action?: ActionItem; error?: string }>;
       deleteAction: (id: number) => Promise<{ success: boolean; id?: number; error?: string }>;

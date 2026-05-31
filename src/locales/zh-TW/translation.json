@@ -2038,7 +2038,13 @@
       "errors": {
         "noModel": "未選擇 AI 模型。請在設定中進行配置。",
         "actionFailed": "操作失敗"
-      }
+      },
+      "outputTargetLabel": "儲存結果到",
+      "outputTargetNote": "筆記",
+      "outputTargetEnhanced": "增強",
+      "writeModeLabel": "寫入方式",
+      "writeModeOverwrite": "覆蓋",
+      "writeModeAppend": "追加"
     },
     "empty": {
       "title": "這裡還沒有筆記",

@@ -2170,7 +2170,13 @@
       "errors": {
         "noModel": "Aucun modèle IA sélectionné. Configurez-en un dans les Paramètres.",
         "actionFailed": "L'action a échoué"
-      }
+      },
+      "outputTargetLabel": "Enregistrer le resultat dans",
+      "outputTargetNote": "Notes",
+      "outputTargetEnhanced": "Ameliore",
+      "writeModeLabel": "Mode d'ecriture",
+      "writeModeOverwrite": "Remplacer",
+      "writeModeAppend": "Ajouter"
     },
     "onboarding": {
       "llm": {

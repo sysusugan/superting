@@ -19,6 +19,10 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [outputTarget, setOutputTarget] = useState<"content" | "enhanced_content">(
+    "enhanced_content"
+  );
+  const [writeMode, setWriteMode] = useState<"overwrite" | "append">("overwrite");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -29,6 +33,8 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
     setName("");
     setDescription("");
     setPrompt("");
+    setOutputTarget("enhanced_content");
+    setWriteMode("overwrite");
     setEditingId(null);
   };
 
@@ -60,6 +66,8 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
     setName(action.name);
     setDescription(action.description);
     setPrompt(action.prompt);
+    setOutputTarget(action.output_target ?? "enhanced_content");
+    setWriteMode(action.write_mode ?? "overwrite");
     setIsCreating(false);
   };
 
@@ -89,9 +97,20 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
           name: name.trim(),
           description: description.trim(),
           prompt: prompt.trim(),
+          output_target: outputTarget,
+          write_mode: writeMode,
         });
       } else {
-        await window.electronAPI.createAction(name.trim(), description.trim(), prompt.trim());
+        await window.electronAPI.createAction(
+          name.trim(),
+          description.trim(),
+          prompt.trim(),
+          undefined,
+          {
+            output_target: outputTarget,
+            write_mode: writeMode,
+          }
+        );
         setIsCreating(false);
       }
     } finally {
@@ -106,8 +125,18 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
     : selectedAction
       ? name !== selectedAction.name ||
         description !== selectedAction.description ||
-        prompt !== selectedAction.prompt
+        prompt !== selectedAction.prompt ||
+        outputTarget !== (selectedAction.output_target ?? "enhanced_content") ||
+        writeMode !== (selectedAction.write_mode ?? "overwrite")
       : false;
+
+  const optionButtonClass = (active: boolean) =>
+    cn(
+      "h-7 px-2.5 rounded-md text-xs font-medium transition-colors",
+      active
+        ? "bg-accent/10 text-accent dark:bg-accent/15"
+        : "text-muted-foreground/55 hover:text-foreground/70 hover:bg-foreground/5 dark:hover:bg-white/5"
+    );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -280,6 +309,56 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
                     disabled={isSaving}
                     className="h-9"
                   />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-foreground/50">
+                        {t("notes.actions.outputTargetLabel")}
+                      </label>
+                      <div className="flex items-center rounded-lg bg-foreground/4 dark:bg-white/4 p-1">
+                        <button
+                          type="button"
+                          onClick={() => setOutputTarget("content")}
+                          disabled={isSaving}
+                          className={optionButtonClass(outputTarget === "content")}
+                        >
+                          {t("notes.actions.outputTargetNote")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOutputTarget("enhanced_content")}
+                          disabled={isSaving}
+                          className={optionButtonClass(outputTarget === "enhanced_content")}
+                        >
+                          {t("notes.actions.outputTargetEnhanced")}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-foreground/50">
+                        {t("notes.actions.writeModeLabel")}
+                      </label>
+                      <div className="flex items-center rounded-lg bg-foreground/4 dark:bg-white/4 p-1">
+                        <button
+                          type="button"
+                          onClick={() => setWriteMode("overwrite")}
+                          disabled={isSaving}
+                          className={optionButtonClass(writeMode === "overwrite")}
+                        >
+                          {t("notes.actions.writeModeOverwrite")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setWriteMode("append")}
+                          disabled={isSaving}
+                          className={optionButtonClass(writeMode === "append")}
+                        >
+                          {t("notes.actions.writeModeAppend")}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
                   {/* Prompt — the star of the show */}
                   <div className="flex flex-col flex-1 space-y-1.5 min-h-0">

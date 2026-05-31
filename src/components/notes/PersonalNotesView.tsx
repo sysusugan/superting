@@ -520,6 +520,7 @@ export default function PersonalNotesView({
   const {
     state: actionProcessingState,
     actionName,
+    outputTarget: actionOutputTarget,
     runAction,
   } = useActionProcessing(activeNoteId ?? null);
 
@@ -1065,6 +1066,7 @@ export default function PersonalNotesView({
               onCreateFolderAndMove={handleCreateFolderAndMove}
               actionProcessingState={actionProcessingState}
               actionName={actionName}
+              actionOutputTarget={actionOutputTarget}
               actionPicker={
                 <ActionPicker
                   onRunAction={(action) => {
@@ -1085,6 +1087,8 @@ export default function PersonalNotesView({
                       modelId: effectiveModelId,
                       isMeetingNote: actionInput.isMeetingNote,
                       currentTitle: editorNote.title,
+                      currentContent: editorNote.content,
+                      currentEnhancedContent: editorNote.enhanced_content,
                     });
                   }}
                   onManageActions={() => setShowActionManager(true)}

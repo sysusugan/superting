@@ -2043,7 +2043,13 @@
       "errors": {
         "noModel": "Модель ИИ не выбрана. Настройте её в разделе Настройки.",
         "actionFailed": "Действие не выполнено"
-      }
+      },
+      "outputTargetLabel": "Сохранить результат в",
+      "outputTargetNote": "Заметки",
+      "outputTargetEnhanced": "Улучшенное",
+      "writeModeLabel": "Режим записи",
+      "writeModeOverwrite": "Заменить",
+      "writeModeAppend": "Добавить"
     },
     "empty": {
       "title": "Нет заметок",
