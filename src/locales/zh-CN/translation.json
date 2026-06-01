@@ -1948,6 +1948,7 @@
       "findClose": "关闭查找",
       "findMatchPosition": "{{current}} / {{count}}",
       "transcriptReplaceWith": "替换为",
+      "replaceCurrent": "替换",
       "transcriptReplaceAll": "全部替换",
       "transcriptIgnoreCase": "忽略大小写",
       "transcriptMatchCount": "{{count}} 个匹配",

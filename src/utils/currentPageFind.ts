@@ -40,6 +40,29 @@ export function countFindMatches(
   return getFindMatches(content, query, options).length;
 }
 
+export function replaceFindMatchAt(
+  content: string,
+  query: string,
+  replacement: string,
+  matchIndex: number,
+  options: CurrentPageFindOptions = {}
+): string {
+  const match = getFindMatches(content, query, options)[matchIndex];
+  if (!match) return content;
+  return `${content.slice(0, match.index)}${replacement}${content.slice(match.index + match.length)}`;
+}
+
+export function replaceAllFindMatches(
+  content: string,
+  query: string,
+  replacement: string,
+  options: CurrentPageFindOptions = {}
+): string {
+  const pattern = makeCurrentPageFindPattern(query, options);
+  if (!pattern) return content;
+  return content.replace(pattern, replacement);
+}
+
 export function getNextFindIndex(
   currentIndex: number,
   totalMatches: number,

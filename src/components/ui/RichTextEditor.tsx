@@ -9,7 +9,7 @@ import { Markdown } from "tiptap-markdown";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { cn } from "../lib/utils";
-import { countFindMatches, makeCurrentPageFindPattern } from "../../utils/currentPageFind";
+import { makeCurrentPageFindPattern, type FindMatch } from "../../utils/currentPageFind";
 
 interface FindHighlightState {
   decorations: DecorationSet;
@@ -50,6 +50,31 @@ function buildFindDecorations(
   });
 
   return DecorationSet.create(doc, decorations);
+}
+
+function getDocFindRanges(
+  doc: any,
+  query: string,
+  ignoreCase: boolean
+): Array<FindMatch & { from: number; to: number }> {
+  const pattern = makeCurrentPageFindPattern(query, { ignoreCase });
+  if (!pattern) return [];
+
+  const ranges: Array<FindMatch & { from: number; to: number }> = [];
+  doc.descendants((node: any, pos: number) => {
+    if (!node.isText || !node.text) return;
+    for (const match of node.text.matchAll(pattern)) {
+      const from = pos + (match.index ?? 0);
+      const to = from + match[0].length;
+      ranges.push({
+        index: match.index ?? 0,
+        length: match[0].length,
+        from,
+        to,
+      });
+    }
+  });
+  return ranges;
 }
 
 const FindHighlight = Extension.create({
@@ -114,6 +139,15 @@ interface RichTextEditorProps {
   findActiveIndex?: number;
   findIgnoreCase?: boolean;
   onFindMatchCountChange?: (count: number) => void;
+  replaceRequest?: {
+    id: number;
+    mode: "current" | "all";
+    query: string;
+    replacement: string;
+    activeIndex: number;
+    ignoreCase: boolean;
+  } | null;
+  onReplaceRequestComplete?: (result: { id: number; replaced: number }) => void;
 }
 
 export function RichTextEditor({
@@ -127,9 +161,12 @@ export function RichTextEditor({
   findActiveIndex = -1,
   findIgnoreCase = true,
   onFindMatchCountChange,
+  replaceRequest,
+  onReplaceRequestComplete,
 }: RichTextEditorProps) {
   const internalValueRef = useRef(value);
   const suppressUpdateRef = useRef(false);
+  const lastReplaceRequestIdRef = useRef<number | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -195,9 +232,38 @@ export function RichTextEditor({
   }, [value, editor]);
 
   useEffect(() => {
+    if (!editor || editor.isDestroyed || disabled || !replaceRequest) return;
+    if (lastReplaceRequestIdRef.current === replaceRequest.id) return;
+    lastReplaceRequestIdRef.current = replaceRequest.id;
+
+    const ranges = getDocFindRanges(
+      editor.state.doc,
+      replaceRequest.query,
+      replaceRequest.ignoreCase
+    );
+    const targets =
+      replaceRequest.mode === "all"
+        ? ranges
+        : ranges[replaceRequest.activeIndex]
+          ? [ranges[replaceRequest.activeIndex]]
+          : [];
+
+    if (targets.length === 0) {
+      onReplaceRequestComplete?.({ id: replaceRequest.id, replaced: 0 });
+      return;
+    }
+
+    let tr = editor.state.tr;
+    for (const target of [...targets].reverse()) {
+      tr = tr.insertText(replaceRequest.replacement, target.from, target.to);
+    }
+    editor.view.dispatch(tr);
+    onReplaceRequestComplete?.({ id: replaceRequest.id, replaced: targets.length });
+  }, [disabled, editor, onReplaceRequestComplete, replaceRequest]);
+
+  useEffect(() => {
     if (!editor || editor.isDestroyed) return;
-    const text = editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n", "\n");
-    onFindMatchCountChange?.(countFindMatches(text, findQuery, { ignoreCase: findIgnoreCase }));
+    onFindMatchCountChange?.(getDocFindRanges(editor.state.doc, findQuery, findIgnoreCase).length);
     editor.view.dispatch(
       editor.state.tr.setMeta(findHighlightPluginKey, {
         query: findQuery,

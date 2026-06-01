@@ -1953,6 +1953,7 @@
       "findClose": "Close find",
       "findMatchPosition": "{{current}} / {{count}}",
       "transcriptReplaceWith": "Replace with",
+      "replaceCurrent": "Replace",
       "transcriptReplaceAll": "Replace all",
       "transcriptIgnoreCase": "Ignore case",
       "transcriptMatchCount": "{{count}} match",
