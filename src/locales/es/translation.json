@@ -2114,9 +2114,9 @@
       "selectAction": "Seleccionar acción",
       "done": "Listo",
       "builtin": {
-        "generateNotes": {
-          "name": "Generar notas",
-          "description": "Limpiar, estructurar y mejorar tus notas"
+        "meetingMinutes": {
+          "name": "Generar acta de reunión",
+          "description": "Convierte transcripciones de reuniones en actas estructuradas"
         }
       },
       "errors": {

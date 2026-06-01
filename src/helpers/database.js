@@ -6,6 +6,45 @@ const debugLogger = require("./debugLogger");
 const { app } = require("electron");
 const { isRetainedAudioFile, parseMeetingAudioFilename } = require("./audioStorageFiles");
 
+const DEFAULT_NOTE_ACTIONS = [
+  {
+    key: "notes.actions.builtin.meetingMinutes",
+    name: "生成会议纪要",
+    description: "将会议转录整理为结构化会议纪要",
+    prompt:
+      "请根据会议转录生成正式会议纪要，使用 Markdown，包含：\n\n1. 简短摘要\n2. 关键讨论点\n3. 已确认结论\n4. 待办事项，尽量标明负责人\n5. 风险、依赖和后续跟进\n\n要求：\n- 保留具体数字、客户名、产品名、时间点和明确承诺\n- 不要编造没有提到的信息\n- 如果负责人、时间或结论不明确，请写“未明确”\n- 删除口头禅、重复表达和无意义寒暄\n- 输出应清晰、正式、适合直接保存为会议笔记",
+    isBuiltin: 1,
+    sortOrder: 0,
+  },
+  {
+    key: "notes.actions.presets.interviewReview",
+    name: "生成面评",
+    description: "将面试记录整理为候选人评价",
+    prompt:
+      "请根据面试记录生成结构化面评，使用 Markdown，包含：\n\n1. 候选人整体评价\n2. 技术能力或专业能力表现\n3. 项目经验与问题解决能力\n4. 沟通表达与协作表现\n5. 亮点\n6. 风险或疑点\n7. 建议结论：通过 / 待定 / 不通过\n8. 后续建议\n\n要求：\n- 只基于记录中出现的信息进行评价\n- 不要添加歧视性、主观臆测或与岗位无关的判断\n- 对不确定的信息标注“记录中未明确”\n- 保留关键事实、具体例子和候选人的原始表述含义\n- 语气客观、专业，适合提交给招聘或用人团队",
+    isBuiltin: 0,
+    sortOrder: 1,
+  },
+  {
+    key: "notes.actions.presets.generateNotes",
+    name: "生成笔记",
+    description: "将原始内容整理为清晰的结构化笔记",
+    prompt:
+      "请将提供的内容整理为清晰、结构化的笔记，使用 Markdown。\n\n请根据内容本身选择合适结构，可包含：\n\n1. 摘要\n2. 主要内容\n3. 关键观点\n4. 重要细节\n5. 待办事项或后续动作\n\n要求：\n- 保留用户的原意和所有实质信息\n- 优化语法、措辞和结构，让内容更易读\n- 删除口头禅、重复内容、停顿和无意义表达\n- 不要编造原文没有的信息\n- 如果内容很短，请直接整理为简洁笔记，不要强行扩展",
+    isBuiltin: 0,
+    sortOrder: 2,
+  },
+  {
+    key: "notes.actions.presets.optimizeTranscript",
+    name: "优化转录文本",
+    description: "清理语音转录文本，使其更准确、流畅、易读",
+    prompt:
+      "请优化以下语音转录文本，使其更准确、流畅、易读。\n\n要求：\n- 修正明显的错别字、同音误识别、标点和断句问题\n- 保留原始含义、语气和信息顺序\n- 不要总结、扩写或改写成另一种文体\n- 不要删除重要细节、数字、人名、公司名、产品名或专有名词\n- 删除明显的口头禅、重复停顿和无意义填充词\n- 如果原文是口语表达，请整理为自然书面表达，但不要过度润色\n- 只输出优化后的文本，不要添加解释",
+    isBuiltin: 0,
+    sortOrder: 3,
+  },
+];
+
 class DatabaseManager {
   constructor(options = {}) {
     this.db = null;
@@ -221,7 +260,7 @@ class DatabaseManager {
           description TEXT NOT NULL DEFAULT '',
           prompt TEXT NOT NULL,
           icon TEXT NOT NULL DEFAULT 'sparkles',
-          output_target TEXT NOT NULL DEFAULT 'enhanced_content',
+          output_target TEXT NOT NULL DEFAULT 'content',
           write_mode TEXT NOT NULL DEFAULT 'overwrite',
           is_builtin INTEGER NOT NULL DEFAULT 0,
           sort_order INTEGER NOT NULL DEFAULT 0,
@@ -237,7 +276,7 @@ class DatabaseManager {
       }
       try {
         this.db.exec(
-          "ALTER TABLE actions ADD COLUMN output_target TEXT NOT NULL DEFAULT 'enhanced_content'"
+          "ALTER TABLE actions ADD COLUMN output_target TEXT NOT NULL DEFAULT 'content'"
         );
       } catch (err) {
         if (!err.message.includes("duplicate column")) throw err;
@@ -295,33 +334,7 @@ class DatabaseManager {
         "CREATE INDEX IF NOT EXISTS idx_agent_conversations_note ON agent_conversations(note_id)"
       );
 
-      const actionCount = this.db.prepare("SELECT COUNT(*) as count FROM actions").get();
-      if (actionCount.count === 0) {
-        this.db
-          .prepare(
-            "INSERT INTO actions (name, description, prompt, icon, is_builtin, sort_order, translation_key) VALUES (?, ?, ?, ?, 1, 0, ?)"
-          )
-          .run(
-            "Generate Notes",
-            "Clean up, structure, and enhance your notes",
-            "Transform the provided content into clean, well-structured notes in markdown. Preserve the user's intent and all substantive information. Remove filler, small talk, false starts, and redundant content. For personal notes, improve grammar and structure for readability. For meeting transcripts, extract key discussion points, decisions, action items, and follow-ups.",
-            "sparkles",
-            "notes.actions.builtin.generateNotes"
-          );
-      }
-
-      // Migrate built-in action to "Generate Notes"
-      this.db
-        .prepare(
-          "UPDATE actions SET name = ?, description = ?, prompt = ?, translation_key = ? WHERE is_builtin = 1 AND translation_key != ?"
-        )
-        .run(
-          "Generate Notes",
-          "Clean up, structure, and enhance your notes",
-          "Transform the provided content into clean, well-structured notes in markdown. Preserve the user's intent and all substantive information. Remove filler, small talk, false starts, and redundant content. For personal notes, improve grammar and structure for readability. For meeting transcripts, extract key discussion points, decisions, action items, and follow-ups.",
-          "notes.actions.builtin.generateNotes",
-          "notes.actions.builtin.generateNotes"
-        );
+      this._seedDefaultActions();
 
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS google_calendar_tokens (
@@ -1296,6 +1309,83 @@ class DatabaseManager {
     }
   }
 
+  _insertDefaultAction(action) {
+    return this.db
+      .prepare(
+        "INSERT INTO actions (name, description, prompt, icon, output_target, write_mode, is_builtin, sort_order, translation_key) VALUES (?, ?, ?, ?, 'content', 'overwrite', ?, ?, ?)"
+      )
+      .run(
+        action.name,
+        action.description,
+        action.prompt,
+        "sparkles",
+        action.isBuiltin,
+        action.sortOrder,
+        action.key
+      );
+  }
+
+  _updateActionToDefault(id, action) {
+    this.db
+      .prepare(
+        "UPDATE actions SET name = ?, description = ?, prompt = ?, icon = 'sparkles', output_target = 'content', write_mode = 'overwrite', is_builtin = ?, sort_order = ?, translation_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+      )
+      .run(
+        action.name,
+        action.description,
+        action.prompt,
+        action.isBuiltin,
+        action.sortOrder,
+        action.key,
+        id
+      );
+  }
+
+  _seedDefaultActions() {
+    const actionCount = this.db.prepare("SELECT COUNT(*) as count FROM actions").get();
+    const meetingAction = DEFAULT_NOTE_ACTIONS[0];
+
+    if (actionCount.count === 0) {
+      DEFAULT_NOTE_ACTIONS.forEach((action) => this._insertDefaultAction(action));
+      return;
+    }
+
+    const existingMeeting = this.db
+      .prepare("SELECT id FROM actions WHERE translation_key = ?")
+      .get(meetingAction.key);
+    const legacyBuiltIn = this.db
+      .prepare(
+        "SELECT id FROM actions WHERE is_builtin = 1 ORDER BY sort_order ASC, created_at ASC LIMIT 1"
+      )
+      .get();
+
+    let meetingActionId = existingMeeting?.id;
+    let migratedLegacyBuiltIn = false;
+    if (meetingActionId) {
+      this._updateActionToDefault(meetingActionId, meetingAction);
+    }
+    if (!meetingActionId && legacyBuiltIn) {
+      meetingActionId = legacyBuiltIn.id;
+      migratedLegacyBuiltIn = true;
+      this._updateActionToDefault(meetingActionId, meetingAction);
+    }
+
+    if (!meetingActionId) return;
+
+    this.db.prepare("UPDATE actions SET is_builtin = 0 WHERE id != ? AND is_builtin = 1").run(
+      meetingActionId
+    );
+
+    if (!migratedLegacyBuiltIn) return;
+
+    for (const action of DEFAULT_NOTE_ACTIONS.slice(1)) {
+      const existing = this.db
+        .prepare("SELECT id FROM actions WHERE translation_key = ?")
+        .get(action.key);
+      if (!existing) this._insertDefaultAction(action);
+    }
+  }
+
   getActions() {
     try {
       if (!this.db) throw new Error("Database not initialized");
@@ -1325,7 +1415,7 @@ class DatabaseManager {
       if (!trimmedPrompt) return { success: false, error: "Action prompt is required" };
       const actionOptions = options || {};
       const outputTarget =
-        actionOptions.output_target === "content" ? "content" : "enhanced_content";
+        actionOptions.output_target === "enhanced_content" ? "enhanced_content" : "content";
       const writeMode = actionOptions.write_mode === "append" ? "append" : "overwrite";
       const maxOrder = this.db.prepare("SELECT MAX(sort_order) as max_order FROM actions").get();
       const sortOrder = (maxOrder?.max_order ?? 0) + 1;

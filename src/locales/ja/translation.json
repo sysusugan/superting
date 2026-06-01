@@ -1918,9 +1918,9 @@
       "selectAction": "アクションを選択",
       "done": "完了",
       "builtin": {
-        "generateNotes": {
-          "name": "ノートを生成",
-          "description": "ノートを整理、構成、強化する"
+        "meetingMinutes": {
+          "name": "会議議事録を生成",
+          "description": "会議の文字起こしを構造化された議事録に整理します"
         }
       },
       "errors": {

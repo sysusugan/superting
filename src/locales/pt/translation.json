@@ -2066,9 +2066,9 @@
       "selectAction": "Selecionar ação",
       "done": "Concluído",
       "builtin": {
-        "generateNotes": {
-          "name": "Gerar notas",
-          "description": "Limpar, estruturar e aprimorar suas notas"
+        "meetingMinutes": {
+          "name": "Gerar ata de reunião",
+          "description": "Transforma transcrições de reuniões em atas estruturadas"
         }
       },
       "errors": {

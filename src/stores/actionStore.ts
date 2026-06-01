@@ -76,19 +76,19 @@ export function useActions(): ActionItem[] {
 }
 
 export function getActionName(
-  action: { name: string; translation_key?: string },
+  action: { name: string; translation_key?: string | null; is_builtin?: number },
   t: TFunction
 ): string {
-  return action.translation_key
+  return action.is_builtin === 1 && action.translation_key
     ? t(`${action.translation_key}.name`, { defaultValue: action.name })
     : action.name;
 }
 
 export function getActionDescription(
-  action: { description: string; translation_key?: string },
+  action: { description: string; translation_key?: string | null; is_builtin?: number },
   t: TFunction
 ): string {
-  return action.translation_key
+  return action.is_builtin === 1 && action.translation_key
     ? t(`${action.translation_key}.description`, { defaultValue: action.description })
     : action.description;
 }

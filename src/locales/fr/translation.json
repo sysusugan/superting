@@ -2193,9 +2193,9 @@
       "runAction": "Exécuter {{name}}",
       "selectAction": "Sélectionner l'action",
       "builtin": {
-        "generateNotes": {
-          "name": "Générer des notes",
-          "description": "Nettoyer, structurer et améliorer vos notes"
+        "meetingMinutes": {
+          "name": "Générer un compte rendu",
+          "description": "Transformer les transcriptions de réunion en comptes rendus structurés"
         }
       },
       "errors": {

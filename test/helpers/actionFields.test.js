@@ -15,14 +15,60 @@ function createDatabase(t) {
   return db;
 }
 
-test("new actions default to overwriting enhanced content", (t) => {
+test("new actions default to overwriting note content", (t) => {
   const db = createDatabase(t);
 
   const result = db.createAction("Summarize", "", "Summarize this");
 
   assert.equal(result.success, true);
-  assert.equal(result.action.output_target, "enhanced_content");
+  assert.equal(result.action.output_target, "content");
   assert.equal(result.action.write_mode, "overwrite");
+});
+
+test("database seeds four default actions with only meeting minutes built in", (t) => {
+  const db = createDatabase(t);
+
+  const actions = db.getActions();
+
+  assert.deepEqual(
+    actions.map((action) => ({
+      name: action.name,
+      is_builtin: action.is_builtin,
+      output_target: action.output_target,
+      write_mode: action.write_mode,
+      sort_order: action.sort_order,
+    })),
+    [
+      {
+        name: "生成会议纪要",
+        is_builtin: 1,
+        output_target: "content",
+        write_mode: "overwrite",
+        sort_order: 0,
+      },
+      {
+        name: "生成面评",
+        is_builtin: 0,
+        output_target: "content",
+        write_mode: "overwrite",
+        sort_order: 1,
+      },
+      {
+        name: "生成笔记",
+        is_builtin: 0,
+        output_target: "content",
+        write_mode: "overwrite",
+        sort_order: 2,
+      },
+      {
+        name: "优化转录文本",
+        is_builtin: 0,
+        output_target: "content",
+        write_mode: "overwrite",
+        sort_order: 3,
+      },
+    ]
+  );
 });
 
 test("actions can persist output target and write mode", (t) => {

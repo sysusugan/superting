@@ -2066,9 +2066,9 @@
       "selectAction": "Seleziona azione",
       "done": "Fatto",
       "builtin": {
-        "generateNotes": {
-          "name": "Genera note",
-          "description": "Pulire, strutturare e migliorare le note"
+        "meetingMinutes": {
+          "name": "Genera verbale riunione",
+          "description": "Trasforma le trascrizioni delle riunioni in verbali strutturati"
         }
       },
       "errors": {

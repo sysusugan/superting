@@ -2066,9 +2066,9 @@
       "selectAction": "Aktion auswählen",
       "done": "Fertig",
       "builtin": {
-        "generateNotes": {
-          "name": "Notizen generieren",
-          "description": "Notizen bereinigen, strukturieren und verbessern"
+        "meetingMinutes": {
+          "name": "Besprechungsprotokoll erstellen",
+          "description": "Wandelt Besprechungstranskripte in strukturierte Protokolle um"
         }
       },
       "errors": {

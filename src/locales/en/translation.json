@@ -2289,9 +2289,9 @@
       "runAction": "Run {{name}}",
       "selectAction": "Select action",
       "builtin": {
-        "generateNotes": {
-          "name": "Generate Notes",
-          "description": "Clean up, structure, and enhance your notes"
+        "meetingMinutes": {
+          "name": "Generate Meeting Minutes",
+          "description": "Turn meeting transcripts into structured meeting minutes"
         }
       },
       "errors": {

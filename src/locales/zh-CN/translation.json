@@ -2061,9 +2061,9 @@
       "selectAction": "选择操作",
       "done": "完成",
       "builtin": {
-        "generateNotes": {
-          "name": "生成笔记",
-          "description": "清理、结构化和增强您的笔记"
+        "meetingMinutes": {
+          "name": "生成会议纪要",
+          "description": "将会议转录整理为结构化会议纪要"
         }
       },
       "errors": {

@@ -19,9 +19,7 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [outputTarget, setOutputTarget] = useState<"content" | "enhanced_content">(
-    "enhanced_content"
-  );
+  const [outputTarget, setOutputTarget] = useState<"content" | "enhanced_content">("content");
   const [writeMode, setWriteMode] = useState<"overwrite" | "append">("overwrite");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -33,7 +31,7 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
     setName("");
     setDescription("");
     setPrompt("");
-    setOutputTarget("enhanced_content");
+    setOutputTarget("content");
     setWriteMode("overwrite");
     setEditingId(null);
   };
