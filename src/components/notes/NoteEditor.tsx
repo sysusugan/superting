@@ -193,7 +193,9 @@ export default function NoteEditor({
     folderId: note.folder_id,
     noteTitle: note.title,
     noteContent: note.content,
+    noteEnhancedContent: note.enhanced_content,
     noteTranscript: effectiveTranscript || undefined,
+    noteUpdatedAt: note.updated_at,
   });
   const titleRef = useRef<HTMLDivElement>(null);
   const prevNoteIdRef = useRef<number>(note.id);
@@ -1197,6 +1199,9 @@ export default function NoteEditor({
               activeConversationId={embeddedChat.activeConversationId}
               onSwitchConversation={embeddedChat.switchConversation}
               onNewChat={embeddedChat.startNewChat}
+              onConfirmToolCall={embeddedChat.confirmToolCall}
+              onCancelToolCall={embeddedChat.cancelToolCall}
+              onWriteAssistantMessage={embeddedChat.writeAssistantMessage}
             />
           )}
         </div>
@@ -1213,6 +1218,9 @@ export default function NoteEditor({
           activeConversationId={embeddedChat.activeConversationId}
           onSwitchConversation={embeddedChat.switchConversation}
           onNewChat={embeddedChat.startNewChat}
+          onConfirmToolCall={embeddedChat.confirmToolCall}
+          onCancelToolCall={embeddedChat.cancelToolCall}
+          onWriteAssistantMessage={embeddedChat.writeAssistantMessage}
         />
       )}
       {SHARING_ENABLED && note.cloud_id && (

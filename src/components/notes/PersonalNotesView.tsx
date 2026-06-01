@@ -1216,6 +1216,11 @@ export default function PersonalNotesView({
                       currentTitle: editorNote.title,
                       currentContent: editorNote.content,
                       currentEnhancedContent: editorNote.enhanced_content,
+                      currentTranscript: rawTranscript,
+                      speakerLabels: {
+                        you: t("notes.speaker.you"),
+                        them: t("notes.speaker.them"),
+                      },
                     });
                   }}
                   onManageActions={() => setShowActionManager(true)}

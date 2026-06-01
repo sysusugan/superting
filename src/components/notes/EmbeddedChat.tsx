@@ -4,7 +4,7 @@ import { X, PanelRight, PanelRightClose, ChevronDown, Plus } from "lucide-react"
 import { cn } from "../lib/utils";
 import { ChatMessages } from "../chat/ChatMessages";
 import { ChatInput } from "../chat/ChatInput";
-import type { Message, AgentState } from "../chat/types";
+import type { Message, AgentState, ToolCallInfo } from "../chat/types";
 import { setActiveNoteId, setActiveFolderId } from "../../stores/noteStore";
 import { normalizeDbDate } from "../../utils/dateFormatting";
 import {
@@ -34,6 +34,13 @@ interface EmbeddedChatProps {
   activeConversationId?: number | null;
   onSwitchConversation?: (id: number) => void;
   onNewChat?: () => void;
+  onConfirmToolCall?: (toolCall: ToolCallInfo) => void;
+  onCancelToolCall?: (toolCall: ToolCallInfo) => void;
+  onWriteAssistantMessage?: (
+    content: string,
+    target: "content" | "enhanced_content",
+    writeMode: "overwrite" | "append"
+  ) => void;
 }
 
 function EmptyState() {
@@ -64,6 +71,9 @@ export default function EmbeddedChat({
   activeConversationId,
   onSwitchConversation,
   onNewChat,
+  onConfirmToolCall,
+  onCancelToolCall,
+  onWriteAssistantMessage,
 }: EmbeddedChatProps) {
   const { t } = useTranslation();
 
@@ -185,7 +195,14 @@ export default function EmbeddedChat({
     <>
       {header}
       <div className="flex-1 min-h-0 flex flex-col **:data-chat-bubble:max-w-full">
-        <ChatMessages messages={messages} emptyState={<EmptyState />} onOpenNote={handleOpenNote} />
+        <ChatMessages
+          messages={messages}
+          emptyState={<EmptyState />}
+          onOpenNote={handleOpenNote}
+          onConfirmToolCall={onConfirmToolCall}
+          onCancelToolCall={onCancelToolCall}
+          onWriteAssistantMessage={onWriteAssistantMessage}
+        />
       </div>
       <ChatInput
         agentState={agentState}

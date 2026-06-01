@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   buildActionOutputUpdates,
+  buildWriteNoteContentUpdates,
   shouldAutoGenerateActionTitle,
 } from "../../src/stores/actionProcessingCore.ts";
 
@@ -47,6 +48,21 @@ test("action output updates append to note content without touching enhanced met
     }),
     {
       content: "existing note\n\nnew section",
+    }
+  );
+});
+
+test("chat answer writes append to enhanced content without action metadata", () => {
+  assert.deepEqual(
+    buildWriteNoteContentUpdates({
+      target: "enhanced_content",
+      writeMode: "append",
+      content: "AI answer",
+      existingContent: "existing note",
+      existingEnhancedContent: "existing enhanced",
+    }),
+    {
+      enhanced_content: "existing enhanced\n\nAI answer",
     }
   );
 });

@@ -1,14 +1,7 @@
 import { create } from "zustand";
-import reasoningService from "../services/ReasoningService";
-import { getSettings } from "./settingsStore";
-import { buildNoteActionSystemPrompt } from "./noteActionPrompt";
-import { generateNoteTitle } from "../utils/generateTitle";
 import type { ActionItem } from "../types/electron";
-import {
-  buildActionOutputUpdates,
-  shouldAutoGenerateActionTitle,
-  type ActionOutputTarget,
-} from "./actionProcessingCore";
+import { type ActionOutputTarget } from "./actionProcessingCore";
+import { runNoteActionOnce } from "./runNoteActionOnce";
 
 export type ActionProcessingStatus = "idle" | "processing" | "success";
 
@@ -66,6 +59,11 @@ export interface RunActionOptions {
   currentTitle?: string | null;
   currentContent?: string | null;
   currentEnhancedContent?: string | null;
+  currentTranscript?: string | null;
+  speakerLabels?: {
+    you: string;
+    them: string;
+  };
 }
 
 export interface RunActionLabels {
@@ -103,46 +101,21 @@ export function runBackgroundAction(
 
   (async () => {
     try {
-      const settings = getSettings();
-      const systemPrompt = buildNoteActionSystemPrompt(action.prompt, {
-        isMeetingNote: options.isMeetingNote,
-        customDictionary: settings.customDictionary,
-        uiLanguage: settings.uiLanguage,
-      });
-      const enhanced = await reasoningService.processText(noteContent, modelId, null, {
-        systemPrompt,
-        temperature: 0.3,
-        disableThinking: settings.noteFormattingDisableThinking,
+      const { updates } = await runNoteActionOnce({
+        note: {
+          title: options.currentTitle ?? "",
+          content: options.currentContent ?? noteContent,
+          enhanced_content: options.currentEnhancedContent ?? null,
+          transcript: options.currentTranscript ?? null,
+        },
+        action,
+        modelId,
+        isCloudMode: options.isCloudMode,
+        speakerLabels: options.speakerLabels ?? { you: "You", them: "Them" },
       });
 
       if (cancelledFlags.get(noteId)) return;
 
-      let title: string | undefined;
-      if (
-        getSettings().autoGenerateNoteTitle &&
-        shouldAutoGenerateActionTitle(options.currentTitle)
-      ) {
-        const generated = await generateNoteTitle(
-          enhanced,
-          modelId,
-          settings.customDictionary,
-          settings.uiLanguage
-        );
-        if (generated) title = generated;
-      }
-
-      if (cancelledFlags.get(noteId)) return;
-
-      const updates = buildActionOutputUpdates({
-        outputTarget: action.output_target,
-        writeMode: action.write_mode,
-        generatedContent: enhanced,
-        existingContent: options.currentContent,
-        existingEnhancedContent: options.currentEnhancedContent,
-        actionPrompt: action.prompt,
-        contentHash,
-      });
-      if (title) updates.title = title;
       await window.electronAPI.updateNote(noteId, updates);
 
       setNoteState(noteId, { status: "success", actionName: action.name });

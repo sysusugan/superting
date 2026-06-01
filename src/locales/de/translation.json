@@ -2678,7 +2678,25 @@
     "undock": "Von Seitenleiste abdocken",
     "close": "Chat schließen",
     "newChat": "Neuer Chat",
-    "conversationSelector": "Unterhaltung wechseln"
+    "conversationSelector": "Unterhaltung wechseln",
+    "confirmation": {
+      "confirm": "Bestaetigen",
+      "cancel": "Abbrechen",
+      "cancelled": "Abgebrochen",
+      "written": "In Notiz geschrieben",
+      "noteNotFound": "Aktuelle Notiz wurde nicht gefunden",
+      "writeFailed": "Notiz konnte nicht aktualisiert werden",
+      "currentNoteOnly": "Diese Aktion kann nur fuer die aktuelle Notiz ausgefuehrt werden",
+      "actionNotFound": "Benutzerdefinierte Aktion nicht gefunden",
+      "actionCompleted": "Aktion abgeschlossen: {{name}}"
+    },
+    "writeAnswer": {
+      "title": "Antwort in Notiz schreiben",
+      "appendEnhanced": "An Verbessert anhaengen",
+      "appendNote": "An Notizen anhaengen",
+      "overwriteEnhanced": "Verbessert ersetzen",
+      "overwriteNote": "Notizen ersetzen"
+    }
   },
   "transcriptionPreview": {
     "label": "Vorschau",

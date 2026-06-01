@@ -2673,7 +2673,25 @@
     "undock": "从侧边栏取消固定",
     "close": "关闭聊天",
     "newChat": "新对话",
-    "conversationSelector": "切换对话"
+    "conversationSelector": "切换对话",
+    "confirmation": {
+      "confirm": "确认",
+      "cancel": "取消",
+      "cancelled": "已取消",
+      "written": "已写入笔记",
+      "noteNotFound": "未找到当前笔记",
+      "writeFailed": "更新笔记失败",
+      "currentNoteOnly": "此操作只能作用于当前笔记",
+      "actionNotFound": "未找到自定义操作",
+      "actionCompleted": "操作已完成：{{name}}"
+    },
+    "writeAnswer": {
+      "title": "写入回答到笔记",
+      "appendEnhanced": "追加到增强",
+      "appendNote": "追加到笔记",
+      "overwriteEnhanced": "覆盖增强",
+      "overwriteNote": "覆盖笔记"
+    }
   },
   "transcriptionPreview": {
     "label": "预览",

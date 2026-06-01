@@ -2673,7 +2673,25 @@
     "undock": "從側邊欄取消固定",
     "close": "關閉聊天",
     "newChat": "新對話",
-    "conversationSelector": "切換對話"
+    "conversationSelector": "切換對話",
+    "confirmation": {
+      "confirm": "確認",
+      "cancel": "取消",
+      "cancelled": "已取消",
+      "written": "已寫入筆記",
+      "noteNotFound": "找不到目前筆記",
+      "writeFailed": "更新筆記失敗",
+      "currentNoteOnly": "此操作只能作用於目前筆記",
+      "actionNotFound": "找不到自訂操作",
+      "actionCompleted": "操作已完成：{{name}}"
+    },
+    "writeAnswer": {
+      "title": "寫入回答到筆記",
+      "appendEnhanced": "追加到增強",
+      "appendNote": "追加到筆記",
+      "overwriteEnhanced": "覆蓋增強",
+      "overwriteNote": "覆蓋筆記"
+    }
   },
   "transcriptionPreview": {
     "label": "預覽",

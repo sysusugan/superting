@@ -1,14 +1,26 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useChatPersistence } from "../components/chat/useChatPersistence";
 import { useChatStreaming } from "../components/chat/useChatStreaming";
-import type { Message, AgentState } from "../components/chat/types";
+import type { Message, AgentState, ToolCallInfo } from "../components/chat/types";
+import { initializeActions, useActions } from "../stores/actionStore";
+import {
+  selectIsCloudNoteFormattingMode,
+  selectResolvedNoteFormatting,
+  useSettingsStore,
+} from "../stores/settingsStore";
+import { runNoteActionOnce } from "../stores/runNoteActionOnce";
+import { buildWriteNoteContentUpdates } from "../stores/actionProcessingCore";
+import { syncService } from "../services/SyncService";
 
 interface UseEmbeddedChatOptions {
   noteId: number | null;
   folderId: number | null;
   noteTitle: string;
   noteContent: string;
+  noteEnhancedContent?: string | null;
   noteTranscript?: string;
+  noteUpdatedAt?: string;
 }
 
 interface NoteConversationItem {
@@ -28,6 +40,13 @@ interface UseEmbeddedChatReturn {
   activeConversationId: number | null;
   switchConversation: (id: number) => Promise<void>;
   startNewChat: () => void;
+  confirmToolCall: (toolCall: ToolCallInfo) => Promise<void>;
+  cancelToolCall: (toolCall: ToolCallInfo) => void;
+  writeAssistantMessage: (
+    content: string,
+    target: "content" | "enhanced_content",
+    writeMode: "overwrite" | "append"
+  ) => Promise<void>;
 }
 
 export function useEmbeddedChat({
@@ -35,11 +54,16 @@ export function useEmbeddedChat({
   folderId,
   noteTitle,
   noteContent,
+  noteEnhancedContent,
   noteTranscript,
+  noteUpdatedAt,
 }: UseEmbeddedChatOptions): UseEmbeddedChatReturn {
+  const { t } = useTranslation();
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [noteConversations, setNoteConversations] = useState<NoteConversationItem[]>([]);
+  const actions = useActions();
   const noteIdRef = useRef(noteId);
+  const actionsRef = useRef(actions);
   const [prevNoteId, setPrevNoteId] = useState(noteId);
 
   const persistence = useChatPersistence({
@@ -57,20 +81,50 @@ export function useEmbeddedChat({
         `Title: ${noteTitle}`,
         `Content:\n${noteContent}`,
         noteTranscript ? `\nTranscript:\n${noteTranscript}` : "",
+        actions.length
+          ? `\nAvailable custom note actions:\n${actions
+              .map((action) => `- ${action.id}: ${action.name}`)
+              .join("\n")}`
+          : "",
       ]
         .filter(Boolean)
         .join("\n"),
-    [folderId, noteContent, noteId, noteTitle, noteTranscript]
+    [actions, folderId, noteContent, noteId, noteTitle, noteTranscript]
+  );
+
+  const currentNote = useMemo(
+    () =>
+      noteId == null
+        ? undefined
+        : {
+            id: noteId,
+            title: noteTitle,
+            content: noteContent,
+            enhanced_content: noteEnhancedContent ?? null,
+            transcript: noteTranscript ?? null,
+            folder_id: folderId,
+            updated_at: noteUpdatedAt ?? "",
+          },
+    [folderId, noteContent, noteEnhancedContent, noteId, noteTitle, noteTranscript, noteUpdatedAt]
   );
 
   const streaming = useChatStreaming({
-    messages: persistence.messages,
     setMessages: persistence.setMessages,
     noteContext,
+    currentNote,
+    availableActions: actions,
     onStreamComplete: (_id, content, toolCalls) => {
       persistence.saveAssistantMessage(content, toolCalls);
     },
   });
+
+  useEffect(() => {
+    initializeActions();
+  }, []);
+
+  useEffect(() => {
+    actionsRef.current = actions;
+  }, [actions]);
 
   const fetchNoteConversations = useCallback(async () => {
     if (!noteId) return;
@@ -113,6 +167,129 @@ export function useEmbeddedChat({
       stale = true;
     };
   }, [noteId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const patchToolCall = useCallback(
+    (toolCallId: string, patch: Partial<ToolCallInfo>) => {
+      persistence.setMessages((prev) =>
+        prev.map((message) =>
+          message.toolCalls?.some((toolCall) => toolCall.id === toolCallId)
+            ? {
+                ...message,
+                toolCalls: message.toolCalls.map((toolCall) =>
+                  toolCall.id === toolCallId ? { ...toolCall, ...patch } : toolCall
+                ),
+              }
+            : message
+        )
+      );
+    },
+    [persistence]
+  );
+
+  const cancelToolCall = useCallback(
+    (toolCall: ToolCallInfo) => {
+      patchToolCall(toolCall.id, {
+        status: "completed",
+        result: t("embeddedChat.confirmation.cancelled"),
+        metadata: {
+          ...(toolCall.metadata ?? {}),
+          confirmationStatus: "cancelled",
+        },
+      });
+    },
+    [patchToolCall, t]
+  );
+
+  const writeAssistantMessage = useCallback(
+    async (
+      content: string,
+      target: "content" | "enhanced_content",
+      writeMode: "overwrite" | "append"
+    ) => {
+      if (!noteIdRef.current) return;
+      const note = await window.electronAPI.getNote(noteIdRef.current);
+      if (!note) throw new Error(t("embeddedChat.confirmation.noteNotFound"));
+
+      const updates = buildWriteNoteContentUpdates({
+        target,
+        writeMode,
+        content,
+        existingContent: note.content,
+        existingEnhancedContent: note.enhanced_content,
+      });
+      const result = await window.electronAPI.updateNote(note.id, updates);
+      if (!result.success) throw new Error(t("embeddedChat.confirmation.writeFailed"));
+      syncService.debouncedPush("note", note.id);
+    },
+    [t]
+  );
+
+  const confirmToolCall = useCallback(
+    async (toolCall: ToolCallInfo) => {
+      const metadata = toolCall.metadata ?? {};
+      const payload = metadata.payload as Record<string, unknown> | undefined;
+      const confirmationType = metadata.confirmationType;
+      if (!payload || metadata.confirmationStatus === "confirmed") return;
+
+      patchToolCall(toolCall.id, { status: "executing" });
+      try {
+        if (confirmationType === "write_note_content") {
+          await writeAssistantMessage(
+            String(payload.content ?? ""),
+            payload.target === "content" ? "content" : "enhanced_content",
+            payload.writeMode === "overwrite" ? "overwrite" : "append"
+          );
+          patchToolCall(toolCall.id, {
+            status: "completed",
+            result: t("embeddedChat.confirmation.written"),
+            metadata: { ...metadata, confirmationStatus: "confirmed" },
+          });
+          return;
+        }
+
+        if (confirmationType === "run_note_action") {
+          const noteIdFromPayload = Number(payload.noteId);
+          if (noteIdFromPayload !== noteIdRef.current) {
+            throw new Error(t("embeddedChat.confirmation.currentNoteOnly"));
+          }
+          const actionId = Number(payload.actionId);
+          const action = actionsRef.current.find((item) => item.id === actionId);
+          if (!action) throw new Error(t("embeddedChat.confirmation.actionNotFound"));
+          const note = await window.electronAPI.getNote(noteIdFromPayload);
+          if (!note) throw new Error(t("embeddedChat.confirmation.noteNotFound"));
+
+          const settings = useSettingsStore.getState();
+          const resolved = selectResolvedNoteFormatting(settings);
+          const isCloudMode = selectIsCloudNoteFormattingMode(settings);
+          const { updates } = await runNoteActionOnce({
+            note,
+            action,
+            modelId: resolved.model,
+            isCloudMode,
+            speakerLabels: {
+              you: t("notes.speaker.you"),
+              them: t("notes.speaker.them"),
+            },
+          });
+          const result = await window.electronAPI.updateNote(note.id, updates);
+          if (!result.success) throw new Error(t("embeddedChat.confirmation.writeFailed"));
+          syncService.debouncedPush("note", note.id);
+          patchToolCall(toolCall.id, {
+            status: "completed",
+            result: t("embeddedChat.confirmation.actionCompleted", { name: action.name }),
+            metadata: { ...metadata, confirmationStatus: "confirmed" },
+          });
+        }
+      } catch (error) {
+        patchToolCall(toolCall.id, {
+          status: "error",
+          result: (error as Error).message,
+          metadata: { ...metadata, confirmationStatus: "pending" },
+        });
+      }
+    },
+    [patchToolCall, t, writeAssistantMessage]
+  );
 
   const switchConversation = useCallback(
     async (id: number) => {
@@ -160,5 +337,8 @@ export function useEmbeddedChat({
     activeConversationId: conversationId,
     switchConversation,
     startNewChat,
+    confirmToolCall,
+    cancelToolCall,
+    writeAssistantMessage,
   };
 }

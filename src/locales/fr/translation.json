@@ -2678,7 +2678,25 @@
     "undock": "Détacher de la barre latérale",
     "close": "Fermer le chat",
     "newChat": "Nouvelle discussion",
-    "conversationSelector": "Changer de conversation"
+    "conversationSelector": "Changer de conversation",
+    "confirmation": {
+      "confirm": "Confirmer",
+      "cancel": "Annuler",
+      "cancelled": "Annule",
+      "written": "Ecrit dans la note",
+      "noteNotFound": "Note actuelle introuvable",
+      "writeFailed": "Impossible de mettre a jour la note",
+      "currentNoteOnly": "Cette action ne peut s'executer que sur la note actuelle",
+      "actionNotFound": "Action personnalisee introuvable",
+      "actionCompleted": "Action terminee : {{name}}"
+    },
+    "writeAnswer": {
+      "title": "Ecrire la reponse dans la note",
+      "appendEnhanced": "Ajouter a ameliore",
+      "appendNote": "Ajouter aux notes",
+      "overwriteEnhanced": "Remplacer ameliore",
+      "overwriteNote": "Remplacer les notes"
+    }
   },
   "transcriptionPreview": {
     "label": "Aperçu",

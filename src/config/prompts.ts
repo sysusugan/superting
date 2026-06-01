@@ -28,6 +28,10 @@ const TOOL_INSTRUCTIONS: Record<string, string> = {
     "Use create_note when the user asks you to create, write, or draft a new note. Whenever the note will go into a folder, call list_folders first and reuse an existing folder whose name is a reasonable fit for the note's topic (e.g. a new story belongs in an existing 'Stories' folder) — do this even when the user didn't name a folder but the content clearly fits one. Only pass a new folder name when nothing existing fits. Be tolerant of case, plurals, and typos.",
   update_note:
     "Use update_note to modify an existing note's title, content, or move it to a different folder. If the current note's ID is provided in the context, use it directly. Otherwise, use search_notes first to find the note ID. When moving to a folder, call list_folders first and reuse an existing folder whose name fits the note's topic; only create a new folder when nothing existing fits.",
+  run_note_action:
+    "Use run_note_action when the user asks to run a custom action on the current note. The tool only requests confirmation; do not claim the action has run until the user confirms.",
+  write_note_content:
+    "Use write_note_content when the user asks to write your answer into the current note or enhanced content. The tool only requests confirmation; do not claim the note was updated until the user confirms.",
   list_folders:
     "Use list_folders before create_note or update_note whenever a note is going into a folder, so you can reuse an existing folder whose name fits the note's topic instead of creating a near-duplicate.",
   web_search:

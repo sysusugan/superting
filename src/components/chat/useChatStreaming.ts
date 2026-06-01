@@ -8,6 +8,7 @@ import type { ToolRegistry } from "../../services/tools/ToolRegistry";
 import type { Message, AgentState, ToolCallInfo } from "./types";
 import { isMissingFinalAnswerAfterToolResult } from "./chatCompletionGuard";
 import { isLocalChatProvider, shouldEnableChatTools } from "./toolSupportPolicy";
+import type { ActionItem, NoteItem } from "../../types/electron";
 
 const RAG_NOTE_LIMIT = 5;
 const RAG_NOTE_SNIPPET_LENGTH = 500;
@@ -34,10 +35,14 @@ async function buildRAGContext(userText: string): Promise<string> {
 }
 
 interface UseChatStreamingOptions {
-  messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   /** Optional note context to prepend to the system prompt (used by embedded note chat). */
   noteContext?: string;
+  currentNote?: Pick<
+    NoteItem,
+    "id" | "title" | "content" | "enhanced_content" | "transcript" | "folder_id" | "updated_at"
+  >;
+  availableActions?: ActionItem[];
   onStreamComplete?: (assistantId: string, content: string, toolCalls?: ToolCallInfo[]) => void;
 }
 
@@ -50,9 +55,10 @@ export interface ChatStreaming {
 }
 
 export function useChatStreaming({
-  messages,
   setMessages,
   noteContext: externalNoteContext,
+  currentNote,
+  availableActions,
   onStreamComplete,
 }: UseChatStreamingOptions): ChatStreaming {
   const { t } = useTranslation();
@@ -60,14 +66,9 @@ export function useChatStreaming({
   const [toolStatus, setToolStatus] = useState("");
   const [activeToolName, setActiveToolName] = useState("");
   const mountedRef = useRef(true);
-  const messagesRef = useRef<Message[]>([]);
   const noteContextRef = useRef(externalNoteContext);
   noteContextRef.current = externalNoteContext;
   const toolRegistryRef = useRef<{ key: string; registry: ToolRegistry } | null>(null);
-
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -103,15 +104,28 @@ export function useChatStreaming({
 
       let registry: ToolRegistry | null = null;
       if (supportsTools) {
-        const cacheKey = `${settings.isSignedIn}-${settings.gcalConnected}-${settings.cloudBackupEnabled}`;
+        const actionKey = (availableActions ?? [])
+          .map((action) => `${action.id}:${action.name}:${action.updated_at}`)
+          .join("|");
+        const cacheKey = [
+          settings.isSignedIn,
+          settings.gcalConnected,
+          settings.cloudBackupEnabled,
+          currentNote?.id ?? "",
+          currentNote?.updated_at ?? "",
+          actionKey,
+        ].join("-");
         if (toolRegistryRef.current?.key === cacheKey) {
           registry = toolRegistryRef.current.registry;
         } else {
-          registry = createToolRegistry({
-            isSignedIn: settings.isSignedIn,
-            gcalConnected: settings.gcalConnected,
-            cloudBackupEnabled: settings.cloudBackupEnabled,
-          });
+          registry = createToolRegistry(
+            {
+              isSignedIn: settings.isSignedIn,
+              gcalConnected: settings.gcalConnected,
+              cloudBackupEnabled: settings.cloudBackupEnabled,
+            },
+            { currentNote, availableActions }
+          );
           toolRegistryRef.current = { key: cacheKey, registry };
         }
       }
@@ -139,6 +153,7 @@ export function useChatStreaming({
         let fullContent = "";
         let contentAfterToolResult = "";
         let sawToolResult = false;
+        let toolCallsSnapshot: ToolCallInfo[] = [];
         let stream: AsyncGenerator<AgentStreamChunk>;
 
         if (isCloudAgent) {
@@ -212,6 +227,13 @@ export function useChatStreaming({
             );
           } else if (chunk.type === "tool_calls") {
             for (const call of chunk.calls) {
+              const nextToolCall = {
+                id: call.id,
+                name: call.name,
+                arguments: call.arguments,
+                status: "executing" as const,
+              };
+              toolCallsSnapshot = [...toolCallsSnapshot, nextToolCall];
               setAgentState("tool-executing");
               setActiveToolName(call.name);
               setToolStatus(
@@ -222,15 +244,7 @@ export function useChatStreaming({
                   m.id === assistantId
                     ? {
                         ...m,
-                        toolCalls: [
-                          ...(m.toolCalls || []),
-                          {
-                            id: call.id,
-                            name: call.name,
-                            arguments: call.arguments,
-                            status: "executing" as const,
-                          },
-                        ],
+                        toolCalls: [...(m.toolCalls || []), nextToolCall],
                       }
                     : m
                 )
@@ -238,6 +252,16 @@ export function useChatStreaming({
             }
           } else if (chunk.type === "tool_result") {
             sawToolResult = true;
+            toolCallsSnapshot = toolCallsSnapshot.map((tc) =>
+              tc.id === chunk.callId
+                ? {
+                    ...tc,
+                    status: chunk.isError ? ("error" as const) : ("completed" as const),
+                    result: chunk.displayText,
+                    ...(chunk.metadata ? { metadata: chunk.metadata } : {}),
+                  }
+                : tc
+            );
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === assistantId && m.toolCalls
@@ -263,11 +287,10 @@ export function useChatStreaming({
           }
         }
 
-        const finalMsg = messagesRef.current.find((m) => m.id === assistantId);
-        const hasToolCalls = !!finalMsg?.toolCalls?.length;
+        const hasToolCalls = toolCallsSnapshot.length > 0;
         if (
           isMissingFinalAnswerAfterToolResult({
-            toolCalls: finalMsg?.toolCalls,
+            toolCalls: toolCallsSnapshot,
             sawToolResult,
             contentAfterToolResult,
           })
@@ -279,10 +302,18 @@ export function useChatStreaming({
         }
 
         setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m))
+          prev.map((m) =>
+            m.id === assistantId
+              ? {
+                  ...m,
+                  isStreaming: false,
+                  ...(toolCallsSnapshot.length ? { toolCalls: toolCallsSnapshot } : {}),
+                }
+              : m
+          )
         );
 
-        onStreamComplete?.(assistantId, fullContent, finalMsg?.toolCalls);
+        onStreamComplete?.(assistantId, fullContent, toolCallsSnapshot);
       } catch (error) {
         setMessages((prev) =>
           prev.map((m) =>
@@ -301,7 +332,7 @@ export function useChatStreaming({
       setToolStatus("");
       setActiveToolName("");
     },
-    [t, setMessages, onStreamComplete]
+    [availableActions, currentNote, t, setMessages, onStreamComplete]
   );
 
   return {

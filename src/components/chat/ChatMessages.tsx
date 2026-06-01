@@ -1,15 +1,29 @@
 import { useRef, useEffect } from "react";
 import { cn } from "../lib/utils";
 import { ChatMessage } from "./ChatMessage";
-import type { Message } from "./types";
+import type { Message, ToolCallInfo } from "./types";
 
 interface ChatMessagesProps {
   messages: Message[];
   emptyState?: React.ReactNode;
   onOpenNote?: (noteId: number) => void;
+  onConfirmToolCall?: (toolCall: ToolCallInfo) => void;
+  onCancelToolCall?: (toolCall: ToolCallInfo) => void;
+  onWriteAssistantMessage?: (
+    content: string,
+    target: "content" | "enhanced_content",
+    writeMode: "overwrite" | "append"
+  ) => void;
 }
 
-export function ChatMessages({ messages, emptyState, onOpenNote }: ChatMessagesProps) {
+export function ChatMessages({
+  messages,
+  emptyState,
+  onOpenNote,
+  onConfirmToolCall,
+  onCancelToolCall,
+  onWriteAssistantMessage,
+}: ChatMessagesProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +49,9 @@ export function ChatMessages({ messages, emptyState, onOpenNote }: ChatMessagesP
                 isStreaming={msg.isStreaming}
                 toolCalls={msg.toolCalls}
                 onOpenNote={onOpenNote}
+                onConfirmToolCall={onConfirmToolCall}
+                onCancelToolCall={onCancelToolCall}
+                onWriteAssistantMessage={onWriteAssistantMessage}
               />
             ))}
         </div>

@@ -2678,7 +2678,25 @@
     "undock": "サイドバーから外す",
     "close": "チャットを閉じる",
     "newChat": "新しいチャット",
-    "conversationSelector": "会話を切り替え"
+    "conversationSelector": "会話を切り替え",
+    "confirmation": {
+      "confirm": "確認",
+      "cancel": "キャンセル",
+      "cancelled": "キャンセル済み",
+      "written": "ノートに書き込みました",
+      "noteNotFound": "現在のノートが見つかりません",
+      "writeFailed": "ノートの更新に失敗しました",
+      "currentNoteOnly": "この操作は現在のノートでのみ実行できます",
+      "actionNotFound": "カスタム操作が見つかりません",
+      "actionCompleted": "操作が完了しました: {{name}}"
+    },
+    "writeAnswer": {
+      "title": "回答をノートに書き込む",
+      "appendEnhanced": "拡張に追記",
+      "appendNote": "ノートに追記",
+      "overwriteEnhanced": "拡張を上書き",
+      "overwriteNote": "ノートを上書き"
+    }
   },
   "transcriptionPreview": {
     "label": "プレビュー",

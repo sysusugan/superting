@@ -2678,7 +2678,25 @@
     "undock": "Sgancia dalla barra laterale",
     "close": "Chiudi chat",
     "newChat": "Nuova chat",
-    "conversationSelector": "Cambia conversazione"
+    "conversationSelector": "Cambia conversazione",
+    "confirmation": {
+      "confirm": "Conferma",
+      "cancel": "Annulla",
+      "cancelled": "Annullato",
+      "written": "Scritto nella nota",
+      "noteNotFound": "Nota corrente non trovata",
+      "writeFailed": "Impossibile aggiornare la nota",
+      "currentNoteOnly": "Questa azione puo essere eseguita solo sulla nota corrente",
+      "actionNotFound": "Azione personalizzata non trovata",
+      "actionCompleted": "Azione completata: {{name}}"
+    },
+    "writeAnswer": {
+      "title": "Scrivi risposta nella nota",
+      "appendEnhanced": "Aggiungi a migliorato",
+      "appendNote": "Aggiungi alle note",
+      "overwriteEnhanced": "Sovrascrivi migliorato",
+      "overwriteNote": "Sovrascrivi note"
+    }
   },
   "transcriptionPreview": {
     "label": "Anteprima",

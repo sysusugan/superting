@@ -2680,7 +2680,25 @@
     "undock": "Открепить от боковой панели",
     "close": "Закрыть чат",
     "newChat": "Новый чат",
-    "conversationSelector": "Сменить беседу"
+    "conversationSelector": "Сменить беседу",
+    "confirmation": {
+      "confirm": "Подтвердить",
+      "cancel": "Отмена",
+      "cancelled": "Отменено",
+      "written": "Записано в заметку",
+      "noteNotFound": "Текущая заметка не найдена",
+      "writeFailed": "Не удалось обновить заметку",
+      "currentNoteOnly": "Это действие можно выполнить только для текущей заметки",
+      "actionNotFound": "Пользовательское действие не найдено",
+      "actionCompleted": "Действие выполнено: {{name}}"
+    },
+    "writeAnswer": {
+      "title": "Записать ответ в заметку",
+      "appendEnhanced": "Добавить в улучшенное",
+      "appendNote": "Добавить в заметки",
+      "overwriteEnhanced": "Заменить улучшенное",
+      "overwriteNote": "Заменить заметки"
+    }
   },
   "transcriptionPreview": {
     "label": "Предпросмотр",

@@ -7,6 +7,8 @@ import { listFoldersTool } from "./listFoldersTool";
 import { clipboardTool } from "./clipboardTool";
 import { webSearchTool } from "./webSearchTool";
 import { calendarTool } from "./calendarTool";
+import { createRunNoteActionTool, writeNoteContentTool } from "./noteActionChatTools";
+import type { ActionItem, NoteItem } from "../../types/electron";
 
 export { ToolRegistry } from "./ToolRegistry";
 export type { ToolDefinition, ToolResult } from "./ToolRegistry";
@@ -17,7 +19,18 @@ interface ToolRegistrySettings {
   cloudBackupEnabled: boolean;
 }
 
-export function createToolRegistry(settings: ToolRegistrySettings): ToolRegistry {
+interface ToolRegistryContext {
+  currentNote?: Pick<
+    NoteItem,
+    "id" | "title" | "content" | "enhanced_content" | "transcript" | "folder_id"
+  >;
+  availableActions?: ActionItem[];
+}
+
+export function createToolRegistry(
+  settings: ToolRegistrySettings,
+  context: ToolRegistryContext = {}
+): ToolRegistry {
   const registry = new ToolRegistry();
 
   const useCloudSearch = settings.isSignedIn && settings.cloudBackupEnabled;
@@ -34,6 +47,16 @@ export function createToolRegistry(settings: ToolRegistrySettings): ToolRegistry
 
   if (settings.gcalConnected) {
     registry.register(calendarTool);
+  }
+
+  if (context.currentNote) {
+    registry.register(writeNoteContentTool);
+    registry.register(
+      createRunNoteActionTool({
+        currentNote: context.currentNote,
+        availableActions: context.availableActions ?? [],
+      })
+    );
   }
 
   return registry;

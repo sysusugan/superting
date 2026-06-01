@@ -1,4 +1,13 @@
-import { Search, Globe, ClipboardCheck, Calendar, FileText, FilePlus, FilePen } from "lucide-react";
+import {
+  Search,
+  Globe,
+  ClipboardCheck,
+  Calendar,
+  FileText,
+  FilePlus,
+  FilePen,
+  Sparkles,
+} from "lucide-react";
 
 export const toolIcons: Record<string, typeof Search> = {
   search_notes: Search,
@@ -8,4 +17,6 @@ export const toolIcons: Record<string, typeof Search> = {
   get_note: FileText,
   create_note: FilePlus,
   update_note: FilePen,
+  run_note_action: Sparkles,
+  write_note_content: FilePen,
 };

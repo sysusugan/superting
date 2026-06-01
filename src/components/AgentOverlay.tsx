@@ -22,7 +22,6 @@ export default function AgentOverlay() {
   const { messages, setMessages, handleNewChat: persistenceNewChat } = persistence;
 
   const streaming = useChatStreaming({
-    messages,
     setMessages,
     onStreamComplete: (_assistantId, content, toolCalls) => {
       persistence.saveAssistantMessage(content, toolCalls);

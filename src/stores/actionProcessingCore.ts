@@ -26,6 +26,14 @@ interface ActionOutputInput {
   contentHash: string;
 }
 
+interface WriteNoteContentInput {
+  target?: string | null;
+  writeMode?: string | null;
+  content: string;
+  existingContent?: string | null;
+  existingEnhancedContent?: string | null;
+}
+
 function normalizeOutputTarget(target: string | null | undefined): ActionOutputTarget {
   return target === "content" ? "content" : "enhanced_content";
 }
@@ -69,4 +77,22 @@ export function buildActionOutputUpdates({
     enhancement_prompt: actionPrompt,
     enhanced_at_content_hash: contentHash,
   };
+}
+
+export function buildWriteNoteContentUpdates({
+  target,
+  writeMode,
+  content,
+  existingContent,
+  existingEnhancedContent,
+}: WriteNoteContentInput): Record<string, string> {
+  const outputTarget = normalizeOutputTarget(target);
+  const mode = normalizeWriteMode(writeMode);
+  const nextContent = applyWriteMode(
+    outputTarget === "content" ? existingContent : existingEnhancedContent,
+    content,
+    mode
+  );
+
+  return outputTarget === "content" ? { content: nextContent } : { enhanced_content: nextContent };
 }

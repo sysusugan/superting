@@ -2726,7 +2726,25 @@
     "undock": "Undock from sidebar",
     "close": "Close chat",
     "newChat": "New chat",
-    "conversationSelector": "Switch conversation"
+    "conversationSelector": "Switch conversation",
+    "confirmation": {
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "cancelled": "Cancelled",
+      "written": "Written to note",
+      "noteNotFound": "Current note was not found",
+      "writeFailed": "Failed to update note",
+      "currentNoteOnly": "This action can only run on the current note",
+      "actionNotFound": "Custom action not found",
+      "actionCompleted": "Action completed: {{name}}"
+    },
+    "writeAnswer": {
+      "title": "Write answer to note",
+      "appendEnhanced": "Append to enhanced",
+      "appendNote": "Append to notes",
+      "overwriteEnhanced": "Overwrite enhanced",
+      "overwriteNote": "Overwrite notes"
+    }
   },
   "transcriptionPreview": {
     "label": "Preview",

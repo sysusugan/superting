@@ -5,6 +5,7 @@ import {
   Check,
   Search,
   FileText,
+  FilePen,
   ChevronDown,
   ChevronRight,
   CircleAlert,
@@ -20,11 +21,26 @@ interface ChatMessageProps {
   isStreaming: boolean;
   toolCalls?: ToolCallInfo[];
   onOpenNote?: (noteId: number) => void;
+  onConfirmToolCall?: (toolCall: ToolCallInfo) => void;
+  onCancelToolCall?: (toolCall: ToolCallInfo) => void;
+  onWriteAssistantMessage?: (
+    content: string,
+    target: "content" | "enhanced_content",
+    writeMode: "overwrite" | "append"
+  ) => void;
 }
 
 const NOTE_TOOLS = new Set(["create_note", "update_note", "get_note"]);
 
-function ToolCallStep({ toolCall }: { toolCall: ToolCallInfo }) {
+function ToolCallStep({
+  toolCall,
+  onConfirm,
+  onCancel,
+}: {
+  toolCall: ToolCallInfo;
+  onConfirm?: (toolCall: ToolCallInfo) => void;
+  onCancel?: (toolCall: ToolCallInfo) => void;
+}) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const Icon = toolIcons[toolCall.name] || Search;
@@ -32,6 +48,13 @@ function ToolCallStep({ toolCall }: { toolCall: ToolCallInfo }) {
   const isError = toolCall.status === "error";
   const isCompleted = toolCall.status === "completed";
   const isClipboard = toolCall.name === "copy_to_clipboard" && isCompleted;
+  const confirmationStatus = toolCall.metadata?.confirmationStatus;
+  const isConfirmationPending =
+    toolCall.metadata?.confirmationRequired === true &&
+    confirmationStatus !== "confirmed" &&
+    confirmationStatus !== "cancelled" &&
+    isCompleted &&
+    !isError;
 
   const resultLines = toolCall.result?.split("\n") ?? [];
   const hasDetail = resultLines.length > 1 && !isClipboard;
@@ -122,6 +145,25 @@ function ToolCallStep({ toolCall }: { toolCall: ToolCallInfo }) {
           </pre>
         </div>
       )}
+
+      {isConfirmationPending && (
+        <div className="flex items-center gap-1.5 px-2.5 pb-1.5">
+          <button
+            type="button"
+            onClick={() => onConfirm?.(toolCall)}
+            className="h-6 px-2 rounded-md bg-primary/10 text-primary text-[11px] font-medium hover:bg-primary/15 transition-colors"
+          >
+            {t("embeddedChat.confirmation.confirm")}
+          </button>
+          <button
+            type="button"
+            onClick={() => onCancel?.(toolCall)}
+            className="h-6 px-2 rounded-md bg-foreground/5 text-muted-foreground text-[11px] font-medium hover:bg-foreground/8 hover:text-foreground/70 transition-colors"
+          >
+            {t("embeddedChat.confirmation.cancel")}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -191,9 +233,14 @@ export function ChatMessage({
   isStreaming,
   toolCalls,
   onOpenNote,
+  onConfirmToolCall,
+  onCancelToolCall,
+  onWriteAssistantMessage,
 }: ChatMessageProps) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+  const [writeOptionsOpen, setWriteOptionsOpen] = useState(false);
+  const [isWriting, setIsWriting] = useState(false);
 
   const handleCopy = async () => {
     try {
@@ -202,6 +249,20 @@ export function ChatMessage({
       setTimeout(() => setCopied(false), 1500);
     } catch {
       // clipboard unavailable
+    }
+  };
+
+  const handleWrite = async (
+    target: "content" | "enhanced_content",
+    writeMode: "overwrite" | "append"
+  ) => {
+    if (!onWriteAssistantMessage) return;
+    setIsWriting(true);
+    try {
+      await onWriteAssistantMessage(content, target, writeMode);
+      setWriteOptionsOpen(false);
+    } finally {
+      setIsWriting(false);
     }
   };
 
@@ -249,7 +310,12 @@ export function ChatMessage({
             )}
           >
             {toolCalls.map((tc) => (
-              <ToolCallStep key={tc.id} toolCall={tc} />
+              <ToolCallStep
+                key={tc.id}
+                toolCall={tc}
+                onConfirm={onConfirmToolCall}
+                onCancel={onCancelToolCall}
+              />
             ))}
           </div>
         )}
@@ -288,18 +354,73 @@ export function ChatMessage({
         )}
 
         {hasContent && !isStreaming && (
-          <div className="flex justify-start mt-1.5 -mb-0.5">
-            <button
-              onClick={handleCopy}
-              className={cn(
-                "p-1 rounded-sm",
-                "text-muted-foreground/40 hover:text-foreground hover:bg-foreground/8",
-                "opacity-0 group-hover/msg:opacity-100 transition-all duration-150",
-                "focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/30"
+          <div className="flex flex-col items-start mt-1.5 -mb-0.5">
+            <div className="flex items-center gap-1">
+              {onWriteAssistantMessage && (
+                <button
+                  onClick={() => setWriteOptionsOpen((v) => !v)}
+                  disabled={isWriting}
+                  className={cn(
+                    "p-1 rounded-sm",
+                    "text-muted-foreground/40 hover:text-foreground hover:bg-foreground/8",
+                    "opacity-0 group-hover/msg:opacity-100 transition-all duration-150",
+                    "focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/30",
+                    writeOptionsOpen && "opacity-100 text-foreground bg-foreground/8"
+                  )}
+                  aria-label={t("embeddedChat.writeAnswer.title")}
+                  title={t("embeddedChat.writeAnswer.title")}
+                >
+                  <FilePen size={12} />
+                </button>
               )}
-            >
-              {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-            </button>
+              <button
+                onClick={handleCopy}
+                className={cn(
+                  "p-1 rounded-sm",
+                  "text-muted-foreground/40 hover:text-foreground hover:bg-foreground/8",
+                  "opacity-0 group-hover/msg:opacity-100 transition-all duration-150",
+                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/30"
+                )}
+              >
+                {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+              </button>
+            </div>
+            {writeOptionsOpen && (
+              <div className="mt-1.5 grid grid-cols-2 gap-1 text-[11px]">
+                <button
+                  type="button"
+                  disabled={isWriting}
+                  onClick={() => handleWrite("enhanced_content", "append")}
+                  className="h-6 px-2 rounded-md bg-primary/10 text-primary hover:bg-primary/15 disabled:opacity-50"
+                >
+                  {t("embeddedChat.writeAnswer.appendEnhanced")}
+                </button>
+                <button
+                  type="button"
+                  disabled={isWriting}
+                  onClick={() => handleWrite("content", "append")}
+                  className="h-6 px-2 rounded-md bg-foreground/5 text-muted-foreground hover:text-foreground/70 hover:bg-foreground/8 disabled:opacity-50"
+                >
+                  {t("embeddedChat.writeAnswer.appendNote")}
+                </button>
+                <button
+                  type="button"
+                  disabled={isWriting}
+                  onClick={() => handleWrite("enhanced_content", "overwrite")}
+                  className="h-6 px-2 rounded-md bg-foreground/5 text-muted-foreground hover:text-foreground/70 hover:bg-foreground/8 disabled:opacity-50"
+                >
+                  {t("embeddedChat.writeAnswer.overwriteEnhanced")}
+                </button>
+                <button
+                  type="button"
+                  disabled={isWriting}
+                  onClick={() => handleWrite("content", "overwrite")}
+                  className="h-6 px-2 rounded-md bg-foreground/5 text-muted-foreground hover:text-foreground/70 hover:bg-foreground/8 disabled:opacity-50"
+                >
+                  {t("embeddedChat.writeAnswer.overwriteNote")}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
