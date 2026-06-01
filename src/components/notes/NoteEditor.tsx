@@ -12,6 +12,8 @@ import {
   LinkIcon,
   FolderOpen,
   Search,
+  ChevronUp,
+  ChevronDown,
   Plus,
   Check,
   Share2,
@@ -43,6 +45,7 @@ import { selectEmbeddedChatTranscript } from "./embeddedChatTranscript";
 import { useEmbeddedChat } from "../../hooks/useEmbeddedChat";
 import { normalizeDbDate } from "../../utils/dateFormatting";
 import { parseTranscriptSegments } from "../../utils/parseTranscriptSegments";
+import { getFindMatches, getNextFindIndex } from "../../utils/currentPageFind";
 import {
   applyTranscriptSpeakerPatch,
   lockTranscriptSpeaker,
@@ -173,6 +176,9 @@ export default function NoteEditor({
   const [findText, setFindText] = useState("");
   const [replaceText, setReplaceText] = useState("");
   const [ignoreCase, setIgnoreCase] = useState(true);
+  const [isFindOpen, setIsFindOpen] = useState(false);
+  const [activeFindIndex, setActiveFindIndex] = useState(-1);
+  const [findMatchCount, setFindMatchCount] = useState(0);
   const shareCache = useShareCacheEntry(note.cloud_id);
   const isShared = (shareCache?.share.visibility ?? "private") !== "private";
   const [diarizedSegments, setDiarizedSegments] = useState<TranscriptSegment[] | null>(null);
@@ -181,6 +187,8 @@ export default function NoteEditor({
     Array<{ id: number; display_name: string; email: string | null }>
   >([]);
   const editorRef = useRef<Editor | null>(null);
+  const findInputRef = useRef<HTMLInputElement>(null);
+  const plainTranscriptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const displaySegmentsRef = useRef<TranscriptSegment[]>([]);
   const effectiveTranscript = selectEmbeddedChatTranscript({
     liveTranscript,
@@ -240,6 +248,10 @@ export default function NoteEditor({
   const transcriptMatchCount = useMemo(
     () => countMatches(activeTranscriptText, findText, { ignoreCase }),
     [activeTranscriptText, findText, ignoreCase]
+  );
+  const plainTranscriptMatches = useMemo(
+    () => getFindMatches(editableTranscriptText, findText, { ignoreCase }),
+    [editableTranscriptText, findText, ignoreCase]
   );
   const hasTranscriptEditControls = viewMode === "transcript" && !!effectiveTranscript;
   const canEditTranscript = hasTranscriptEditControls && !isRecording;
@@ -371,6 +383,65 @@ export default function NoteEditor({
       return scheduleUiUpdate(() => setChatMode("floating"));
     }
   }, [embeddedChat.activeConversationId, embeddedChat.messages.length, scheduleUiUpdate]);
+
+  useEffect(() => {
+    if (!isFindOpen) return;
+    const frameId = window.requestAnimationFrame(() => {
+      findInputRef.current?.focus();
+      findInputRef.current?.select();
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [isFindOpen]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const mod = navigator.platform.startsWith("Mac") ? event.metaKey : event.ctrlKey;
+      if (!mod || event.key.toLowerCase() !== "f") return;
+      event.preventDefault();
+      event.stopPropagation();
+      setIsFindOpen(true);
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, []);
+
+  useEffect(() => {
+    setActiveFindIndex(-1);
+    setFindMatchCount(0);
+  }, [note.id, viewMode]);
+
+  useEffect(() => {
+    if (viewMode === "transcript") {
+      setFindMatchCount(transcriptMatchCount);
+    }
+  }, [transcriptMatchCount, viewMode]);
+
+  useEffect(() => {
+    setActiveFindIndex((current) => {
+      if (!findText || findMatchCount <= 0) return -1;
+      if (current < 0) return 0;
+      if (current >= findMatchCount) return findMatchCount - 1;
+      return current;
+    });
+  }, [findMatchCount, findText]);
+
+  useEffect(() => {
+    if (viewMode !== "transcript" || !isTranscriptEditing || transcriptIsStructured) return;
+    if (activeFindIndex < 0) return;
+    const match = plainTranscriptMatches[activeFindIndex];
+    const textarea = plainTranscriptTextareaRef.current;
+    if (!match || !textarea) return;
+
+    textarea.focus();
+    textarea.setSelectionRange(match.index, match.index + match.length);
+  }, [
+    activeFindIndex,
+    isTranscriptEditing,
+    plainTranscriptMatches,
+    transcriptIsStructured,
+    viewMode,
+  ]);
 
   useEffect(() => {
     if (titleRef.current && titleRef.current.textContent !== note.title) {
@@ -646,6 +717,40 @@ export default function NoteEditor({
     );
   }, [findText, ignoreCase, replaceText, transcriptIsStructured, transcriptMatchCount]);
 
+  const handleFindMatchCountChange = useCallback(
+    (count: number) => {
+      if (viewMode !== "transcript") setFindMatchCount(count);
+    },
+    [viewMode]
+  );
+
+  const handleTranscriptFindMatchCountChange = useCallback(
+    (count: number) => {
+      if (viewMode === "transcript") setFindMatchCount(count);
+    },
+    [viewMode]
+  );
+
+  const handleNavigateFind = useCallback(
+    (direction: 1 | -1) => {
+      setActiveFindIndex((current) => getNextFindIndex(current, findMatchCount, direction));
+    },
+    [findMatchCount]
+  );
+
+  const handleFindKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        handleNavigateFind(event.shiftKey ? -1 : 1);
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        setIsFindOpen(false);
+      }
+    },
+    [handleNavigateFind]
+  );
+
   const handleSaveTranscriptEdit = useCallback(async () => {
     if (!isTranscriptEditing) return;
     const transcript = transcriptIsStructured
@@ -691,6 +796,14 @@ export default function NoteEditor({
 
   const noteDate = formatNoteDate(note.created_at);
   const shortDate = formatShortDate(note.created_at);
+  const showFindBar = isFindOpen || (isTranscriptEditing && viewMode === "transcript");
+  const showReplaceControls = isTranscriptEditing && viewMode === "transcript";
+  const findStatusText = findText
+    ? t("notes.editor.findMatchPosition", {
+        current: activeFindIndex >= 0 ? activeFindIndex + 1 : 0,
+        count: findMatchCount,
+      })
+    : t("notes.editor.transcriptNoSearch");
 
   return (
     <div className="flex h-full min-h-0">
@@ -1057,46 +1170,82 @@ export default function NoteEditor({
         </div>
 
         <div className="flex-1 relative min-h-0 flex flex-col">
-          {isTranscriptEditing && viewMode === "transcript" && (
+          {showFindBar && (
             <div className="shrink-0 border-b border-border/20 px-3 py-2">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-1.5 rounded-md border border-border/30 bg-background/80 px-2 py-1">
                   <Search size={12} className="text-foreground/35" />
                   <input
+                    ref={findInputRef}
                     value={findText}
                     onChange={(event) => setFindText(event.target.value)}
-                    placeholder={t("notes.editor.transcriptFind")}
+                    onKeyDown={handleFindKeyDown}
+                    placeholder={t("notes.editor.findPlaceholder")}
                     className="w-32 bg-transparent text-xs text-foreground outline-none placeholder:text-foreground/25"
                   />
                 </div>
-                <input
-                  value={replaceText}
-                  onChange={(event) => setReplaceText(event.target.value)}
-                  placeholder={t("notes.editor.transcriptReplaceWith")}
-                  className="h-7 w-32 rounded-md border border-border/30 bg-background/80 px-2 text-xs text-foreground outline-none placeholder:text-foreground/25 focus-visible:ring-1 focus-visible:ring-ring/60"
-                />
-                <label className="flex h-7 items-center gap-1.5 rounded-md px-1.5 text-[11px] text-foreground/55">
+                {showReplaceControls && (
                   <input
-                    type="checkbox"
-                    checked={ignoreCase}
-                    onChange={(event) => setIgnoreCase(event.target.checked)}
-                    className="h-3 w-3 accent-primary"
+                    value={replaceText}
+                    onChange={(event) => setReplaceText(event.target.value)}
+                    placeholder={t("notes.editor.transcriptReplaceWith")}
+                    className="h-7 w-32 rounded-md border border-border/30 bg-background/80 px-2 text-xs text-foreground outline-none placeholder:text-foreground/25 focus-visible:ring-1 focus-visible:ring-ring/60"
                   />
-                  {t("notes.editor.transcriptIgnoreCase")}
-                </label>
+                )}
+                <div className="flex items-center gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => handleNavigateFind(-1)}
+                    disabled={!findText || findMatchCount === 0}
+                    aria-label={t("notes.editor.findPrevious")}
+                    className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-foreground/5 text-foreground/55 transition-colors hover:bg-foreground/9 hover:text-foreground/75 disabled:opacity-35 disabled:pointer-events-none"
+                  >
+                    <ChevronUp size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleNavigateFind(1)}
+                    disabled={!findText || findMatchCount === 0}
+                    aria-label={t("notes.editor.findNext")}
+                    className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-foreground/5 text-foreground/55 transition-colors hover:bg-foreground/9 hover:text-foreground/75 disabled:opacity-35 disabled:pointer-events-none"
+                  >
+                    <ChevronDown size={13} />
+                  </button>
+                </div>
+                {showReplaceControls && (
+                  <label className="flex h-7 items-center gap-1.5 rounded-md px-1.5 text-[11px] text-foreground/55">
+                    <input
+                      type="checkbox"
+                      checked={ignoreCase}
+                      onChange={(event) => setIgnoreCase(event.target.checked)}
+                      className="h-3 w-3 accent-primary"
+                    />
+                    {t("notes.editor.transcriptIgnoreCase")}
+                  </label>
+                )}
                 <span className="text-[11px] tabular-nums text-foreground/35">
-                  {findText
-                    ? t("notes.editor.transcriptMatchCount", { count: transcriptMatchCount })
-                    : t("notes.editor.transcriptNoSearch")}
+                  {findStatusText}
                 </span>
-                <button
-                  type="button"
-                  onClick={handleReplaceAllTranscriptMatches}
-                  disabled={!findText || transcriptMatchCount === 0}
-                  className="h-7 rounded-md bg-foreground/5 px-2 text-[11px] font-medium text-foreground/55 transition-colors hover:bg-foreground/9 hover:text-foreground/75 disabled:opacity-35 disabled:pointer-events-none"
-                >
-                  {t("notes.editor.transcriptReplaceAll")}
-                </button>
+                {showReplaceControls && (
+                  <button
+                    type="button"
+                    onClick={handleReplaceAllTranscriptMatches}
+                    disabled={!findText || transcriptMatchCount === 0}
+                    className="h-7 rounded-md bg-foreground/5 px-2 text-[11px] font-medium text-foreground/55 transition-colors hover:bg-foreground/9 hover:text-foreground/75 disabled:opacity-35 disabled:pointer-events-none"
+                  >
+                    {t("notes.editor.transcriptReplaceAll")}
+                  </button>
+                )}
+                {isFindOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setIsFindOpen(false)}
+                    aria-label={t("notes.editor.findClose")}
+                    className="h-7 w-7 inline-flex items-center justify-center rounded-md text-foreground/40 transition-colors hover:bg-foreground/6 hover:text-foreground/70"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -1108,6 +1257,8 @@ export default function NoteEditor({
                 onSegmentsChange={setEditableTranscriptSegments}
                 searchTerm={findText}
                 ignoreCase={ignoreCase}
+                activeSearchIndex={activeFindIndex}
+                onSearchMatchCountChange={handleTranscriptFindMatchCountChange}
                 micPartial={isRecording ? meetingMicPartial : undefined}
                 systemPartial={isRecording ? meetingSystemPartial : undefined}
                 systemPartialSpeakerId={isRecording ? meetingSystemPartialSpeakerId : undefined}
@@ -1136,15 +1287,30 @@ export default function NoteEditor({
             ) : viewMode === "transcript" && hasMeetingTranscript ? (
               isTranscriptEditing ? (
                 <textarea
+                  ref={plainTranscriptTextareaRef}
                   value={editableTranscriptText}
                   onChange={(event) => setEditableTranscriptText(event.target.value)}
                   className="h-full w-full resize-none bg-transparent px-5 py-4 text-sm leading-relaxed text-foreground outline-none placeholder:text-foreground/25"
                 />
               ) : (
-                <RichTextEditor value={effectiveTranscript} disabled />
+                <RichTextEditor
+                  value={effectiveTranscript}
+                  disabled
+                  findQuery={findText}
+                  findActiveIndex={activeFindIndex}
+                  findIgnoreCase={ignoreCase}
+                  onFindMatchCountChange={handleTranscriptFindMatchCountChange}
+                />
               )
             ) : viewMode === "enhanced" && enhancement ? (
-              <RichTextEditor value={enhancement.content} onChange={handleEnhancedChange} />
+              <RichTextEditor
+                value={enhancement.content}
+                onChange={handleEnhancedChange}
+                findQuery={findText}
+                findActiveIndex={activeFindIndex}
+                findIgnoreCase={ignoreCase}
+                onFindMatchCountChange={handleFindMatchCountChange}
+              />
             ) : (
               <RichTextEditor
                 value={note.content}
@@ -1152,6 +1318,10 @@ export default function NoteEditor({
                 editorRef={editorRef}
                 placeholder={t("notes.editor.startWriting")}
                 disabled={actionProcessingState === "processing"}
+                findQuery={findText}
+                findActiveIndex={activeFindIndex}
+                findIgnoreCase={ignoreCase}
+                onFindMatchCountChange={handleFindMatchCountChange}
               />
             )}
           </div>

@@ -1011,6 +1011,27 @@ body:has(.agent-overlay-window) #root {
   background: oklch(0.62 0.22 260 / 0.15);
 }
 
+.ow-find-match {
+  border-radius: 0.125rem;
+  background: oklch(0.86 0.16 87 / 0.55);
+  color: inherit;
+  padding: 0 0.0625rem;
+}
+
+.ow-find-match-active {
+  background: oklch(0.76 0.18 70 / 0.85);
+  box-shadow: 0 0 0 1px oklch(0.62 0.16 70 / 0.5);
+}
+
+.dark .ow-find-match {
+  background: oklch(0.72 0.14 82 / 0.35);
+}
+
+.dark .ow-find-match-active {
+  background: oklch(0.74 0.16 72 / 0.55);
+  box-shadow: 0 0 0 1px oklch(0.78 0.14 72 / 0.45);
+}
+
 /* Task list (checkboxes) */
 .rich-text-editor-content ul[data-type="taskList"] {
   list-style: none;

@@ -529,6 +529,17 @@ Detects meetings via three independent sources, orchestrated by `MeetingDetectio
 
 ## Development Guidelines
 
+### Git Workflow
+
+- All new feature work must happen in an isolated worktree, not directly in the primary `main` checkout.
+- Prefer reusing an existing feature worktree when it is already on the intended branch and has no unrelated uncommitted changes.
+- If no suitable clean worktree exists, create a new worktree from `main` with a dedicated feature branch.
+- Create dedicated feature branches using the `codex/` prefix by default.
+- Do not develop new features directly in the primary `main` checkout.
+- Before creating a new worktree, verify the source `main` checkout has no uncommitted changes.
+- All commits must comply with DCO. Use `git commit -s` or otherwise include a valid `Signed-off-by:` trailer.
+- When integrating into `main`, use rebase merge only. Do not use squash merge or merge commits unless explicitly approved.
+
 ### Internationalization (i18n) — REQUIRED
 
 All user-facing strings **must** use the i18n system. Never hardcode UI text in components.

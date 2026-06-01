@@ -11,6 +11,7 @@ import {
   type TranscriptSpeakerStatus,
 } from "../../utils/transcriptSpeakerState";
 import { countMatches, makeFindPattern } from "../../utils/transcriptFindReplace";
+import { countFindMatches } from "../../utils/currentPageFind";
 
 const BUBBLE_STYLES = {
   mic: {
@@ -73,27 +74,41 @@ function HighlightedText({
   text,
   searchTerm,
   ignoreCase,
+  matchStartIndex = 0,
+  activeMatchIndex = -1,
 }: {
   text: string;
   searchTerm?: string;
   ignoreCase?: boolean;
+  matchStartIndex?: number;
+  activeMatchIndex?: number;
 }) {
   const pattern = makeFindPattern(searchTerm || "", { ignoreCase });
   if (!pattern) return <>{text}</>;
 
   const parts: ReactNode[] = [];
   let lastIndex = 0;
+  let localMatchIndex = 0;
   for (const match of text.matchAll(pattern)) {
     const index = match.index ?? 0;
+    const globalMatchIndex = matchStartIndex + localMatchIndex;
+    const isActive = activeMatchIndex === globalMatchIndex;
     if (index > lastIndex) parts.push(text.slice(lastIndex, index));
     parts.push(
       <mark
         key={`${index}-${match[0]}`}
-        className="rounded-sm bg-amber-300/60 text-inherit px-0.5 dark:bg-amber-400/30"
+        data-find-active={isActive ? "true" : undefined}
+        className={cn(
+          "rounded-sm text-inherit px-0.5",
+          isActive
+            ? "bg-amber-300/90 ring-1 ring-amber-500/45 dark:bg-amber-400/55 dark:ring-amber-300/35"
+            : "bg-amber-300/60 dark:bg-amber-400/30"
+        )}
       >
         {match[0]}
       </mark>
     );
+    localMatchIndex += 1;
     lastIndex = index + match[0].length;
   }
   if (lastIndex < text.length) parts.push(text.slice(lastIndex));
@@ -597,6 +612,8 @@ interface MeetingTranscriptChatProps {
   onSegmentsChange?: (segments: TranscriptSegment[]) => void;
   searchTerm?: string;
   ignoreCase?: boolean;
+  activeSearchIndex?: number;
+  onSearchMatchCountChange?: (count: number) => void;
   micPartial?: string;
   systemPartial?: string;
   systemPartialSpeakerId?: string | null;
@@ -630,6 +647,8 @@ export function MeetingTranscriptChat({
   onSegmentsChange,
   searchTerm,
   ignoreCase,
+  activeSearchIndex = -1,
+  onSearchMatchCountChange,
   micPartial,
   systemPartial,
   systemPartialSpeakerId,
@@ -701,6 +720,35 @@ export function MeetingTranscriptChat({
     }
     return map;
   }, [segments, speakerMappings]);
+
+  const segmentSearchMeta = useMemo(() => {
+    let running = 0;
+    return segments.map((segment) => {
+      const count = countFindMatches(segment.text, searchTerm || "", { ignoreCase });
+      const start = running;
+      running += count;
+      return { start, count };
+    });
+  }, [ignoreCase, searchTerm, segments]);
+
+  const totalSearchMatches = useMemo(() => {
+    if (segmentSearchMeta.length === 0) return 0;
+    const last = segmentSearchMeta[segmentSearchMeta.length - 1];
+    return last.start + last.count;
+  }, [segmentSearchMeta]);
+
+  useEffect(() => {
+    onSearchMatchCountChange?.(totalSearchMatches);
+  }, [onSearchMatchCountChange, totalSearchMatches]);
+
+  useEffect(() => {
+    if (activeSearchIndex < 0) return;
+    const frameId = window.requestAnimationFrame(() => {
+      const active = scrollRef.current?.querySelector<HTMLElement>("[data-find-active='true']");
+      active?.scrollIntoView({ block: "center", inline: "nearest" });
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [activeSearchIndex]);
 
   if (!hasContent) {
     return (
@@ -800,6 +848,7 @@ export function MeetingTranscriptChat({
         className="h-full overflow-y-auto px-4 pt-3 pb-24 flex flex-col gap-1.5 agent-chat-scroll"
       >
         {segments.map((segment, i) => {
+          const searchMeta = segmentSearchMeta[i] ?? { start: 0, count: 0 };
           const selfSide = isSelfSide(segment);
           const prevSegment = i > 0 ? segments[i - 1] : null;
           const sameSpeaker = prevSegment
@@ -815,6 +864,9 @@ export function MeetingTranscriptChat({
           const selectable = !!onToggleSelect;
           const hasSearchMatch =
             isEditing && !!searchTerm && countMatches(segment.text, searchTerm, { ignoreCase }) > 0;
+          const hasActiveSearchMatch =
+            activeSearchIndex >= searchMeta.start &&
+            activeSearchIndex < searchMeta.start + searchMeta.count;
 
           const activeName = speakerMappings?.[segment.speaker!] || segment.speakerName;
           const matchedProfile =
@@ -880,6 +932,7 @@ export function MeetingTranscriptChat({
                     value={segment.text}
                     onChange={(event) => updateSegmentText(segment.id, event.target.value)}
                     rows={Math.max(1, Math.min(6, segment.text.split("\n").length))}
+                    data-find-active={hasActiveSearchMatch ? "true" : undefined}
                     className={cn(
                       "min-w-56 max-w-full resize-y px-3 py-1.5 outline-none transition-colors",
                       "text-[13px] leading-relaxed rounded-lg border",
@@ -890,7 +943,8 @@ export function MeetingTranscriptChat({
                             "bg-surface-2 text-foreground border-border/40",
                             isSystemSpeaker && cn("border-l-2", SPEAKER_BORDER_COLORS[colorIdx])
                           ),
-                      hasSearchMatch && "ring-1 ring-amber-300/70 dark:ring-amber-400/45"
+                      hasSearchMatch && "ring-1 ring-amber-300/70 dark:ring-amber-400/45",
+                      hasActiveSearchMatch && "ring-2 ring-amber-400/80 dark:ring-amber-300/60"
                     )}
                   />
                 ) : (
@@ -915,6 +969,8 @@ export function MeetingTranscriptChat({
                       text={segment.text}
                       searchTerm={searchTerm}
                       ignoreCase={ignoreCase}
+                      matchStartIndex={searchMeta.start}
+                      activeMatchIndex={activeSearchIndex}
                     />
                   </div>
                 )}

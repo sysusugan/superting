@@ -1372,9 +1372,9 @@ class DatabaseManager {
 
     if (!meetingActionId) return;
 
-    this.db.prepare("UPDATE actions SET is_builtin = 0 WHERE id != ? AND is_builtin = 1").run(
-      meetingActionId
-    );
+    this.db
+      .prepare("UPDATE actions SET is_builtin = 0 WHERE id != ? AND is_builtin = 1")
+      .run(meetingActionId);
 
     if (!migratedLegacyBuiltIn) return;
 

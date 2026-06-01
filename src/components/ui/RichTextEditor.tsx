@@ -1,11 +1,107 @@
 import { useEffect, useRef, useCallback, type MutableRefObject } from "react";
+import { Extension } from "@tiptap/core";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Markdown } from "tiptap-markdown";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { cn } from "../lib/utils";
+import { countFindMatches, makeCurrentPageFindPattern } from "../../utils/currentPageFind";
+
+interface FindHighlightState {
+  decorations: DecorationSet;
+  query: string;
+  ignoreCase: boolean;
+  activeIndex: number;
+}
+
+const findHighlightPluginKey = new PluginKey<FindHighlightState>("richTextFindHighlight");
+
+function buildFindDecorations(
+  doc: any,
+  query: string,
+  ignoreCase: boolean,
+  activeIndex: number
+): DecorationSet {
+  const pattern = makeCurrentPageFindPattern(query, { ignoreCase });
+  if (!pattern) return DecorationSet.empty;
+
+  const decorations: Decoration[] = [];
+  let matchIndex = 0;
+
+  doc.descendants((node: any, pos: number) => {
+    if (!node.isText || !node.text) return;
+    for (const match of node.text.matchAll(pattern)) {
+      const from = pos + (match.index ?? 0);
+      const to = from + match[0].length;
+      const isActive = matchIndex === activeIndex;
+      decorations.push(
+        Decoration.inline(from, to, {
+          class: isActive ? "ow-find-match ow-find-match-active" : "ow-find-match",
+          "data-find-match": "true",
+          ...(isActive ? { "data-find-active": "true" } : {}),
+        })
+      );
+      matchIndex += 1;
+    }
+  });
+
+  return DecorationSet.create(doc, decorations);
+}
+
+const FindHighlight = Extension.create({
+  name: "findHighlight",
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin<FindHighlightState>({
+        key: findHighlightPluginKey,
+        state: {
+          init: (_, state) => ({
+            decorations: DecorationSet.empty,
+            query: "",
+            ignoreCase: true,
+            activeIndex: -1,
+          }),
+          apply: (tr, previous, _oldState, newState) => {
+            const meta = tr.getMeta(findHighlightPluginKey) as
+              | { query: string; ignoreCase: boolean; activeIndex: number }
+              | undefined;
+            const next = meta
+              ? meta
+              : {
+                  query: previous.query,
+                  ignoreCase: previous.ignoreCase,
+                  activeIndex: previous.activeIndex,
+                };
+
+            if (!meta && !tr.docChanged) {
+              return previous;
+            }
+
+            return {
+              ...next,
+              decorations: buildFindDecorations(
+                newState.doc,
+                next.query,
+                next.ignoreCase,
+                next.activeIndex
+              ),
+            };
+          },
+        },
+        props: {
+          decorations(state) {
+            return findHighlightPluginKey.getState(state)?.decorations ?? DecorationSet.empty;
+          },
+        },
+      }),
+    ];
+  },
+});
 
 interface RichTextEditorProps {
   value: string;
@@ -14,6 +110,10 @@ interface RichTextEditorProps {
   className?: string;
   disabled?: boolean;
   editorRef?: MutableRefObject<Editor | null>;
+  findQuery?: string;
+  findActiveIndex?: number;
+  findIgnoreCase?: boolean;
+  onFindMatchCountChange?: (count: number) => void;
 }
 
 export function RichTextEditor({
@@ -23,6 +123,10 @@ export function RichTextEditor({
   className,
   disabled,
   editorRef,
+  findQuery = "",
+  findActiveIndex = -1,
+  findIgnoreCase = true,
+  onFindMatchCountChange,
 }: RichTextEditorProps) {
   const internalValueRef = useRef(value);
   const suppressUpdateRef = useRef(false);
@@ -40,6 +144,7 @@ export function RichTextEditor({
         placeholder: placeholder || "",
         emptyEditorClass: "is-editor-empty",
       }),
+      FindHighlight,
       Markdown.configure({
         html: false,
         transformPastedText: true,
@@ -88,6 +193,28 @@ export function RichTextEditor({
 
     suppressUpdateRef.current = false;
   }, [value, editor]);
+
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    const text = editor.state.doc.textBetween(0, editor.state.doc.content.size, "\n", "\n");
+    onFindMatchCountChange?.(countFindMatches(text, findQuery, { ignoreCase: findIgnoreCase }));
+    editor.view.dispatch(
+      editor.state.tr.setMeta(findHighlightPluginKey, {
+        query: findQuery,
+        ignoreCase: findIgnoreCase,
+        activeIndex: findActiveIndex,
+      })
+    );
+  }, [editor, findActiveIndex, findIgnoreCase, findQuery, onFindMatchCountChange, value]);
+
+  useEffect(() => {
+    if (!editor || editor.isDestroyed || findActiveIndex < 0) return;
+    const frameId = window.requestAnimationFrame(() => {
+      const active = editor.view.dom.querySelector<HTMLElement>("[data-find-active='true']");
+      active?.scrollIntoView({ block: "center", inline: "nearest" });
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [editor, findActiveIndex]);
 
   // Sync editable state
   useEffect(() => {
