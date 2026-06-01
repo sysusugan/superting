@@ -11,7 +11,12 @@ import {
   type TranscriptSpeakerStatus,
 } from "../../utils/transcriptSpeakerState";
 import { countMatches, makeFindPattern } from "../../utils/transcriptFindReplace";
-import { countFindMatches } from "../../utils/currentPageFind";
+import {
+  countFindMatches,
+  getActiveSegmentFindMatch,
+  getFindMatchPreview,
+  type FindMatchPreview,
+} from "../../utils/currentPageFind";
 import { formatTranscriptTimestamp } from "../../utils/recordingTime";
 
 const BUBBLE_STYLES = {
@@ -114,6 +119,26 @@ function HighlightedText({
   }
   if (lastIndex < text.length) parts.push(text.slice(lastIndex));
   return <>{parts}</>;
+}
+
+function ActiveFindPreview({ preview }: { preview: FindMatchPreview }) {
+  return (
+    <div className="mt-1 max-w-full rounded-md border border-amber-300/55 bg-amber-50/90 px-2 py-1 text-[11px] leading-snug text-amber-950 shadow-sm dark:border-amber-300/25 dark:bg-amber-400/12 dark:text-amber-100">
+      <span className="break-words">
+        {preview.hasLeadingEllipsis && (
+          <span className="text-amber-700/70 dark:text-amber-200/55">…</span>
+        )}
+        {preview.before}
+        <mark className="rounded-sm bg-amber-300 px-0.5 text-inherit ring-1 ring-amber-500/40 dark:bg-amber-300/70 dark:ring-amber-200/30">
+          {preview.match}
+        </mark>
+        {preview.after}
+        {preview.hasTrailingEllipsis && (
+          <span className="text-amber-700/70 dark:text-amber-200/55">…</span>
+        )}
+      </span>
+    </div>
+  );
 }
 
 const getSpeakerStateLabel = (state: TranscriptSpeakerStatus, t: (key: string) => string) => {
@@ -752,6 +777,11 @@ export function MeetingTranscriptChat({
     return last.start + last.count;
   }, [segmentSearchMeta]);
 
+  const activeSegmentFindMatch = useMemo(
+    () => getActiveSegmentFindMatch(segments, searchTerm || "", activeSearchIndex, { ignoreCase }),
+    [activeSearchIndex, ignoreCase, searchTerm, segments]
+  );
+
   useEffect(() => {
     onSearchMatchCountChange?.(totalSearchMatches);
   }, [onSearchMatchCountChange, totalSearchMatches]);
@@ -882,6 +912,16 @@ export function MeetingTranscriptChat({
           const hasActiveSearchMatch =
             activeSearchIndex >= searchMeta.start &&
             activeSearchIndex < searchMeta.start + searchMeta.count;
+          const activeSearchPreview =
+            isEditing && hasActiveSearchMatch && activeSegmentFindMatch?.segmentId === segment.id
+              ? getFindMatchPreview(
+                  segment.text,
+                  searchTerm || "",
+                  activeSegmentFindMatch.localMatchIndex,
+                  36,
+                  { ignoreCase }
+                )
+              : null;
 
           const activeName = speakerMappings?.[segment.speaker!] || segment.speakerName;
           const matchedProfile =
@@ -958,25 +998,32 @@ export function MeetingTranscriptChat({
               )}
               <div className="relative max-w-[80%]">
                 {isEditing ? (
-                  <textarea
-                    value={segment.text}
-                    onChange={(event) => updateSegmentText(segment.id, event.target.value)}
-                    rows={Math.max(1, Math.min(6, segment.text.split("\n").length))}
-                    data-find-active={hasActiveSearchMatch ? "true" : undefined}
-                    className={cn(
-                      "min-w-56 max-w-full resize-y px-3 py-1.5 outline-none transition-colors",
-                      "text-[13px] leading-relaxed rounded-lg border",
-                      "focus-visible:ring-1 focus-visible:ring-ring/70",
-                      selfSide
-                        ? "bg-primary/90 text-primary-foreground border-primary/20 placeholder:text-primary-foreground/50"
-                        : cn(
-                            "bg-surface-2 text-foreground border-border/40",
-                            isSystemSpeaker && cn("border-l-2", SPEAKER_BORDER_COLORS[colorIdx])
-                          ),
-                      hasSearchMatch && "ring-1 ring-amber-300/70 dark:ring-amber-400/45",
-                      hasActiveSearchMatch && "ring-2 ring-amber-400/80 dark:ring-amber-300/60"
-                    )}
-                  />
+                  <div>
+                    <textarea
+                      value={segment.text}
+                      onChange={(event) => updateSegmentText(segment.id, event.target.value)}
+                      rows={Math.max(
+                        1,
+                        Math.min(hasActiveSearchMatch ? 10 : 6, segment.text.split("\n").length)
+                      )}
+                      data-find-active={hasActiveSearchMatch ? "true" : undefined}
+                      className={cn(
+                        "min-w-56 max-w-full resize-y px-3 py-1.5 outline-none transition-colors",
+                        "text-[13px] leading-relaxed rounded-lg border",
+                        "focus-visible:ring-1 focus-visible:ring-ring/70",
+                        selfSide
+                          ? "bg-primary/90 text-primary-foreground border-primary/20 placeholder:text-primary-foreground/50"
+                          : cn(
+                              "bg-surface-2 text-foreground border-border/40",
+                              isSystemSpeaker && cn("border-l-2", SPEAKER_BORDER_COLORS[colorIdx])
+                            ),
+                        hasSearchMatch && "ring-1 ring-amber-300/70 dark:ring-amber-400/45",
+                        hasActiveSearchMatch &&
+                          "ring-2 ring-amber-400/85 shadow-[0_0_0_3px_rgba(251,191,36,0.18)] dark:ring-amber-300/65"
+                      )}
+                    />
+                    {activeSearchPreview && <ActiveFindPreview preview={activeSearchPreview} />}
+                  </div>
                 ) : (
                   <div
                     className={cn(

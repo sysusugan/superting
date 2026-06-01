@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  getActiveSegmentFindMatch,
   countFindMatches,
+  getFindMatchPreview,
   getNextFindIndex,
   replaceAllFindMatches,
   replaceFindMatchAt,
@@ -40,4 +42,31 @@ test("replaces all literal matches while escaping search input", () => {
     replaceAllFindMatches("Use a.b and A.B carefully", "a.b", "term", { ignoreCase: false }),
     "Use term and A.B carefully"
   );
+});
+
+test("maps a global find index to a segment-local match", () => {
+  const segments = [
+    { id: "a", text: "QC is here" },
+    { id: "b", text: "No match" },
+    { id: "c", text: "qc appears, then QC again" },
+  ];
+
+  assert.deepEqual(getActiveSegmentFindMatch(segments, "qc", 2), {
+    segmentId: "c",
+    segmentIndex: 2,
+    localMatchIndex: 1,
+    segmentMatchStartIndex: 1,
+    segmentMatchCount: 2,
+  });
+  assert.equal(getActiveSegmentFindMatch(segments, "missing", 0), null);
+});
+
+test("builds a compact preview around a specific find match", () => {
+  assert.deepEqual(getFindMatchPreview("before words around QC after words", "qc", 0, 8), {
+    before: "around ",
+    match: "QC",
+    after: " after w",
+    hasLeadingEllipsis: true,
+    hasTrailingEllipsis: true,
+  });
 });

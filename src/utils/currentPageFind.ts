@@ -7,6 +7,22 @@ export interface FindMatch {
   length: number;
 }
 
+export interface SegmentFindMatch {
+  segmentId: string;
+  segmentIndex: number;
+  localMatchIndex: number;
+  segmentMatchStartIndex: number;
+  segmentMatchCount: number;
+}
+
+export interface FindMatchPreview {
+  before: string;
+  match: string;
+  after: string;
+  hasLeadingEllipsis: boolean;
+  hasTrailingEllipsis: boolean;
+}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -73,4 +89,61 @@ export function getNextFindIndex(
     return direction > 0 ? 0 : totalMatches - 1;
   }
   return (currentIndex + direction + totalMatches) % totalMatches;
+}
+
+export function getActiveSegmentFindMatch(
+  segments: Array<{ id: string; text: string }>,
+  query: string,
+  activeIndex: number,
+  options: CurrentPageFindOptions = {}
+): SegmentFindMatch | null {
+  if (!query || activeIndex < 0) return null;
+
+  let running = 0;
+  for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex += 1) {
+    const segment = segments[segmentIndex];
+    const segmentMatchCount = countFindMatches(segment.text, query, options);
+    if (activeIndex < running + segmentMatchCount) {
+      return {
+        segmentId: segment.id,
+        segmentIndex,
+        localMatchIndex: activeIndex - running,
+        segmentMatchStartIndex: running,
+        segmentMatchCount,
+      };
+    }
+    running += segmentMatchCount;
+  }
+
+  return null;
+}
+
+export function getFindMatchPreview(
+  content: string,
+  query: string,
+  matchIndex: number,
+  contextChars = 28,
+  options: CurrentPageFindOptions = {}
+): FindMatchPreview | null {
+  const match = getFindMatches(content, query, options)[matchIndex];
+  if (!match) return null;
+
+  const contextSize = Math.max(0, contextChars);
+  const beforeStart = Math.max(0, match.index - contextSize);
+  const afterEnd = Math.min(content.length, match.index + match.length + contextSize);
+  const hasLeadingEllipsis = beforeStart > 0;
+  const hasTrailingEllipsis = afterEnd < content.length;
+
+  let before = content.slice(beforeStart, match.index);
+  if (hasLeadingEllipsis) {
+    before = before.replace(/^[^\s]+/, "").replace(/^\s+/, "");
+  }
+
+  return {
+    before,
+    match: content.slice(match.index, match.index + match.length),
+    after: content.slice(match.index + match.length, afterEnd),
+    hasLeadingEllipsis,
+    hasTrailingEllipsis,
+  };
 }
