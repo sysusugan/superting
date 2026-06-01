@@ -60,6 +60,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return () => ipcRenderer.removeListener("dictionary-updated", listener);
   },
   setAutoLearnEnabled: (enabled) => ipcRenderer.send("auto-learn-changed", enabled),
+  learnReplacementCorrection: (payload) =>
+    ipcRenderer.invoke("learn-replacement-correction", payload),
   onCorrectionsLearned: (callback) => {
     const listener = (_event, words) => callback?.(words);
     ipcRenderer.on("corrections-learned", listener);

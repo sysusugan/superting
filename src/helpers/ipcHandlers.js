@@ -660,25 +660,32 @@ class IPCHandlers {
         dictSize: currentDict.length,
       });
 
-      if (corrections.length > 0) {
-        const updatedDict = [...currentDict, ...corrections];
-        const saveResult = this.databaseManager.setDictionary(updatedDict);
-
-        if (saveResult?.success === false) {
-          debugLogger.debug("[AutoLearn] Failed to save dictionary", { error: saveResult.error });
-          return;
-        }
-
-        this.broadcastToWindows("dictionary-updated", updatedDict);
-
-        // Show the overlay so the toast is visible (it may have been hidden after dictation)
-        this.windowManager.showDictationPanel();
-        this.broadcastToWindows("corrections-learned", corrections);
-        debugLogger.debug("[AutoLearn] Saved corrections", { corrections });
-      }
+      this._saveLearnedCorrections(currentDict, corrections);
     } catch (error) {
       debugLogger.debug("[AutoLearn] Error processing corrections", { error: error.message });
     }
+  }
+
+  _saveLearnedCorrections(currentDict, corrections) {
+    if (!Array.isArray(corrections) || corrections.length === 0) {
+      return { success: true, learned: [] };
+    }
+
+    const updatedDict = [...currentDict, ...corrections];
+    const saveResult = this.databaseManager.setDictionary(updatedDict);
+
+    if (saveResult?.success === false) {
+      debugLogger.debug("[AutoLearn] Failed to save dictionary", { error: saveResult.error });
+      return { success: false, learned: [] };
+    }
+
+    this.broadcastToWindows("dictionary-updated", updatedDict);
+
+    // Show the overlay so the toast is visible (it may have been hidden after dictation)
+    this.windowManager.showDictationPanel();
+    this.broadcastToWindows("corrections-learned", corrections);
+    debugLogger.debug("[AutoLearn] Saved corrections", { corrections });
+    return { success: true, learned: corrections };
   }
 
   _syncStartupEnv(setVars, clearVars = []) {
@@ -906,6 +913,38 @@ class IPCHandlers {
         this._autoLearnLatestData = null;
       }
       debugLogger.debug("[AutoLearn] Setting changed", { enabled: this._autoLearnEnabled });
+    });
+
+    ipcMain.handle("learn-replacement-correction", async (_event, payload) => {
+      try {
+        if (!this._autoLearnEnabled) {
+          debugLogger.debug("[AutoLearn] Replacement learning disabled, skipping");
+          return { success: true, learned: [] };
+        }
+
+        if (!payload || payload.source !== "transcript-edit-find-replace") {
+          return { success: false, learned: [] };
+        }
+
+        const { extractReplacementCorrection } = require("../utils/correctionLearner");
+        const currentDict = this._getDictionarySafe();
+        const corrections = extractReplacementCorrection({
+          findText: payload.findText,
+          replacementText: payload.replacementText,
+          replacementCount: payload.replacementCount,
+          existingDictionary: currentDict,
+        });
+
+        debugLogger.debug("[AutoLearn] Replacement correction result", {
+          corrections,
+          source: payload.source,
+        });
+
+        return this._saveLearnedCorrections(currentDict, corrections);
+      } catch (error) {
+        debugLogger.debug("[AutoLearn] Replacement correction failed", { error: error.message });
+        return { success: false, learned: [] };
+      }
     });
 
     ipcMain.handle("db-get-dictionary", async () => {

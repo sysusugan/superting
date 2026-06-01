@@ -575,6 +575,12 @@ declare global {
       setDictionary: (words: string[]) => Promise<{ success: boolean }>;
       onDictionaryUpdated?: (callback: (words: string[]) => void) => () => void;
       setAutoLearnEnabled?: (enabled: boolean) => void;
+      learnReplacementCorrection?: (payload: {
+        findText: string;
+        replacementText: string;
+        replacementCount: number;
+        source: "transcript-edit-find-replace";
+      }) => Promise<{ success: boolean; learned: string[] }>;
       onCorrectionsLearned?: (callback: (words: string[]) => void) => () => void;
       undoLearnedCorrections?: (words: string[]) => Promise<{ success: boolean }>;
 

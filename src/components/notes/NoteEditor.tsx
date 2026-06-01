@@ -715,6 +715,19 @@ export default function NoteEditor({
     setReplaceText("");
   }, []);
 
+  const reportTranscriptReplacementCorrection = useCallback(
+    (replacementCount: number) => {
+      if (replacementCount <= 0) return;
+      window.electronAPI?.learnReplacementCorrection?.({
+        findText,
+        replacementText: replaceText,
+        replacementCount,
+        source: "transcript-edit-find-replace",
+      });
+    },
+    [findText, replaceText]
+  );
+
   const handleReplaceCurrentTranscriptMatch = useCallback(() => {
     if (!findText || transcriptMatchCount === 0 || activeFindIndex < 0) return;
     if (transcriptIsStructured) {
@@ -737,22 +750,26 @@ export default function NoteEditor({
           return nextSegment;
         });
       });
+      reportTranscriptReplacementCorrection(1);
       return;
     }
     setEditableTranscriptText((text) =>
       replaceFindMatchAt(text, findText, replaceText, activeFindIndex, { ignoreCase })
     );
+    reportTranscriptReplacementCorrection(1);
   }, [
     activeFindIndex,
     findText,
     ignoreCase,
     replaceText,
+    reportTranscriptReplacementCorrection,
     transcriptIsStructured,
     transcriptMatchCount,
   ]);
 
   const handleReplaceAllTranscriptMatches = useCallback(() => {
     if (!findText || transcriptMatchCount === 0) return;
+    const replacementCount = transcriptMatchCount;
     if (transcriptIsStructured) {
       setEditableTranscriptSegments((segments) =>
         segments.map((segment) => ({
@@ -761,13 +778,22 @@ export default function NoteEditor({
         }))
       );
       setActiveFindIndex(-1);
+      reportTranscriptReplacementCorrection(replacementCount);
       return;
     }
     setEditableTranscriptText((text) =>
       replaceAllFindMatches(text, findText, replaceText, { ignoreCase })
     );
     setActiveFindIndex(-1);
-  }, [findText, ignoreCase, replaceText, transcriptIsStructured, transcriptMatchCount]);
+    reportTranscriptReplacementCorrection(replacementCount);
+  }, [
+    findText,
+    ignoreCase,
+    replaceText,
+    reportTranscriptReplacementCorrection,
+    transcriptIsStructured,
+    transcriptMatchCount,
+  ]);
 
   const handleFindMatchCountChange = useCallback(
     (count: number) => {

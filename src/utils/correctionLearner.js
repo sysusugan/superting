@@ -150,24 +150,14 @@ function extractCorrections(originalText, fieldValue, existingDictionary) {
   const subs = findSubstitutions(origWords, editedWords);
   if (subs.length > origWords.length * 0.5) return [];
 
-  const safeDict = Array.isArray(existingDictionary) ? existingDictionary : [];
-  const dictSet = new Set(safeDict.map((w) => w.toLowerCase()));
   const seenCorrections = new Set();
   const results = [];
 
   for (const [origWord, correctedWord] of subs) {
     const normalizedCorrected = correctedWord.toLowerCase();
 
-    if (dictSet.has(normalizedCorrected)) continue;
     if (seenCorrections.has(normalizedCorrected)) continue;
-    if (origWord.toLowerCase() === normalizedCorrected) continue;
-    if (correctedWord.length < 3) continue;
-
-    // 0.65 threshold allows phonetic corrections like "Shunade" → "Sinead" (dist 4/7 = 0.57)
-    // while filtering out unrelated word replacements.
-    const dist = editDistance(origWord.toLowerCase(), correctedWord.toLowerCase());
-    const maxLen = Math.max(origWord.length, correctedWord.length);
-    if (dist / maxLen > 0.65) continue;
+    if (!shouldLearnCorrection(origWord, correctedWord, existingDictionary)) continue;
 
     results.push(correctedWord);
     seenCorrections.add(normalizedCorrected);
@@ -176,4 +166,41 @@ function extractCorrections(originalText, fieldValue, existingDictionary) {
   return results;
 }
 
-module.exports = { extractCorrections };
+function normalizeCandidateText(text) {
+  return String(text || "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function shouldLearnCorrection(originalText, correctedText, existingDictionary) {
+  const original = normalizeCandidateText(originalText);
+  const corrected = normalizeCandidateText(correctedText);
+
+  if (!original || !corrected) return false;
+  if (original.toLowerCase() === corrected.toLowerCase()) return false;
+  if (corrected.length < 3) return false;
+
+  const safeDict = Array.isArray(existingDictionary) ? existingDictionary : [];
+  const dictSet = new Set(safeDict.map((w) => normalizeCandidateText(w).toLowerCase()));
+  if (dictSet.has(corrected.toLowerCase())) return false;
+
+  const dist = editDistance(original.toLowerCase(), corrected.toLowerCase());
+  const maxLen = Math.max(original.length, corrected.length);
+  return dist / maxLen <= 0.65;
+}
+
+function extractReplacementCorrection({
+  findText,
+  replacementText,
+  replacementCount,
+  existingDictionary,
+} = {}) {
+  if (!Number.isFinite(replacementCount) || replacementCount <= 0) return [];
+
+  const corrected = normalizeCandidateText(replacementText);
+  if (!shouldLearnCorrection(findText, corrected, existingDictionary)) return [];
+
+  return [corrected];
+}
+
+module.exports = { extractCorrections, extractReplacementCorrection };
