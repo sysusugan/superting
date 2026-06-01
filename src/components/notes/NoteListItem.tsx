@@ -50,6 +50,7 @@ interface NoteListItemProps {
   };
   isDragging?: boolean;
   noteFilesEnabled?: boolean;
+  timestamp?: string;
 }
 
 function stripMarkdown(text: string): string {
@@ -97,6 +98,7 @@ export default function NoteListItem({
   dragHandlers,
   isDragging,
   noteFilesEnabled,
+  timestamp,
 }: NoteListItemProps) {
   const { t } = useTranslation();
   const preview = stripMarkdown(note.content);
@@ -166,7 +168,7 @@ export default function NoteListItem({
             </p>
             <div className="flex items-center gap-0.5 shrink-0">
               <span className="text-xs text-muted-foreground dark:text-muted-foreground/30 tabular-nums group-hover:opacity-0 transition-opacity">
-                {relativeTime(note.updated_at, t)}
+                {relativeTime(timestamp ?? note.updated_at, t)}
               </span>
               {!isSelectionMode && (
                 <DropdownMenu

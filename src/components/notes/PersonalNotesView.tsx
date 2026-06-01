@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Plus,
+  ArrowDownUp,
   Loader2,
   FolderOpen,
   MoreHorizontal,
@@ -15,6 +16,7 @@ import {
   FileAudio,
   Download,
   X,
+  SquareCheckBig,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import {
@@ -22,6 +24,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
 } from "../ui/dropdown-menu";
 import {
@@ -84,10 +89,23 @@ import {
 } from "../../stores/meetingRecordingStore";
 import { useNotesOnboarding } from "../../hooks/useNotesOnboarding";
 import NotesOnboarding from "./NotesOnboarding";
-import type { NoteAudioFile, NoteExportField, NoteExportFormat } from "../../types/electron";
+import type {
+  NoteAudioFile,
+  NoteExportField,
+  NoteExportFormat,
+  NoteSortBy,
+} from "../../types/electron";
 
 const FOLDER_INPUT_CLASS =
   "w-full h-6 bg-foreground/5 dark:bg-white/5 rounded px-2 text-xs text-foreground outline-none border border-primary/30 focus:border-primary/50";
+const NOTE_SORT_STORAGE_KEY = "noteSortBy";
+
+function readNoteSortBy(): NoteSortBy {
+  if (typeof window === "undefined") return "updatedAt";
+  return window.localStorage.getItem(NOTE_SORT_STORAGE_KEY) === "createdAt"
+    ? "createdAt"
+    : "updatedAt";
+}
 
 function formatAudioDuration(seconds: number | null): string {
   if (!seconds || seconds <= 0) return "";
@@ -147,6 +165,7 @@ export default function PersonalNotesView({
   const [showNewNoteDialog, setShowNewNoteDialog] = useState(false);
   const [showAudioDownloadDialog, setShowAudioDownloadDialog] = useState(false);
   const [showBulkExportDialog, setShowBulkExportDialog] = useState(false);
+  const [noteSortBy, setNoteSortByState] = useState<NoteSortBy>(readNoteSortBy);
   const [noteAudioFiles, setNoteAudioFiles] = useState<NoteAudioFile[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<number>>(new Set());
@@ -223,7 +242,7 @@ export default function PersonalNotesView({
     handleCreateFolder,
     handleConfirmRename,
     handleDeleteFolder,
-  } = useFolderManagement();
+  } = useFolderManagement(noteSortBy);
 
   const { confirmDialog, showConfirmDialog, hideConfirmDialog } = useDialogs();
 
@@ -270,6 +289,18 @@ export default function PersonalNotesView({
   const handleSelectAllVisibleNotes = useCallback(() => {
     setSelectedNoteIds(new Set(notes.map((note) => note.id)));
   }, [notes]);
+
+  const handleNoteSortChange = useCallback(
+    async (value: string) => {
+      const nextSortBy: NoteSortBy = value === "createdAt" ? "createdAt" : "updatedAt";
+      setNoteSortByState(nextSortBy);
+      window.localStorage.setItem(NOTE_SORT_STORAGE_KEY, nextSortBy);
+      if (activeFolderId) {
+        await initializeNotes(null, 50, activeFolderId, nextSortBy);
+      }
+    },
+    [activeFolderId]
+  );
 
   const handleExportSelectedNotes = useCallback(async () => {
     if (selectedNoteIds.size === 0 || exportFields.length === 0) return;
@@ -544,10 +575,10 @@ export default function PersonalNotesView({
 
   const handleNotesAdded = useCallback(async () => {
     if (activeFolderId) {
-      await initializeNotes(null, 50, activeFolderId);
+      await initializeNotes(null, 50, activeFolderId, noteSortBy);
     }
     loadFolders();
-  }, [activeFolderId, loadFolders]);
+  }, [activeFolderId, loadFolders, noteSortBy]);
 
   const handleDelete = useCallback(
     async (id: number) => {
@@ -1014,13 +1045,47 @@ export default function PersonalNotesView({
                 {notes.length > 0 && (
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     onClick={() => setIsSelectionMode(true)}
-                    className="h-5 px-1.5 text-[11px] rounded-md text-muted-foreground/60 hover:text-foreground/70 hover:bg-foreground/5"
+                    aria-label={t("notes.bulkExport.select")}
+                    title={t("notes.bulkExport.select")}
+                    className="h-5 w-5 rounded-md text-muted-foreground/50 dark:text-muted-foreground/30 hover:text-foreground/60 hover:bg-foreground/5"
                   >
-                    {t("notes.bulkExport.select")}
+                    <SquareCheckBig size={12} />
                   </Button>
                 )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={t("notes.list.sort")}
+                      title={t("notes.list.sort")}
+                      className="h-5 w-5 rounded-md text-muted-foreground/50 dark:text-muted-foreground/30 hover:text-foreground/60 hover:bg-foreground/5"
+                    >
+                      <ArrowDownUp size={12} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" sideOffset={4} className="min-w-36">
+                    <DropdownMenuLabel className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                      {t("notes.list.sort")}
+                    </DropdownMenuLabel>
+                    <DropdownMenuRadioGroup value={noteSortBy} onValueChange={handleNoteSortChange}>
+                      <DropdownMenuRadioItem
+                        value="updatedAt"
+                        className="text-xs gap-2 rounded-md px-2 py-1"
+                      >
+                        {t("notes.list.sortUpdated")}
+                      </DropdownMenuRadioItem>
+                      <DropdownMenuRadioItem
+                        value="createdAt"
+                        className="text-xs gap-2 rounded-md px-2 py-1"
+                      >
+                        {t("notes.list.sortCreated")}
+                      </DropdownMenuRadioItem>
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -1136,6 +1201,7 @@ export default function PersonalNotesView({
                   dragHandlers={noteDragHandlers(note.id, note.title)}
                   isDragging={dragState.draggingNoteId === note.id}
                   noteFilesEnabled={noteFilesEnabled}
+                  timestamp={noteSortBy === "createdAt" ? note.created_at : note.updated_at}
                 />
               ))
             )}

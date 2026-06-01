@@ -1910,7 +1910,10 @@
       "timeNow": "剛剛",
       "minutesAgo": "{{count}} 分鐘前",
       "hoursAgo": "{{count}} 小時前",
-      "daysAgo": "{{count}} 天前"
+      "daysAgo": "{{count}} 天前",
+      "sort": "排序",
+      "sortUpdated": "依更新時間",
+      "sortCreated": "依建立時間"
     },
     "editor": {
       "untitled": "未命名",

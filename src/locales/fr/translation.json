@@ -2021,7 +2021,10 @@
       "timeNow": "maintenant",
       "minutesAgo": "il y a {{count}}m",
       "hoursAgo": "il y a {{count}}h",
-      "daysAgo": "il y a {{count}}j"
+      "daysAgo": "il y a {{count}}j",
+      "sort": "Trier",
+      "sortUpdated": "Par modification",
+      "sortCreated": "Par création"
     },
     "editor": {
       "untitled": "Sans titre",

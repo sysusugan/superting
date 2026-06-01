@@ -64,6 +64,8 @@ export interface NoteItem {
   team_id?: string | null;
 }
 
+export type NoteSortBy = "updatedAt" | "createdAt";
+
 export type NoteExportField = "transcript" | "content" | "enhanced_content";
 export type NoteExportFormat = "md" | "txt";
 
@@ -598,7 +600,8 @@ declare global {
       getNotes: (
         noteType?: string | null,
         limit?: number,
-        folderId?: number | null
+        folderId?: number | null,
+        sortBy?: NoteSortBy
       ) => Promise<NoteItem[]>;
       updateNote: (
         id: number,

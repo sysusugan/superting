@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { NoteItem, NoteShareInvitation, ShareSettings } from "../types/electron";
+import type { NoteItem, NoteShareInvitation, NoteSortBy, ShareSettings } from "../types/electron";
 
 export interface NoteShareCacheEntry {
   share: ShareSettings;
@@ -78,12 +78,13 @@ function ensureIpcListeners() {
 export async function initializeNotes(
   noteType?: string | null,
   limit = DEFAULT_LIMIT,
-  folderId?: number | null
+  folderId?: number | null,
+  sortBy: NoteSortBy = "updatedAt"
 ): Promise<NoteItem[]> {
   const gen = ++loadGeneration;
   currentLimit = limit;
   ensureIpcListeners();
-  const items = (await window.electronAPI?.getNotes(noteType, limit, folderId)) ?? [];
+  const items = (await window.electronAPI?.getNotes(noteType, limit, folderId, sortBy)) ?? [];
   if (gen !== loadGeneration) return items;
   useNoteStore.setState({ notes: items });
   return items;

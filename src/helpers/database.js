@@ -6,6 +6,19 @@ const debugLogger = require("./debugLogger");
 const { app } = require("electron");
 const { isRetainedAudioFile, parseMeetingAudioFilename } = require("./audioStorageFiles");
 
+const NOTE_ORDER_BY = {
+  updatedAt: "updated_at DESC, id DESC",
+  createdAt: "created_at DESC, id DESC",
+};
+
+function getNoteOrderByClause(sortBy = "updatedAt") {
+  const orderBy = NOTE_ORDER_BY[sortBy || "updatedAt"];
+  if (!orderBy) {
+    throw new Error(`Invalid note sort key: ${sortBy}`);
+  }
+  return orderBy;
+}
+
 const DEFAULT_NOTE_ACTIONS = [
   {
     key: "notes.actions.builtin.meetingMinutes",
@@ -883,7 +896,7 @@ class DatabaseManager {
     }
   }
 
-  getNotes(noteType = null, limit = 100, folderId = null) {
+  getNotes(noteType = null, limit = 100, folderId = null, sortBy = "updatedAt") {
     try {
       if (!this.db) {
         throw new Error("Database not initialized");
@@ -899,7 +912,8 @@ class DatabaseManager {
         params.push(folderId);
       }
       const where = `WHERE ${conditions.join(" AND ")}`;
-      const stmt = this.db.prepare(`SELECT * FROM notes ${where} ORDER BY updated_at DESC LIMIT ?`);
+      const orderBy = getNoteOrderByClause(sortBy);
+      const stmt = this.db.prepare(`SELECT * FROM notes ${where} ORDER BY ${orderBy} LIMIT ?`);
       params.push(limit);
       return stmt.all(...params);
     } catch (error) {
@@ -3029,3 +3043,4 @@ class DatabaseManager {
 }
 
 module.exports = DatabaseManager;
+module.exports.getNoteOrderByClause = getNoteOrderByClause;

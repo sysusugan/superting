@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useToast } from "../components/ui/useToast";
 import logger from "../utils/logger";
-import type { FolderItem } from "../types/electron";
+import type { FolderItem, NoteSortBy } from "../types/electron";
 import { findDefaultFolder } from "../components/notes/shared";
 import { syncService } from "../services/SyncService.js";
 import {
@@ -36,7 +36,9 @@ export interface UseFolderManagementReturn {
   handleDeleteFolder: (id: number) => Promise<void>;
 }
 
-export function useFolderManagement(): UseFolderManagementReturn {
+export function useFolderManagement(
+  noteSortBy: NoteSortBy = "updatedAt"
+): UseFolderManagementReturn {
   const { t } = useTranslation();
   const { toast } = useToast();
   const activeFolderId = useActiveFolderId();
@@ -96,7 +98,7 @@ export function useFolderManagement(): UseFolderManagementReturn {
           setActiveFolderId(initialFolderId);
         }
         if (initialFolderId) {
-          const notes = await initializeNotes(null, 50, initialFolderId);
+          const notes = await initializeNotes(null, 50, initialFolderId, noteSortBy);
           if (!isMountedRef.current) return;
           const presetNoteId = getActiveNoteIdValue();
           if (!presetNoteId && notes.length > 0) {
@@ -112,7 +114,7 @@ export function useFolderManagement(): UseFolderManagementReturn {
     return () => {
       isMountedRef.current = false;
     };
-  }, [loadFolders]);
+  }, [loadFolders, noteSortBy]);
 
   // Re-initialize notes when active folder changes
   useEffect(() => {
@@ -121,7 +123,7 @@ export function useFolderManagement(): UseFolderManagementReturn {
     prevFolderIdRef.current = activeFolderId;
     const loadForFolder = async () => {
       try {
-        const notes = await initializeNotes(null, 50, activeFolderId);
+        const notes = await initializeNotes(null, 50, activeFolderId, noteSortBy);
         if (getActiveFolderIdValue() !== activeFolderId) return;
         const presetNoteId = getActiveNoteIdValue();
         if (!presetNoteId || !notes.some((n) => n.id === presetNoteId)) {
@@ -136,7 +138,7 @@ export function useFolderManagement(): UseFolderManagementReturn {
       }
     };
     loadForFolder();
-  }, [activeFolderId, isLoading]);
+  }, [activeFolderId, isLoading, noteSortBy]);
 
   // Focus new folder input when creating
   useEffect(() => {

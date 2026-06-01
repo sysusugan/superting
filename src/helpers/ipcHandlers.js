@@ -1011,8 +1011,8 @@ class IPCHandlers {
       return this.databaseManager.getNote(id);
     });
 
-    ipcMain.handle("db-get-notes", async (event, noteType, limit, folderId) => {
-      return this.databaseManager.getNotes(noteType, limit, folderId);
+    ipcMain.handle("db-get-notes", async (event, noteType, limit, folderId, sortBy) => {
+      return this.databaseManager.getNotes(noteType, limit, folderId, sortBy);
     });
 
     ipcMain.handle("db-update-note", async (event, id, updates) => {

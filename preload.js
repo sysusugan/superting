@@ -82,8 +82,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       transcript
     ),
   getNote: (id) => ipcRenderer.invoke("db-get-note", id),
-  getNotes: (noteType, limit, folderId) =>
-    ipcRenderer.invoke("db-get-notes", noteType, limit, folderId),
+  getNotes: (noteType, limit, folderId, sortBy) =>
+    ipcRenderer.invoke("db-get-notes", noteType, limit, folderId, sortBy),
   updateNote: (id, updates) => ipcRenderer.invoke("db-update-note", id, updates),
   deleteNote: (id) => ipcRenderer.invoke("db-delete-note", id),
   exportNote: (noteId, format) => ipcRenderer.invoke("export-note", noteId, format),

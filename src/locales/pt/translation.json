@@ -1910,7 +1910,10 @@
       "timeNow": "Agora",
       "minutesAgo": "{{count}}m",
       "hoursAgo": "{{count}}h",
-      "daysAgo": "{{count}}d"
+      "daysAgo": "{{count}}d",
+      "sort": "Ordenar",
+      "sortUpdated": "Por atualização",
+      "sortCreated": "Por criação"
     },
     "editor": {
       "untitled": "Sem título",

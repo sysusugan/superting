@@ -1905,7 +1905,10 @@
       "timeNow": "刚刚",
       "minutesAgo": "{{count}} 分钟前",
       "hoursAgo": "{{count}} 小时前",
-      "daysAgo": "{{count}} 天前"
+      "daysAgo": "{{count}} 天前",
+      "sort": "排序",
+      "sortUpdated": "按更新时间",
+      "sortCreated": "按创建时间"
     },
     "editor": {
       "untitled": "无标题",

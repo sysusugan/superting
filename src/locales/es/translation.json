@@ -1958,7 +1958,10 @@
       "timeNow": "Ahora",
       "minutesAgo": "hace {{count}}m",
       "hoursAgo": "hace {{count}}h",
-      "daysAgo": "hace {{count}}d"
+      "daysAgo": "hace {{count}}d",
+      "sort": "Ordenar",
+      "sortUpdated": "Por actualización",
+      "sortCreated": "Por creación"
     },
     "editor": {
       "untitled": "Sin título",

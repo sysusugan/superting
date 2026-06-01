@@ -1910,7 +1910,10 @@
       "timeNow": "Только что",
       "minutesAgo": "{{count}} мин. назад",
       "hoursAgo": "{{count}} ч. назад",
-      "daysAgo": "{{count}} дн. назад"
+      "daysAgo": "{{count}} дн. назад",
+      "sort": "Сортировка",
+      "sortUpdated": "По обновлению",
+      "sortCreated": "По созданию"
     },
     "editor": {
       "untitled": "Без названия",

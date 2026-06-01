@@ -2117,7 +2117,10 @@
       "timeNow": "now",
       "minutesAgo": "{{count}}m",
       "hoursAgo": "{{count}}h",
-      "daysAgo": "{{count}}d"
+      "daysAgo": "{{count}}d",
+      "sort": "Sort",
+      "sortUpdated": "Updated time",
+      "sortCreated": "Created time"
     },
     "editor": {
       "untitled": "Untitled",
