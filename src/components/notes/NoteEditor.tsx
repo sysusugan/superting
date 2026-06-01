@@ -106,6 +106,7 @@ interface NoteEditorProps {
   actionName?: string | null;
   actionOutputTarget?: ActionOutputTarget | null;
   diarizationSessionId?: string | null;
+  recordingStartedAt?: number | null;
   meetingTranscript?: string;
   meetingSegments?: TranscriptSegment[];
   meetingMicPartial?: string;
@@ -145,6 +146,7 @@ export default function NoteEditor({
   actionName,
   actionOutputTarget,
   diarizationSessionId,
+  recordingStartedAt,
   meetingTranscript,
   meetingSegments,
   meetingMicPartial,
@@ -1409,6 +1411,7 @@ export default function NoteEditor({
                 selectedSegmentIds={
                   !isRecording && !isTranscriptEditing ? selectedSegmentIds : undefined
                 }
+                recordingStartedAt={recordingStartedAt}
                 onToggleSelect={
                   !isRecording && !isTranscriptEditing ? handleToggleSelect : undefined
                 }
@@ -1489,6 +1492,7 @@ export default function NoteEditor({
             onInputFocus={handleChatInputFocus}
             actionPicker={isRecording ? undefined : actionPicker}
             hideInput={chatMode !== "hidden"}
+            recordingStartedAt={recordingStartedAt}
           />
           {chatMode === "floating" && (
             <EmbeddedChat

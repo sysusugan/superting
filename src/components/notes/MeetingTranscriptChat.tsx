@@ -12,6 +12,7 @@ import {
 } from "../../utils/transcriptSpeakerState";
 import { countMatches, makeFindPattern } from "../../utils/transcriptFindReplace";
 import { countFindMatches } from "../../utils/currentPageFind";
+import { formatTranscriptTimestamp } from "../../utils/recordingTime";
 
 const BUBBLE_STYLES = {
   mic: {
@@ -624,6 +625,7 @@ interface MeetingTranscriptChatProps {
   selectedSegmentIds?: Set<string>;
   isRecording?: boolean;
   isDiarizing?: boolean;
+  recordingStartedAt?: number | null;
   sessionDiarizationEnabled?: boolean;
   sessionExpectedCount?: number;
   userTouchedStepper?: boolean;
@@ -659,6 +661,7 @@ export function MeetingTranscriptChat({
   selectedSegmentIds,
   isRecording,
   isDiarizing,
+  recordingStartedAt,
   sessionDiarizationEnabled = true,
   sessionExpectedCount = 2,
   userTouchedStepper = false,
@@ -720,6 +723,18 @@ export function MeetingTranscriptChat({
     }
     return map;
   }, [segments, speakerMappings]);
+
+  const timelineStartedAt = useMemo(() => {
+    if (recordingStartedAt) return recordingStartedAt;
+    return (
+      segments.find(
+        (segment) =>
+          typeof segment.timestamp === "number" &&
+          Number.isFinite(segment.timestamp) &&
+          segment.timestamp > 1_000_000_000
+      )?.timestamp ?? null
+    );
+  }, [recordingStartedAt, segments]);
 
   const segmentSearchMeta = useMemo(() => {
     let running = 0;
@@ -878,22 +893,37 @@ export function MeetingTranscriptChat({
             matchedProfile.id != null &&
             !matchedProfile.email &&
             !!onAttachSpeakerEmail;
+          const timestampLabel = formatTranscriptTimestamp(segment.timestamp, timelineStartedAt);
+          const showInlineLabel = !sameSpeaker || !!timestampLabel;
+          const fallbackSpeakerLabel =
+            segment.source === "mic" ? t("notes.speaker.you") : t("notes.speaker.them");
 
-          const labelElement = hasSpeaker && (
+          const labelElement = (
             <div className="flex items-center gap-1">
-              <SpeakerLabel
-                speakerId={segment.speaker!}
-                segment={segment}
-                mappedName={speakerMappings?.[segment.speaker!]}
-                speakerProfiles={speakerProfiles}
-                participants={participants}
-                colorIdx={colorIdx}
-                isOriginallyYou={isOriginallyYou}
-                onMap={onMapSpeaker}
-                onConfirm={onConfirmSuggestion}
-                onDismiss={onDismissSuggestion}
-                t={t}
-              />
+              {hasSpeaker ? (
+                <SpeakerLabel
+                  speakerId={segment.speaker!}
+                  segment={segment}
+                  mappedName={speakerMappings?.[segment.speaker!]}
+                  speakerProfiles={speakerProfiles}
+                  participants={participants}
+                  colorIdx={colorIdx}
+                  isOriginallyYou={isOriginallyYou}
+                  onMap={onMapSpeaker}
+                  onConfirm={onConfirmSuggestion}
+                  onDismiss={onDismissSuggestion}
+                  t={t}
+                />
+              ) : (
+                <span className="text-[11px] font-medium mb-0.5 px-1.5 py-0.5 text-muted-foreground/60">
+                  {fallbackSpeakerLabel}
+                </span>
+              )}
+              {timestampLabel && (
+                <span className="mb-0.5 text-[11px] tabular-nums text-muted-foreground/45">
+                  {timestampLabel}
+                </span>
+              )}
               {canAddContact && matchedProfile && matchedProfile.id != null && (
                 <AddContactButton
                   profile={{ id: matchedProfile.id, display_name: matchedProfile.display_name }}
@@ -915,8 +945,8 @@ export function MeetingTranscriptChat({
               )}
               style={{ animation: "agent-message-in 200ms ease-out both" }}
             >
-              {labelElement && !sameSpeaker && labelElement}
-              {labelElement && sameSpeaker && (
+              {showInlineLabel && labelElement}
+              {!showInlineLabel && (
                 <div
                   className={cn(
                     "grid grid-rows-[0fr] opacity-0 pointer-events-none transition-[grid-template-rows,opacity] duration-150 ease-out",

@@ -192,6 +192,7 @@ export default function PersonalNotesView({
   const isTranscribing = useMeetingRecordingStore((s) => s.isRecording);
   const realtimeTranscript = useMeetingRecordingStore((s) => s.transcript);
   const realtimeSegments = useMeetingRecordingStore((s) => s.segments);
+  const recordingStartedAt = useMeetingRecordingStore((s) => s.recordingStartedAt);
   const micPartial = useMeetingRecordingStore((s) => s.micPartial);
   const systemPartial = useMeetingRecordingStore((s) => s.systemPartial);
   const systemPartialSpeakerId = useMeetingRecordingStore((s) => s.systemPartialSpeakerId);
@@ -703,7 +704,7 @@ export default function PersonalNotesView({
     ) {
       const transcript =
         realtimeSegments.length > 0
-          ? serializeTranscriptSegments(realtimeSegments)
+          ? serializeTranscriptSegments(realtimeSegments, { recordingStartedAt })
           : realtimeTranscript;
 
       if (recordingNoteId && transcript) {
@@ -711,7 +712,7 @@ export default function PersonalNotesView({
       }
     }
     prevTranscribingRef.current = isTranscribing;
-  }, [isTranscribing, realtimeTranscript, realtimeSegments, recordingNoteId]);
+  }, [isTranscribing, realtimeTranscript, realtimeSegments, recordingNoteId, recordingStartedAt]);
 
   useEffect(() => {
     if (!isTranscribing) return;
@@ -719,12 +720,12 @@ export default function PersonalNotesView({
     const interval = setInterval(() => {
       if (!recordingNoteId || realtimeSegments.length === 0) return;
       window.electronAPI.updateNote(recordingNoteId, {
-        transcript: serializeTranscriptSegments(realtimeSegments),
+        transcript: serializeTranscriptSegments(realtimeSegments, { recordingStartedAt }),
       });
     }, 30_000);
 
     return () => clearInterval(interval);
-  }, [isTranscribing, realtimeSegments, recordingNoteId]);
+  }, [isTranscribing, realtimeSegments, recordingNoteId, recordingStartedAt]);
 
   const isLocalSynced = syncedNoteId === activeNote?.id;
   const editorNote = activeNote
@@ -1169,6 +1170,7 @@ export default function PersonalNotesView({
                   : undefined
               }
               diarizationSessionId={diarizationSessionId}
+              recordingStartedAt={isActiveNoteRecording ? recordingStartedAt : null}
               meetingTranscript={isActiveNoteRecording ? realtimeTranscript : ""}
               meetingSegments={isActiveNoteRecording ? realtimeSegments : []}
               meetingMicPartial={isActiveNoteRecording ? micPartial : ""}

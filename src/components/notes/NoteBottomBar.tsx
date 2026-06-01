@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Mic, ArrowUp, Square, Loader2 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { formatRecordingElapsed } from "../../utils/recordingTime";
 
 const BAR_COUNT = 5;
 
@@ -15,6 +16,7 @@ interface NoteBottomBarProps {
   askDisabled?: boolean;
   actionPicker?: React.ReactNode;
   hideInput?: boolean;
+  recordingStartedAt?: number | null;
 }
 
 export default function NoteBottomBar({
@@ -27,28 +29,23 @@ export default function NoteBottomBar({
   askDisabled,
   actionPicker,
   hideInput,
+  recordingStartedAt,
 }: NoteBottomBarProps) {
   const { t } = useTranslation();
   const [inputText, setInputText] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [elapsed, setElapsed] = useState(0);
-  const [wasRecording, setWasRecording] = useState(isRecording);
-
-  if (isRecording !== wasRecording) {
-    setWasRecording(isRecording);
-    if (!isRecording) setElapsed(0);
-  }
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
     if (!isRecording) return;
-    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    setNowMs(Date.now());
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
     return () => clearInterval(id);
   }, [isRecording]);
 
-  const minutes = String(Math.floor(elapsed / 60)).padStart(2, "0");
-  const seconds = String(elapsed % 60).padStart(2, "0");
+  const elapsedLabel = formatRecordingElapsed(recordingStartedAt, nowMs);
 
   const hasText = inputText.trim().length > 0;
 
@@ -129,7 +126,7 @@ export default function NoteBottomBar({
                 ))}
               </div>
               <span className="text-[11px] font-medium tabular-nums text-primary/60 dark:text-primary/70">
-                {minutes}:{seconds}
+                {elapsedLabel}
               </span>
               <Square size={9} fill="currentColor" className="text-primary/50" />
             </button>

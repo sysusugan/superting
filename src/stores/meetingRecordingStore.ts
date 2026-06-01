@@ -56,6 +56,7 @@ interface RecentSystemSpeaker {
 interface MeetingRecordingState {
   isRecording: boolean;
   isTranscribing: boolean;
+  recordingStartedAt: number | null;
   recordingNoteId: number | null;
   recordingNoteTitle: string | null;
   recordingFolderId: number | null;
@@ -420,6 +421,7 @@ let pushConfigTimeout: ReturnType<typeof setTimeout> | null = null;
 export const useMeetingRecordingStore = create<MeetingRecordingState>()(() => ({
   isRecording: false,
   isTranscribing: false,
+  recordingStartedAt: null,
   recordingNoteId: null,
   recordingNoteTitle: null,
   recordingFolderId: null,
@@ -753,6 +755,7 @@ export async function startRecording(args: StartRecordingArgs): Promise<void> {
   useMeetingRecordingStore.setState({
     isRecording: true,
     isTranscribing: true,
+    recordingStartedAt: Date.now(),
     recordingNoteId: args.noteId,
     recordingNoteTitle: args.noteTitle,
     recordingFolderId: args.folderId,
@@ -847,6 +850,7 @@ export async function startRecording(args: StartRecordingArgs): Promise<void> {
         error: startResult?.error || "Failed to start meeting transcription",
         isRecording: false,
         isTranscribing: false,
+        recordingStartedAt: null,
       });
       stopMediaStream(micResult);
       stopMediaStream(systemCaptureResult.stream);
@@ -882,6 +886,7 @@ export async function startRecording(args: StartRecordingArgs): Promise<void> {
               "No microphone is available and system audio capture could not be started.",
         isRecording: false,
         isTranscribing: false,
+        recordingStartedAt: null,
       });
       await window.electronAPI?.meetingTranscriptionStop?.();
       isRecordingFlag = false;
@@ -1186,6 +1191,7 @@ export async function startRecording(args: StartRecordingArgs): Promise<void> {
       error: (err as Error).message,
       isRecording: false,
       isTranscribing: false,
+      recordingStartedAt: null,
     });
     isRecordingFlag = false;
     isStartingFlag = false;
@@ -1204,7 +1210,10 @@ export async function stopRecording(): Promise<StopRecordingResult> {
 
   isRecordingFlag = false;
   isStartingFlag = false;
-  useMeetingRecordingStore.setState({ isRecording: false, isTranscribing: false });
+  useMeetingRecordingStore.setState({
+    isRecording: false,
+    isTranscribing: false,
+  });
 
   await cleanup();
 

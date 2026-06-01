@@ -1,0 +1,47 @@
+export function getElapsedRecordingSeconds(
+  recordingStartedAt: number | null | undefined,
+  nowMs = Date.now()
+): number {
+  if (!recordingStartedAt || !Number.isFinite(recordingStartedAt)) return 0;
+  return Math.max(0, Math.floor((nowMs - recordingStartedAt) / 1000));
+}
+
+function formatClock(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(
+      remainingSeconds
+    ).padStart(2, "0")}`;
+  }
+
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+export function formatRecordingElapsed(
+  recordingStartedAt: number | null | undefined,
+  nowMs = Date.now()
+): string {
+  return formatClock(getElapsedRecordingSeconds(recordingStartedAt, nowMs));
+}
+
+export function getRelativeTranscriptSeconds(
+  timestamp: number | null | undefined,
+  recordingStartedAt?: number | null
+): number | undefined {
+  if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return undefined;
+  if (timestamp <= 1_000_000_000) return Math.max(0, timestamp);
+  if (!recordingStartedAt || !Number.isFinite(recordingStartedAt)) return undefined;
+  return Math.max(0, (timestamp - recordingStartedAt) / 1000);
+}
+
+export function formatTranscriptTimestamp(
+  timestamp: number | null | undefined,
+  recordingStartedAt?: number | null
+): string {
+  const seconds = getRelativeTranscriptSeconds(timestamp, recordingStartedAt);
+  return seconds == null ? "" : formatClock(seconds);
+}

@@ -1,4 +1,5 @@
 import type { TranscriptSegment } from "../stores/meetingRecordingStore";
+import { getRelativeTranscriptSeconds } from "./recordingTime";
 
 export type TranscriptSpeakerStatus = "provisional" | "confirmed" | "suggested" | "locked";
 export type TranscriptSpeakerLockSource = "user" | "diarization" | "suggestion";
@@ -187,12 +188,35 @@ export const mergeTranscriptSegments = (
   return [...preserved, ...unmatchedIncoming];
 };
 
-export const serializeTranscriptSegments = (segments: TranscriptSegment[]) =>
-  JSON.stringify(
+interface SerializeTranscriptSegmentsOptions {
+  recordingStartedAt?: number | null;
+}
+
+const getTimelineStartedAt = (
+  segments: TranscriptSegment[],
+  recordingStartedAt?: number | null
+): number | null => {
+  if (recordingStartedAt) return recordingStartedAt;
+  return (
+    segments.find(
+      (segment) =>
+        typeof segment.timestamp === "number" &&
+        Number.isFinite(segment.timestamp) &&
+        segment.timestamp > 1_000_000_000
+    )?.timestamp ?? null
+  );
+};
+
+export const serializeTranscriptSegments = (
+  segments: TranscriptSegment[],
+  options: SerializeTranscriptSegmentsOptions = {}
+) => {
+  const timelineStartedAt = getTimelineStartedAt(segments, options.recordingStartedAt);
+  return JSON.stringify(
     segments.map((segment) => ({
       text: segment.text,
       source: segment.source,
-      timestamp: segment.timestamp,
+      timestamp: getRelativeTranscriptSeconds(segment.timestamp, timelineStartedAt),
       speaker: segment.speaker,
       speakerName: segment.speakerName,
       speakerIsPlaceholder: segment.speakerIsPlaceholder,
@@ -203,3 +227,4 @@ export const serializeTranscriptSegments = (segments: TranscriptSegment[]) =>
       speakerLockSource: segment.speakerLockSource,
     }))
   );
+};
