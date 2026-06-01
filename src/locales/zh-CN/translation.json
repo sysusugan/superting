@@ -2691,6 +2691,32 @@
       "appendNote": "追加到笔记",
       "overwriteEnhanced": "覆盖增强",
       "overwriteNote": "覆盖笔记"
+    },
+    "actions": {
+      "label": "可以做这些",
+      "prompts": {
+        "summarize": {
+          "label": "总结这条笔记",
+          "title": "让 AI 总结当前笔记",
+          "message": "请总结这条笔记。"
+        },
+        "todos": {
+          "label": "提取待办",
+          "title": "让 AI 提取待办事项",
+          "message": "请从这条笔记中提取待办事项。"
+        },
+        "risks": {
+          "label": "找风险和跟进",
+          "title": "让 AI 找出风险和后续跟进",
+          "message": "请找出这条笔记里的风险、依赖和后续跟进事项。"
+        }
+      },
+      "write": {
+        "appendEnhanced": "追加到增强",
+        "appendNote": "追加到笔记",
+        "overwriteEnhanced": "覆盖增强",
+        "overwriteNote": "覆盖笔记"
+      }
     }
   },
   "transcriptionPreview": {

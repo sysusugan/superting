@@ -2691,6 +2691,32 @@
       "appendNote": "追加到筆記",
       "overwriteEnhanced": "覆蓋增強",
       "overwriteNote": "覆蓋筆記"
+    },
+    "actions": {
+      "label": "可以做這些",
+      "prompts": {
+        "summarize": {
+          "label": "總結這則筆記",
+          "title": "讓 AI 總結目前筆記",
+          "message": "請總結這則筆記。"
+        },
+        "todos": {
+          "label": "擷取待辦",
+          "title": "讓 AI 擷取待辦事項",
+          "message": "請從這則筆記中擷取待辦事項。"
+        },
+        "risks": {
+          "label": "找風險和跟進",
+          "title": "讓 AI 找出風險和後續跟進",
+          "message": "請找出這則筆記裡的風險、依賴和後續跟進事項。"
+        }
+      },
+      "write": {
+        "appendEnhanced": "追加到增強",
+        "appendNote": "追加到筆記",
+        "overwriteEnhanced": "覆蓋增強",
+        "overwriteNote": "覆蓋筆記"
+      }
     }
   },
   "transcriptionPreview": {

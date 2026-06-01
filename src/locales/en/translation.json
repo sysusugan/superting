@@ -2744,6 +2744,32 @@
       "appendNote": "Append to notes",
       "overwriteEnhanced": "Overwrite enhanced",
       "overwriteNote": "Overwrite notes"
+    },
+    "actions": {
+      "label": "Try an action",
+      "prompts": {
+        "summarize": {
+          "label": "Summarize note",
+          "title": "Ask AI to summarize this note",
+          "message": "Summarize this note clearly."
+        },
+        "todos": {
+          "label": "Extract todos",
+          "title": "Ask AI to extract action items",
+          "message": "Extract the action items from this note."
+        },
+        "risks": {
+          "label": "Find risks",
+          "title": "Ask AI to find risks and follow-ups",
+          "message": "Find risks, dependencies, and follow-up items in this note."
+        }
+      },
+      "write": {
+        "appendEnhanced": "Append to enhanced",
+        "appendNote": "Append to note",
+        "overwriteEnhanced": "Overwrite enhanced",
+        "overwriteNote": "Overwrite note"
+      }
     }
   },
   "transcriptionPreview": {

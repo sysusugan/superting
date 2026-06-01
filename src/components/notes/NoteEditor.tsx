@@ -1197,8 +1197,10 @@ export default function NoteEditor({
               onCancel={embeddedChat.cancelStream}
               noteConversations={embeddedChat.noteConversations}
               activeConversationId={embeddedChat.activeConversationId}
+              actions={embeddedChat.actions}
               onSwitchConversation={embeddedChat.switchConversation}
               onNewChat={embeddedChat.startNewChat}
+              onRequestRunAction={embeddedChat.requestRunNoteAction}
               onConfirmToolCall={embeddedChat.confirmToolCall}
               onCancelToolCall={embeddedChat.cancelToolCall}
               onWriteAssistantMessage={embeddedChat.writeAssistantMessage}
@@ -1216,8 +1218,10 @@ export default function NoteEditor({
           onCancel={embeddedChat.cancelStream}
           noteConversations={embeddedChat.noteConversations}
           activeConversationId={embeddedChat.activeConversationId}
+          actions={embeddedChat.actions}
           onSwitchConversation={embeddedChat.switchConversation}
           onNewChat={embeddedChat.startNewChat}
+          onRequestRunAction={embeddedChat.requestRunNoteAction}
           onConfirmToolCall={embeddedChat.confirmToolCall}
           onCancelToolCall={embeddedChat.cancelToolCall}
           onWriteAssistantMessage={embeddedChat.writeAssistantMessage}

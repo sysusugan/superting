@@ -5,6 +5,9 @@ import { cn } from "../lib/utils";
 import { ChatMessages } from "../chat/ChatMessages";
 import { ChatInput } from "../chat/ChatInput";
 import type { Message, AgentState, ToolCallInfo } from "../chat/types";
+import { EmbeddedChatActionStrip } from "./EmbeddedChatActionStrip";
+import { getLastWritableAssistantContent } from "../../hooks/embeddedChatActions";
+import type { ActionItem } from "../../types/electron";
 import { setActiveNoteId, setActiveFolderId } from "../../stores/noteStore";
 import { normalizeDbDate } from "../../utils/dateFormatting";
 import {
@@ -32,8 +35,10 @@ interface EmbeddedChatProps {
     message_count: number;
   }>;
   activeConversationId?: number | null;
+  actions?: ActionItem[];
   onSwitchConversation?: (id: number) => void;
   onNewChat?: () => void;
+  onRequestRunAction?: (action: ActionItem) => void;
   onConfirmToolCall?: (toolCall: ToolCallInfo) => void;
   onCancelToolCall?: (toolCall: ToolCallInfo) => void;
   onWriteAssistantMessage?: (
@@ -69,13 +74,17 @@ export default function EmbeddedChat({
   onCancel,
   noteConversations,
   activeConversationId,
+  actions = [],
   onSwitchConversation,
   onNewChat,
+  onRequestRunAction,
   onConfirmToolCall,
   onCancelToolCall,
   onWriteAssistantMessage,
 }: EmbeddedChatProps) {
   const { t } = useTranslation();
+  const writableContent = getLastWritableAssistantContent(messages);
+  const actionsDisabled = agentState !== "idle";
 
   const handleOpenNote = useCallback(async (noteId: number) => {
     const note = await window.electronAPI.getNote(noteId);
@@ -204,6 +213,14 @@ export default function EmbeddedChat({
           onWriteAssistantMessage={onWriteAssistantMessage}
         />
       </div>
+      <EmbeddedChatActionStrip
+        actions={actions}
+        disabled={actionsDisabled}
+        writableContent={writableContent}
+        onRequestRunAction={onRequestRunAction}
+        onPromptSubmit={onTextSubmit}
+        onWriteAssistantMessage={onWriteAssistantMessage}
+      />
       <ChatInput
         agentState={agentState}
         partialTranscript=""

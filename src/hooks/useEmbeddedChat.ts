@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import { useChatPersistence } from "../components/chat/useChatPersistence";
 import { useChatStreaming } from "../components/chat/useChatStreaming";
 import type { Message, AgentState, ToolCallInfo } from "../components/chat/types";
-import { initializeActions, useActions } from "../stores/actionStore";
+import { initializeActions, useActions, getActionName } from "../stores/actionStore";
+import type { ActionItem } from "../types/electron";
 import {
   selectIsCloudNoteFormattingMode,
   selectResolvedNoteFormatting,
@@ -12,6 +13,7 @@ import {
 import { runNoteActionOnce } from "../stores/runNoteActionOnce";
 import { buildWriteNoteContentUpdates } from "../stores/actionProcessingCore";
 import { syncService } from "../services/SyncService";
+import { createPendingRunNoteActionToolCall } from "./embeddedChatActions";
 
 interface UseEmbeddedChatOptions {
   noteId: number | null;
@@ -38,8 +40,10 @@ interface UseEmbeddedChatReturn {
   cancelStream: () => void;
   noteConversations: NoteConversationItem[];
   activeConversationId: number | null;
+  actions: ActionItem[];
   switchConversation: (id: number) => Promise<void>;
   startNewChat: () => void;
+  requestRunNoteAction: (action: ActionItem) => Promise<void>;
   confirmToolCall: (toolCall: ToolCallInfo) => Promise<void>;
   cancelToolCall: (toolCall: ToolCallInfo) => void;
   writeAssistantMessage: (
@@ -304,6 +308,36 @@ export function useEmbeddedChat({
     setConversationId(null);
   }, [persistence]);
 
+  const requestRunNoteAction = useCallback(
+    async (action: ActionItem) => {
+      if (!noteIdRef.current) return;
+      let convId = conversationId;
+      if (!convId) {
+        const title = `Note: ${noteTitle || "Untitled"}`;
+        convId = await persistence.createConversation(title, noteIdRef.current);
+        setConversationId(convId);
+        fetchNoteConversations();
+      }
+
+      const toolCall = createPendingRunNoteActionToolCall({
+        actionId: action.id,
+        actionName: getActionName(action, t),
+        noteId: noteIdRef.current,
+      });
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: "",
+        isStreaming: false,
+        toolCalls: [toolCall],
+      };
+
+      persistence.setMessages((prev) => [...prev, assistantMessage]);
+      await persistence.saveAssistantMessage("", [toolCall]);
+    },
+    [conversationId, fetchNoteConversations, noteTitle, persistence, t]
+  );
+
   const sendMessage = useCallback(
     async (text: string) => {
       let convId = conversationId;
@@ -335,8 +369,10 @@ export function useEmbeddedChat({
     cancelStream: streaming.cancelStream,
     noteConversations,
     activeConversationId: conversationId,
+    actions,
     switchConversation,
     startNewChat,
+    requestRunNoteAction,
     confirmToolCall,
     cancelToolCall,
     writeAssistantMessage,
