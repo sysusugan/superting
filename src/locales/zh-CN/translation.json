@@ -156,16 +156,16 @@
     "tap": "点按",
     "close": "关闭",
     "dismiss": "忽略",
-    "save": "Guardar",
-    "saving": "Guardando…",
-    "create": "Crear",
-    "delete": "Eliminar",
-    "actions": "Acciones",
-    "error": "Algo salió mal",
-    "unknownError": "Ocurrió un error desconocido",
-    "copy": "Copiar",
-    "copied": "Copiado",
-    "done": "Listo"
+    "save": "保存",
+    "saving": "保存中…",
+    "create": "创建",
+    "delete": "删除",
+    "actions": "操作",
+    "error": "出错了",
+    "unknownError": "发生未知错误",
+    "copy": "复制",
+    "copied": "已复制",
+    "done": "完成"
   },
   "onboarding": {
     "steps": {
