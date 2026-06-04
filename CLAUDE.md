@@ -532,6 +532,7 @@ Detects meetings via three independent sources, orchestrated by `MeetingDetectio
 ### Git Workflow
 
 - All new feature work must happen in an isolated worktree, not directly in the primary `main` checkout.
+- Before creating a new worktree, list existing worktrees and prefer a clean, explicitly idle/free worktree. A worktree is reusable only if it is clean and either detached, on an approved reusable branch, or explicitly marked idle by the user. Do not reuse task-named branches without confirmation.
 - Prefer reusing an existing feature worktree when it is already on the intended branch and has no unrelated uncommitted changes.
 - If no suitable clean worktree exists, create a new worktree from `main` with a dedicated feature branch.
 - Create dedicated feature branches using the `codex/` prefix by default.
