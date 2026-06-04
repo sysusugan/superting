@@ -534,6 +534,7 @@ Detects meetings via three independent sources, orchestrated by `MeetingDetectio
 - All commits must comply with DCO. Use `git commit -s` or otherwise include a valid `Signed-off-by:` trailer.
 - Before creating or amending commits, verify DCO compliance when relevant.
 - When integrating into `main`, use rebase merge only. Do not use squash merge or merge commits unless explicitly approved.
+- Before creating a new worktree, list existing worktrees and prefer a clean, explicitly idle/free worktree. A worktree is reusable only if it is clean and either detached, on an approved reusable branch, or explicitly marked idle by the user. Do not reuse task-named branches without confirmation.
 - When reusing an idle worktree, first verify that worktree is clean. Before basing work on `main`, inspect the local `main` checkout: if `main` has uncommitted changes or local-only commits that have not been pushed or otherwise handled, stop and ask the user to handle `main` first. After local `main` is clean and current, base the work branch on the latest local `main`. Do not overwrite dirty or unknown worktree changes.
 
 ### Internationalization (i18n) — REQUIRED
