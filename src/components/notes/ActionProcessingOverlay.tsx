@@ -38,58 +38,34 @@ export default function ActionProcessingOverlay({
   return (
     <div
       className={cn(
-        "absolute inset-0 z-[5] flex items-center justify-center",
-        "bg-background/60 dark:bg-background/70 backdrop-blur-md",
-        "transition-opacity duration-300",
+        "pointer-events-none absolute bottom-24 left-1/2 z-20 flex -translate-x-1/2 justify-center",
+        "transition-[opacity,transform] duration-300",
         isFadingOut && "opacity-0 pointer-events-none"
       )}
       style={!isFadingOut ? { animation: "float-up 0.25s ease-out" } : undefined}
     >
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.02]"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(0deg, transparent, transparent 3px, currentColor 3px, currentColor 4px)",
-        }}
-      />
-
-      <div
         className={cn(
-          "absolute left-0 right-0 h-[2px] pointer-events-none scanner-sweep-line",
-          isSuccess ? "bg-success/60" : "bg-accent/60"
-        )}
-        style={{
-          animation: isSuccess ? "none" : "scanner-sweep 2.5s ease-in-out infinite",
-          boxShadow: isSuccess
-            ? "0 0 24px 8px color-mix(in oklch, var(--color-success) 20%, transparent)"
-            : "0 0 24px 8px color-mix(in oklch, var(--color-accent) 15%, transparent)",
-          ...(isSuccess ? { top: "50%" } : {}),
-        }}
-      />
-
-      <div
-        className={cn(
-          "relative flex flex-col items-center gap-2.5",
+          "relative flex min-w-52 flex-col gap-2 rounded-md border px-4 py-3 shadow-md",
           isSuccess
-            ? "bg-success/6 dark:bg-success/8 border-success/12 dark:border-success/15"
-            : "bg-accent/6 dark:bg-accent/8 border-accent/12 dark:border-accent/15",
-          "border rounded-md px-6 py-3 shadow-lg",
-          "transition-colors duration-300"
+            ? "border-success/30 bg-card text-success"
+            : "border-border-active/35 bg-card text-foreground",
+          "transition-colors duration-300 dark:bg-surface-raised"
         )}
       >
         {isSuccess ? (
           <div className="flex items-center gap-2">
-            <Check size={13} className="text-success/70" />
-            <span className="text-xs font-medium text-success/70 tracking-tight">
-              {t("notes.actions.done")}
-            </span>
+            <Check size={13} className="shrink-0 text-success" />
+            <span className="text-xs font-semibold tracking-tight">{t("notes.actions.done")}</span>
           </div>
         ) : (
           <>
-            <span className="text-xs font-medium text-accent/70 tracking-tight">{actionName}</span>
-            <div className="w-32 h-0.5 bg-accent/10 rounded-full overflow-hidden">
+            <span className="truncate text-xs font-semibold tracking-tight">
+              {actionName || t("notes.editor.processing")}
+            </span>
+            <div className="h-0.5 w-full overflow-hidden rounded-full bg-accent">
               <div
-                className="h-full w-1/3 bg-accent/40 rounded-full"
+                className="h-full w-1/3 rounded-full bg-primary"
                 style={{ animation: "indeterminate 1.5s ease-in-out infinite" }}
                 data-scanner-progress=""
               />
