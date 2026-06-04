@@ -2393,7 +2393,11 @@
         "othersInCall_one": "{{count}} other in call",
         "othersInCall_other": "{{count}} others in call"
       },
-      "bulkEditSpeaker": "Rename all \"{{name}}\""
+      "bulkEditSpeaker": "Rename all \"{{name}}\"",
+      "filter": "Filter speakers",
+      "filterAll": "All speakers",
+      "filterEmpty": "No content for the selected speakers",
+      "filterAria": "Filter transcript speakers"
     }
   },
   "dictionary": {

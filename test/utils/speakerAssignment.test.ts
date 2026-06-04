@@ -4,7 +4,9 @@ import test from "node:test";
 import {
   assignSelectedTranscriptSegments,
   assignSpeakerGroupName,
+  filterTranscriptSegmentsBySpeaker,
   getTranscriptSpeakerDisplay,
+  getTranscriptSpeakerFilterOptions,
 } from "../../src/utils/speakerAssignment.ts";
 
 const labels = { you: "你", speaker: (n: number) => `发言人 ${n}` };
@@ -55,4 +57,47 @@ test("speaker group assignment renames every segment with the same speaker id", 
   assert.equal(next[2].speakerName, "苏金");
   assert.equal(next[0].speakerLocked, true);
   assert.equal(next[2].speakerLockSource, "user");
+});
+
+test("speaker filter options are deduped by effective speaker identity", () => {
+  const segments = [
+    { id: "seg-1", text: "first", source: "mic" as const, speaker: "you" },
+    { id: "seg-2", text: "second", source: "system" as const, speaker: "speaker_0" },
+    {
+      id: "seg-3",
+      text: "third",
+      source: "system" as const,
+      speaker: "speaker_0",
+      speakerName: "Vicky",
+    },
+    { id: "seg-4", text: "fourth", source: "system" as const, speaker: "speaker_1" },
+  ];
+
+  const options = getTranscriptSpeakerFilterOptions(segments, { speaker_1: "苏金" }, labels);
+
+  assert.deepEqual(options, [
+    { key: "speaker:you", label: "你", colorKey: "you" },
+    { key: "speaker:speaker_0", label: "Vicky", colorKey: "speaker_0" },
+    { key: "speaker:speaker_1", label: "苏金", colorKey: "speaker_1" },
+  ]);
+});
+
+test("speaker filtering only keeps selected effective speakers", () => {
+  const segments = [
+    { id: "seg-1", text: "first", source: "mic" as const, speaker: "you" },
+    { id: "seg-2", text: "second", source: "system" as const, speaker: "speaker_0" },
+    { id: "seg-3", text: "third", source: "system" as const, speaker: "speaker_1" },
+  ];
+
+  const filtered = filterTranscriptSegmentsBySpeaker(segments, new Set(["speaker:speaker_0"]));
+  const all = filterTranscriptSegmentsBySpeaker(segments, null);
+
+  assert.deepEqual(
+    filtered.map((segment) => segment.id),
+    ["seg-2"]
+  );
+  assert.deepEqual(
+    all.map((segment) => segment.id),
+    ["seg-1", "seg-2", "seg-3"]
+  );
 });

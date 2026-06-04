@@ -2114,7 +2114,11 @@
       "addContact": "連絡先を追加",
       "save": "保存",
       "cancel": "キャンセル",
-      "bulkEditSpeaker": "Rename all \"{{name}}\""
+      "bulkEditSpeaker": "Rename all \"{{name}}\"",
+      "filter": "話者を絞り込む",
+      "filterAll": "すべての話者",
+      "filterEmpty": "選択した話者の内容はありません",
+      "filterAria": "文字起こしの話者を絞り込む"
     }
   },
   "dictionary": {

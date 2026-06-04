@@ -2181,7 +2181,11 @@
         "othersInCall_one": "通话中还有 {{count}} 人",
         "othersInCall_other": "通话中还有 {{count}} 人"
       },
-      "bulkEditSpeaker": "批量修改全部“{{name}}”"
+      "bulkEditSpeaker": "批量修改全部“{{name}}”",
+      "filter": "筛选发言人",
+      "filterAll": "所有发言人",
+      "filterEmpty": "没有匹配的发言人内容",
+      "filterAria": "筛选转录发言人"
     }
   },
   "dictionary": {

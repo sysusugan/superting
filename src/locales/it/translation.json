@@ -2186,7 +2186,11 @@
         "othersInCall_one": "{{count}} altra persona in chiamata",
         "othersInCall_other": "{{count}} altre persone in chiamata"
       },
-      "bulkEditSpeaker": "Rename all \"{{name}}\""
+      "bulkEditSpeaker": "Rename all \"{{name}}\"",
+      "filter": "Filtra parlanti",
+      "filterAll": "Tutti i parlanti",
+      "filterEmpty": "Nessun contenuto per i parlanti selezionati",
+      "filterAria": "Filtra i parlanti della trascrizione"
     }
   },
   "dictionary": {

@@ -702,6 +702,7 @@ interface MeetingTranscriptChatProps {
   onDismissSuggestion?: (speakerId: string) => void;
   onAttachSpeakerEmail?: (profileId: number, email: string | null) => void;
   onToggleSelect?: (segmentId: string) => void;
+  emptyMessage?: string;
 }
 
 export function MeetingTranscriptChat({
@@ -734,6 +735,7 @@ export function MeetingTranscriptChat({
   onDismissSuggestion,
   onAttachSpeakerEmail,
   onToggleSelect,
+  emptyMessage,
 }: MeetingTranscriptChatProps) {
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -836,7 +838,7 @@ export function MeetingTranscriptChat({
     return (
       <div className="h-full flex items-center justify-center px-5">
         <p className="text-xs text-muted-foreground/40 select-none">
-          {t("notes.editor.conversationWillAppear")}
+          {emptyMessage || t("notes.editor.conversationWillAppear")}
         </p>
       </div>
     );
@@ -867,7 +869,9 @@ export function MeetingTranscriptChat({
           ) : (
             <Sparkles
               size={12}
-              className={cn(sessionDiarizationEnabled ? "text-foreground/70" : "text-muted-foreground")}
+              className={cn(
+                sessionDiarizationEnabled ? "text-foreground/70" : "text-muted-foreground"
+              )}
             />
           )}
           <span>

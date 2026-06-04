@@ -17,10 +17,19 @@ interface SpeakerDisplayLabels {
   speaker: (n: number) => string;
 }
 
+export interface TranscriptSpeakerFilterOption {
+  key: string;
+  label: string;
+  colorKey: string;
+}
+
 const getSpeakerNumber = (speakerId: string) => {
   const match = speakerId.match(/speaker_(\d+)/);
   return match ? Number(match[1]) + 1 : 1;
 };
+
+const getTranscriptSpeakerFilterKey = (segment: AssignableTranscriptSegment) =>
+  segment.speaker ? `speaker:${segment.speaker}` : `source:${segment.source}`;
 
 const stableManualSpeakerId = (segment: AssignableTranscriptSegment) =>
   `manual_${segment.id.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
@@ -84,5 +93,44 @@ export function assignSpeakerGroupName<T extends AssignableTranscriptSegment>(
 ): T[] {
   return segments.map((segment) =>
     segment.speaker === speakerId ? lockSpeakerName(segment, displayName) : segment
+  );
+}
+
+export function getTranscriptSpeakerFilterOptions<T extends AssignableTranscriptSegment>(
+  segments: T[],
+  speakerMappings: Record<string, string> = {},
+  labels: SpeakerDisplayLabels
+): TranscriptSpeakerFilterOption[] {
+  const byKey = new Map<string, TranscriptSpeakerFilterOption>();
+
+  for (const segment of segments) {
+    const key = getTranscriptSpeakerFilterKey(segment);
+    const display = getTranscriptSpeakerDisplay(segment, speakerMappings, labels);
+    const option = {
+      key,
+      label: display.label,
+      colorKey: segment.speaker || segment.source,
+    };
+
+    if (!byKey.has(key)) {
+      byKey.set(key, option);
+      continue;
+    }
+
+    if (segment.speakerName || (segment.speaker && speakerMappings[segment.speaker])) {
+      byKey.set(key, option);
+    }
+  }
+
+  return [...byKey.values()];
+}
+
+export function filterTranscriptSegmentsBySpeaker<T extends AssignableTranscriptSegment>(
+  segments: T[],
+  selectedSpeakerKeys: Set<string> | null
+): T[] {
+  if (!selectedSpeakerKeys || selectedSpeakerKeys.size === 0) return segments;
+  return segments.filter((segment) =>
+    selectedSpeakerKeys.has(getTranscriptSpeakerFilterKey(segment))
   );
 }

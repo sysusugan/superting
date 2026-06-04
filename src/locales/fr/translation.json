@@ -2297,7 +2297,11 @@
         "othersInCall_one": "{{count}} autre dans l'appel",
         "othersInCall_other": "{{count}} autres dans l'appel"
       },
-      "bulkEditSpeaker": "Rename all \"{{name}}\""
+      "bulkEditSpeaker": "Rename all \"{{name}}\"",
+      "filter": "Filtrer les intervenants",
+      "filterAll": "Tous les intervenants",
+      "filterEmpty": "Aucun contenu pour les intervenants sélectionnés",
+      "filterAria": "Filtrer les intervenants de la transcription"
     }
   },
   "dictionary": {

@@ -2186,7 +2186,11 @@
         "othersInCall_one": "{{count}} weitere Person im Gespräch",
         "othersInCall_other": "{{count}} weitere Personen im Gespräch"
       },
-      "bulkEditSpeaker": "Rename all \"{{name}}\""
+      "bulkEditSpeaker": "Rename all \"{{name}}\"",
+      "filter": "Sprecher filtern",
+      "filterAll": "Alle Sprecher",
+      "filterEmpty": "Keine Inhalte für die ausgewählten Sprecher",
+      "filterAria": "Sprecher im Transkript filtern"
     }
   },
   "dictionary": {

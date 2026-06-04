@@ -2188,7 +2188,11 @@
         "othersInCall_many": "{{count}} собеседников в разговоре",
         "othersInCall_other": "{{count}} собеседника в разговоре"
       },
-      "bulkEditSpeaker": "Rename all \"{{name}}\""
+      "bulkEditSpeaker": "Rename all \"{{name}}\"",
+      "filter": "Фильтр говорящих",
+      "filterAll": "Все говорящие",
+      "filterEmpty": "Нет содержимого для выбранных говорящих",
+      "filterAria": "Фильтровать говорящих в расшифровке"
     }
   },
   "dictionary": {

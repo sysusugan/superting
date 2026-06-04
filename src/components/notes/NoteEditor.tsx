@@ -19,6 +19,7 @@ import {
   Share2,
   Pencil,
   X,
+  Filter,
 } from "lucide-react";
 import ShareNoteDialog from "./ShareNoteDialog";
 import { useShareCacheEntry } from "../../stores/noteStore";
@@ -62,6 +63,9 @@ import {
 import {
   assignSelectedTranscriptSegments,
   assignSpeakerGroupName,
+  filterTranscriptSegmentsBySpeaker,
+  getTranscriptSpeakerFilterOptions,
+  type TranscriptSpeakerFilterOption,
 } from "../../utils/speakerAssignment";
 import NoteParticipants from "./NoteParticipants";
 import type { CalendarAttendee } from "../../types/calendar";
@@ -121,6 +125,119 @@ type SpeakerOption = {
   email: string | null;
   source?: "profile" | "name" | "transcript";
 };
+
+const FILTER_SWATCH_CLASSES = [
+  "bg-blue-500/80",
+  "bg-green-500/80",
+  "bg-purple-500/80",
+  "bg-orange-500/80",
+  "bg-pink-500/80",
+  "bg-cyan-500/80",
+  "bg-yellow-500/80",
+  "bg-red-500/80",
+];
+
+function TranscriptSpeakerFilter({
+  options,
+  selectedKeys,
+  onChange,
+  t,
+}: {
+  options: TranscriptSpeakerFilterOption[];
+  selectedKeys: Set<string> | null;
+  onChange: (keys: Set<string> | null) => void;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  const allSelected = selectedKeys === null || selectedKeys.size === options.length;
+  const activeCount = allSelected ? options.length : selectedKeys.size;
+
+  const toggleAll = () => {
+    onChange(null);
+  };
+
+  const toggleOne = (key: string) => {
+    const current = allSelected
+      ? new Set(options.map((option) => option.key))
+      : new Set(selectedKeys);
+    if (current.has(key)) current.delete(key);
+    else current.add(key);
+    onChange(current.size === options.length ? null : current);
+  };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={t("notes.speaker.filterAria")}
+          className={cn(
+            "h-7 inline-flex items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors",
+            allSelected
+              ? "bg-foreground/5 text-foreground/55 hover:bg-foreground/9 hover:text-foreground/75"
+              : "bg-primary/10 text-primary hover:bg-primary/15"
+          )}
+        >
+          <Filter size={13} />
+          <span className="hidden sm:inline">{t("notes.speaker.filter")}</span>
+          {!allSelected && <span className="tabular-nums">{activeCount}</span>}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" sideOffset={8} className="w-64 p-2">
+        <button
+          type="button"
+          onClick={toggleAll}
+          className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-foreground transition-colors hover:bg-foreground/5"
+        >
+          <span
+            className={cn(
+              "flex h-4 w-4 items-center justify-center rounded border",
+              allSelected
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-background"
+            )}
+          >
+            {allSelected && <Check size={11} strokeWidth={3} />}
+          </span>
+          <span className="font-medium">{t("notes.speaker.filterAll")}</span>
+        </button>
+        <div className="my-1 h-px bg-border/50" />
+        <div className="max-h-64 overflow-y-auto">
+          {options.map((option, index) => {
+            const checked = allSelected || selectedKeys.has(option.key);
+            return (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => toggleOne(option.key)}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-foreground transition-colors hover:bg-foreground/5"
+              >
+                <span
+                  className={cn(
+                    "flex h-4 w-4 items-center justify-center rounded border",
+                    checked
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background"
+                  )}
+                >
+                  {checked && <Check size={11} strokeWidth={3} />}
+                </span>
+                <span
+                  className={cn(
+                    "flex h-6 min-w-6 items-center justify-center rounded-md text-[11px] font-semibold text-white",
+                    FILTER_SWATCH_CLASSES[index % FILTER_SWATCH_CLASSES.length]
+                  )}
+                >
+                  {index + 1}
+                </span>
+                <span className="min-w-0 flex-1 truncate">{option.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface NoteEditorProps {
   note: NoteItem;
@@ -227,6 +344,9 @@ export default function NoteEditor({
   const [isFindOpen, setIsFindOpen] = useState(false);
   const [activeFindIndex, setActiveFindIndex] = useState(-1);
   const [findMatchCount, setFindMatchCount] = useState(0);
+  const [selectedSpeakerFilterKeys, setSelectedSpeakerFilterKeys] = useState<Set<string> | null>(
+    null
+  );
   const [richTextReplaceRequest, setRichTextReplaceRequest] = useState<{
     id: number;
     mode: "current" | "all";
@@ -265,7 +385,6 @@ export default function NoteEditor({
   });
   const titleRef = useRef<HTMLDivElement>(null);
   const prevNoteIdRef = useRef<number>(note.id);
-  const autoShowDoneRef = useRef(false);
 
   const scheduleUiUpdate = useCallback((callback: () => void) => {
     const frameId = window.requestAnimationFrame(callback);
@@ -298,8 +417,23 @@ export default function NoteEditor({
   const renderedTranscriptSegments = isTranscriptEditing
     ? editableTranscriptSegments
     : displaySegments;
+  const speakerFilterOptions = useMemo(
+    () =>
+      getTranscriptSpeakerFilterOptions(displaySegments, speakerMappings, {
+        you: t("notes.speaker.you"),
+        speaker: (n) => t("notes.speaker.label", { n }),
+      }),
+    [displaySegments, speakerMappings, t]
+  );
+  const visibleTranscriptSegments = useMemo(
+    () =>
+      isTranscriptEditing
+        ? renderedTranscriptSegments
+        : filterTranscriptSegmentsBySpeaker(renderedTranscriptSegments, selectedSpeakerFilterKeys),
+    [isTranscriptEditing, renderedTranscriptSegments, selectedSpeakerFilterKeys]
+  );
   const activeTranscriptText = transcriptIsStructured
-    ? renderedTranscriptSegments.map((segment) => segment.text).join("\n")
+    ? visibleTranscriptSegments.map((segment) => segment.text).join("\n")
     : editableTranscriptText;
   const transcriptMatchCount = useMemo(
     () => countMatches(activeTranscriptText, findText, { ignoreCase }),
@@ -338,6 +472,24 @@ export default function NoteEditor({
     }
     return list;
   }, [displaySegments, speakerMappings, speakerNames, speakerProfiles]);
+
+  useEffect(() => {
+    setSelectedSpeakerFilterKeys(null);
+    setActiveFindIndex(-1);
+  }, [note.id, isRecording, isTranscriptEditing]);
+
+  useEffect(() => {
+    setSelectedSpeakerFilterKeys((prev) => {
+      if (!prev) return prev;
+      const available = new Set(speakerFilterOptions.map((option) => option.key));
+      const next = new Set([...prev].filter((key) => available.has(key)));
+      return next.size === speakerFilterOptions.length ? null : next;
+    });
+  }, [speakerFilterOptions]);
+
+  useEffect(() => {
+    setActiveFindIndex(-1);
+  }, [selectedSpeakerFilterKeys]);
 
   const parsedParticipants = useMemo<CalendarAttendee[]>(() => {
     try {
@@ -410,7 +562,6 @@ export default function NoteEditor({
   useEffect(() => {
     if (note.id !== prevNoteIdRef.current) {
       prevNoteIdRef.current = note.id;
-      autoShowDoneRef.current = false;
       return scheduleUiUpdate(() => {
         setChatMode("hidden");
         setDiarizedSegments(null);
@@ -441,17 +592,6 @@ export default function NoteEditor({
     refreshSpeakerProfiles();
     refreshSpeakerNames();
   }, [note.id, refreshSpeakerNames, refreshSpeakerProfiles]);
-
-  useEffect(() => {
-    if (
-      !autoShowDoneRef.current &&
-      embeddedChat.activeConversationId &&
-      embeddedChat.messages.length > 0
-    ) {
-      autoShowDoneRef.current = true;
-      return scheduleUiUpdate(() => setChatMode("floating"));
-    }
-  }, [embeddedChat.activeConversationId, embeddedChat.messages.length, scheduleUiUpdate]);
 
   useEffect(() => {
     if (!isFindOpen) return;
@@ -684,6 +824,15 @@ export default function NoteEditor({
   const handleClearSelection = useCallback(() => {
     setSelectedSegmentIds(new Set());
   }, []);
+
+  useEffect(() => {
+    if (selectedSegmentIds.size === 0) return;
+    const visibleIds = new Set(visibleTranscriptSegments.map((segment) => segment.id));
+    setSelectedSegmentIds((prev) => {
+      const next = new Set([...prev].filter((id) => visibleIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [selectedSegmentIds.size, visibleTranscriptSegments]);
 
   useEffect(() => {
     if (selectedSegmentIds.size === 0) return;
@@ -1027,12 +1176,6 @@ export default function NoteEditor({
     [chatMode, embeddedChat]
   );
 
-  const handleChatInputFocus = useCallback(() => {
-    if (chatMode === "hidden") {
-      setChatMode("floating");
-    }
-  }, [chatMode]);
-
   const recordedDateSource = note.recorded_at || note.created_at;
   const noteDate = formatNoteDate(recordedDateSource);
   const shortDate = formatShortDate(recordedDateSource);
@@ -1092,171 +1235,169 @@ export default function NoteEditor({
             aria-label={t("notes.editor.noteTitle")}
           />
           <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
-              {shortDate && (
-                <Popover open={isRecordedDateOpen} onOpenChange={setIsRecordedDateOpen}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="inline-flex h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border/70 bg-background/75 px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:border-border hover:bg-muted/70 hover:text-foreground"
-                      title={t("notes.editor.recordedDateTitle", { date: noteDate })}
-                      aria-label={t("notes.editor.editRecordedDate")}
-                      onClick={openRecordedDateEditor}
-                    >
-                      <Calendar size={11} className="shrink-0" />
-                      {shortDate}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" sideOffset={6} className="w-64 p-3">
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-xs font-medium text-foreground">
-                          {t("notes.editor.recordedDate")}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {t("notes.editor.recordedDateDescription")}
-                        </p>
-                      </div>
-                      <input
-                        type="datetime-local"
-                        value={recordedDateInput}
-                        onChange={(event) => setRecordedDateInput(event.target.value)}
-                        className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground outline-none focus:border-ring/50"
-                      />
-                      <div className="flex justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setIsRecordedDateOpen(false)}
-                          className="h-7 rounded-md px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                        >
-                          {t("common.cancel")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleSaveRecordedDate}
-                          disabled={isSavingRecordedDate}
-                          className="h-7 rounded-md bg-primary px-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
-                        >
-                          {isSavingRecordedDate ? t("common.saving") : t("common.save")}
-                        </button>
-                      </div>
+            {shortDate && (
+              <Popover open={isRecordedDateOpen} onOpenChange={setIsRecordedDateOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex h-6 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border/70 bg-background/75 px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:border-border hover:bg-muted/70 hover:text-foreground"
+                    title={t("notes.editor.recordedDateTitle", { date: noteDate })}
+                    aria-label={t("notes.editor.editRecordedDate")}
+                    onClick={openRecordedDateEditor}
+                  >
+                    <Calendar size={11} className="shrink-0" />
+                    {shortDate}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" sideOffset={6} className="w-64 p-3">
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs font-medium text-foreground">
+                        {t("notes.editor.recordedDate")}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {t("notes.editor.recordedDateDescription")}
+                      </p>
                     </div>
-                  </PopoverContent>
-                </Popover>
-              )}
-              {calendarEventName && (
-                <span className="inline-flex h-6 min-w-0 max-w-44 items-center gap-1.5 rounded-md border border-border/70 bg-background/75 px-2 text-[11px] font-medium text-muted-foreground">
-                  <LinkIcon size={11} className="shrink-0" />
-                  <span className="truncate">{calendarEventName}</span>
-                </span>
-              )}
-              <NoteParticipants noteId={note.id} participants={parsedParticipants} />
-              {folders && onMoveToFolder && (
-                <DropdownMenu
-                  onOpenChange={(open) => {
-                    if (!open) {
-                      setFolderSearch("");
-                      setIsCreatingFolder(false);
-                      setNewFolderName("");
-                    }
-                  }}
-                >
-                  <DropdownMenuTrigger asChild>
-                    <button className="inline-flex h-6 max-w-44 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border/70 bg-background/75 px-2 text-[11px] font-medium text-muted-foreground transition-colors duration-150 hover:border-border hover:bg-muted/70 hover:text-foreground cursor-pointer outline-none">
-                      <FolderOpen size={11} className="shrink-0" />
-                      <span className="truncate">{folderName || t("notes.editor.noFolder")}</span>
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" sideOffset={6} className="min-w-44 p-1">
-                    {folders.length > 5 && (
-                      <>
-                        <div className="relative px-1.5 py-0.5">
-                          <Search
-                            size={9}
-                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground/15 pointer-events-none"
-                          />
+                    <input
+                      type="datetime-local"
+                      value={recordedDateInput}
+                      onChange={(event) => setRecordedDateInput(event.target.value)}
+                      className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs text-foreground outline-none focus:border-ring/50"
+                    />
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setIsRecordedDateOpen(false)}
+                        className="h-7 rounded-md px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                      >
+                        {t("common.cancel")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveRecordedDate}
+                        disabled={isSavingRecordedDate}
+                        className="h-7 rounded-md bg-primary px-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                      >
+                        {isSavingRecordedDate ? t("common.saving") : t("common.save")}
+                      </button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+            {calendarEventName && (
+              <span className="inline-flex h-6 min-w-0 max-w-44 items-center gap-1.5 rounded-md border border-border/70 bg-background/75 px-2 text-[11px] font-medium text-muted-foreground">
+                <LinkIcon size={11} className="shrink-0" />
+                <span className="truncate">{calendarEventName}</span>
+              </span>
+            )}
+            <NoteParticipants noteId={note.id} participants={parsedParticipants} />
+            {folders && onMoveToFolder && (
+              <DropdownMenu
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setFolderSearch("");
+                    setIsCreatingFolder(false);
+                    setNewFolderName("");
+                  }
+                }}
+              >
+                <DropdownMenuTrigger asChild>
+                  <button className="inline-flex h-6 max-w-44 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border border-border/70 bg-background/75 px-2 text-[11px] font-medium text-muted-foreground transition-colors duration-150 hover:border-border hover:bg-muted/70 hover:text-foreground cursor-pointer outline-none">
+                    <FolderOpen size={11} className="shrink-0" />
+                    <span className="truncate">{folderName || t("notes.editor.noFolder")}</span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" sideOffset={6} className="min-w-44 p-1">
+                  {folders.length > 5 && (
+                    <>
+                      <div className="relative px-1.5 py-0.5">
+                        <Search
+                          size={9}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-foreground/15 pointer-events-none"
+                        />
+                        <input
+                          value={folderSearch}
+                          onChange={(e) => setFolderSearch(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          placeholder={t("notes.context.searchFolders")}
+                          className="input-inline w-full pl-4.5 pr-1 py-0.5 text-xs text-foreground placeholder:text-foreground/15 outline-none border-none appearance-none"
+                        />
+                      </div>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  <div className="overflow-y-auto max-h-48">
+                    {filteredFolders.map((folder) => {
+                      const isCurrent = folder.id === note.folder_id;
+                      return (
+                        <DropdownMenuItem
+                          key={folder.id}
+                          disabled={isCurrent}
+                          onClick={() => onMoveToFolder(note.id, folder.id)}
+                          className="text-xs gap-2 rounded-md px-2 py-1.5"
+                        >
+                          <FolderOpen size={11} className="text-foreground/30 shrink-0" />
+                          <span className="truncate flex-1">{folder.name}</span>
+                          {isCurrent && <Check size={9} className="text-foreground/65 shrink-0" />}
+                        </DropdownMenuItem>
+                      );
+                    })}
+                    {folderSearch && filteredFolders.length === 0 && (
+                      <p className="text-xs text-foreground/20 text-center py-1.5">
+                        {t("notes.context.noResults")}
+                      </p>
+                    )}
+                  </div>
+                  {onCreateFolderAndMove && (
+                    <>
+                      <DropdownMenuSeparator />
+                      {isCreatingFolder ? (
+                        <div className="px-1">
                           <input
-                            value={folderSearch}
-                            onChange={(e) => setFolderSearch(e.target.value)}
-                            onKeyDown={(e) => e.stopPropagation()}
-                            placeholder={t("notes.context.searchFolders")}
-                            className="input-inline w-full pl-4.5 pr-1 py-0.5 text-xs text-foreground placeholder:text-foreground/15 outline-none border-none appearance-none"
+                            autoFocus
+                            value={newFolderName}
+                            onChange={(e) => setNewFolderName(e.target.value)}
+                            onKeyDown={(e) => {
+                              e.stopPropagation();
+                              if (e.key === "Enter" && newFolderName.trim()) {
+                                onCreateFolderAndMove(note.id, newFolderName.trim());
+                                setNewFolderName("");
+                                setIsCreatingFolder(false);
+                              }
+                              if (e.key === "Escape") {
+                                setIsCreatingFolder(false);
+                                setNewFolderName("");
+                              }
+                            }}
+                            placeholder={t("notes.folders.folderName")}
+                            className="input-inline w-full px-2 py-1.5 rounded-md bg-transparent text-xs text-foreground placeholder:text-foreground/20 outline-none border-none appearance-none"
                           />
                         </div>
-                        <DropdownMenuSeparator />
-                      </>
-                    )}
-                    <div className="overflow-y-auto max-h-48">
-                      {filteredFolders.map((folder) => {
-                        const isCurrent = folder.id === note.folder_id;
-                        return (
-                          <DropdownMenuItem
-                            key={folder.id}
-                            disabled={isCurrent}
-                            onClick={() => onMoveToFolder(note.id, folder.id)}
-                            className="text-xs gap-2 rounded-md px-2 py-1.5"
-                          >
-                            <FolderOpen size={11} className="text-foreground/30 shrink-0" />
-                            <span className="truncate flex-1">{folder.name}</span>
-                            {isCurrent && (
-                              <Check size={9} className="text-foreground/65 shrink-0" />
-                            )}
-                          </DropdownMenuItem>
-                        );
-                      })}
-                      {folderSearch && filteredFolders.length === 0 && (
-                        <p className="text-xs text-foreground/20 text-center py-1.5">
-                          {t("notes.context.noResults")}
-                        </p>
+                      ) : (
+                        <DropdownMenuItem
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setIsCreatingFolder(true);
+                          }}
+                          className="text-xs gap-2 rounded-md px-2 py-1.5 text-foreground/40"
+                        >
+                          <Plus size={10} />
+                          {t("notes.context.newFolder")}
+                        </DropdownMenuItem>
                       )}
-                    </div>
-                    {onCreateFolderAndMove && (
-                      <>
-                        <DropdownMenuSeparator />
-                        {isCreatingFolder ? (
-                          <div className="px-1">
-                            <input
-                              autoFocus
-                              value={newFolderName}
-                              onChange={(e) => setNewFolderName(e.target.value)}
-                              onKeyDown={(e) => {
-                                e.stopPropagation();
-                                if (e.key === "Enter" && newFolderName.trim()) {
-                                  onCreateFolderAndMove(note.id, newFolderName.trim());
-                                  setNewFolderName("");
-                                  setIsCreatingFolder(false);
-                                }
-                                if (e.key === "Escape") {
-                                  setIsCreatingFolder(false);
-                                  setNewFolderName("");
-                                }
-                              }}
-                              placeholder={t("notes.folders.folderName")}
-                              className="input-inline w-full px-2 py-1.5 rounded-md bg-transparent text-xs text-foreground placeholder:text-foreground/20 outline-none border-none appearance-none"
-                            />
-                          </div>
-                        ) : (
-                          <DropdownMenuItem
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              setIsCreatingFolder(true);
-                            }}
-                            className="text-xs gap-2 rounded-md px-2 py-1.5 text-foreground/40"
-                          >
-                            <Plus size={10} />
-                            {t("notes.context.newFolder")}
-                          </DropdownMenuItem>
-                        )}
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-              {isSaving && (
-                <span className="inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-muted-foreground tabular-nums">
-                  <Loader2 size={8} className="animate-spin" />
-                  {t("notes.editor.saving")}
-                </span>
-              )}
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {isSaving && (
+              <span className="inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-muted-foreground tabular-nums">
+                <Loader2 size={8} className="animate-spin" />
+                {t("notes.editor.saving")}
+              </span>
+            )}
             <div className="flex min-w-0 flex-wrap items-center gap-1 pl-1">
               {(enhancement || hasMeetingTranscript || hasChatSegments || isRecording) && (
                 <div className="ow-segmented flex shrink-0 items-center gap-0.5 shadow-none">
@@ -1328,7 +1469,9 @@ export default function NoteEditor({
                       className={cn(
                         "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
                         viewMode === "enhanced" && "ow-segmented-item-active",
-                        isTranscriptEditing && viewMode !== "enhanced" && "cursor-not-allowed opacity-40"
+                        isTranscriptEditing &&
+                          viewMode !== "enhanced" &&
+                          "cursor-not-allowed opacity-40"
                       )}
                     >
                       <Sparkles size={9} />
@@ -1371,6 +1514,17 @@ export default function NoteEditor({
                   </button>
                 </div>
               )}
+              {viewMode === "transcript" &&
+                !isTranscriptEditing &&
+                !isRecording &&
+                speakerFilterOptions.length > 1 && (
+                  <TranscriptSpeakerFilter
+                    options={speakerFilterOptions}
+                    selectedKeys={selectedSpeakerFilterKeys}
+                    onChange={setSelectedSpeakerFilterKeys}
+                    t={t}
+                  />
+                )}
               {SHARING_ENABLED && note.cloud_id && (
                 <button
                   type="button"
@@ -1571,7 +1725,7 @@ export default function NoteEditor({
           <div className="flex-1 min-w-0 min-h-0 overflow-x-hidden overflow-y-auto">
             {viewMode === "transcript" && (hasChatSegments || isRecording) ? (
               <MeetingTranscriptChat
-                segments={renderedTranscriptSegments}
+                segments={visibleTranscriptSegments}
                 isEditing={isTranscriptEditing}
                 onSegmentsChange={setEditableTranscriptSegments}
                 searchTerm={findText}
@@ -1604,6 +1758,7 @@ export default function NoteEditor({
                 onToggleSelect={
                   !isRecording && !isTranscriptEditing ? handleToggleSelect : undefined
                 }
+                emptyMessage={t("notes.speaker.filterEmpty")}
               />
             ) : viewMode === "transcript" && hasMeetingTranscript ? (
               isTranscriptEditing ? (
@@ -1680,7 +1835,6 @@ export default function NoteEditor({
             onStartRecording={onStartRecording}
             onStopRecording={onStopRecording}
             onAskSubmit={handleAskSubmit}
-            onInputFocus={handleChatInputFocus}
             actionPicker={isRecording ? undefined : actionPicker}
             hideInput={chatMode !== "hidden"}
             recordingStartedAt={recordingStartedAt}
