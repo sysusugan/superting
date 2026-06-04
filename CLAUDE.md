@@ -536,7 +536,7 @@ Detects meetings via three independent sources, orchestrated by `MeetingDetectio
 - If no suitable clean worktree exists, create a new worktree from `main` with a dedicated feature branch.
 - Create dedicated feature branches using the `codex/` prefix by default.
 - Do not develop new features directly in the primary `main` checkout.
-- Before creating a new worktree, verify the source `main` checkout has no uncommitted changes.
+- Before creating or reusing a worktree, verify the target worktree is clean, then inspect the local `main` checkout. If `main` has uncommitted changes or local-only commits that have not been pushed or otherwise handled, stop and ask the user to handle `main` first. After local `main` is clean and current, base the work branch on the latest local `main`.
 - All commits must comply with DCO. Use `git commit -s` or otherwise include a valid `Signed-off-by:` trailer.
 - When integrating into `main`, use rebase merge only. Do not use squash merge or merge commits unless explicitly approved.
 
