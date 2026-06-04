@@ -622,9 +622,27 @@ declare global {
         }
       ) => Promise<{ success: boolean; note?: NoteItem }>;
       deleteNote: (id: number) => Promise<{ success: boolean }>;
+      saveNoteImageAsset: (
+        noteId: number,
+        payload: { name?: string; mimeType: string; data: ArrayBuffer }
+      ) => Promise<{
+        success: boolean;
+        asset?: {
+          id: string;
+          note_id: number;
+          filename: string;
+          stored_filename: string;
+          mime_type: string;
+          size_bytes: number;
+          created_at: string;
+          url: string;
+        };
+        error?: string;
+      }>;
+      deleteNoteImageAsset: (assetId: string) => Promise<{ success: boolean; error?: string }>;
       exportNote: (
         noteId: number,
-        format: "txt" | "md"
+        format: "txt" | "md" | "pdf"
       ) => Promise<{ success: boolean; error?: string }>;
       exportTranscript: (
         noteId: number,

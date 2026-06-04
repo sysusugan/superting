@@ -1967,7 +1967,18 @@
       "recordedDateTitle": "记录日期：{{date}}",
       "recordedDateDescription": "设置这次转录或会议实际发生的时间。",
       "recordedDateInvalid": "请输入有效的记录日期",
-      "recordedDateSaveFailed": "无法更新记录日期"
+      "recordedDateSaveFailed": "无法更新记录日期",
+      "asPdf": "导出为 PDF (.pdf)",
+      "imageUploadFailed": "添加图片失败",
+      "imageAlt": "图片",
+      "importTranscript": "导入转录",
+      "transcriptImportFailed": "导入转录失败",
+      "transcriptImportNoSegments": "未在这个 txt 文件中识别到转录片段。",
+      "transcriptImportOverwriteConfirm": "是否用这个 txt 文件覆盖当前转录？",
+      "transcriptImportSuccess": "已导入 {{count}} 条转录片段",
+      "transcriptImportUnsupported": "仅支持 .txt 转录文件",
+      "transcriptEmptyTitle": "还没有转录内容",
+      "transcriptEmptyDescription": "导入 txt 转录文件，或开始录音生成带时间轴的转录。"
     },
     "bulkExport": {
       "select": "选择",

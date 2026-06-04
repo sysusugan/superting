@@ -703,7 +703,7 @@ export default function PersonalNotesView({
   ]);
 
   const handleExportNote = useCallback(
-    async (format: "md" | "txt") => {
+    async (format: "md" | "txt" | "pdf") => {
       if (!activeNoteId) return;
       await window.electronAPI.exportNote(activeNoteId, format);
     },

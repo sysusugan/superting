@@ -192,6 +192,24 @@ class DatabaseManager {
         ON note_audio_files(note_id, recorded_at DESC, id DESC)
       `);
 
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS note_assets (
+          id TEXT PRIMARY KEY,
+          note_id INTEGER NOT NULL,
+          filename TEXT NOT NULL,
+          stored_filename TEXT NOT NULL,
+          mime_type TEXT NOT NULL,
+          size_bytes INTEGER NOT NULL DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE
+        )
+      `);
+
+      this.db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_note_assets_note_id_created_at
+        ON note_assets(note_id, created_at ASC)
+      `);
+
       try {
         this.db.exec("ALTER TABLE notes ADD COLUMN enhanced_content TEXT");
       } catch (err) {
@@ -1308,6 +1326,17 @@ class DatabaseManager {
         .prepare("SELECT id FROM notes WHERE folder_id = ?")
         .all(id)
         .map((row) => row.id);
+      for (const noteId of noteIds) {
+        try {
+          require("./noteAssetStorage").cleanupNoteAssetFiles(this, noteId);
+        } catch (cleanupError) {
+          debugLogger.warn(
+            "Failed to clean up note assets before deleting folder",
+            { noteId, folderId: id, error: cleanupError.message },
+            "notes"
+          );
+        }
+      }
       // Server cascades note deletes on folder delete; sync pull picks up note tombstones.
       const hardDeleteNotes = this.db.prepare("DELETE FROM notes WHERE folder_id = ?");
       const tombstoneFolder = this.db.prepare(
@@ -1584,6 +1613,15 @@ class DatabaseManager {
       if (!this.db) {
         throw new Error("Database not initialized");
       }
+      try {
+        require("./noteAssetStorage").cleanupNoteAssetFiles(this, id);
+      } catch (cleanupError) {
+        debugLogger.warn(
+          "Failed to clean up note assets before deleting note",
+          { noteId: id, error: cleanupError.message },
+          "notes"
+        );
+      }
       const stmt = this.db.prepare(
         "UPDATE notes SET deleted_at = datetime('now'), sync_status = 'pending', updated_at = datetime('now') WHERE id = ? AND deleted_at IS NULL"
       );
@@ -1591,6 +1629,56 @@ class DatabaseManager {
       return { success: result.changes > 0, id };
     } catch (error) {
       debugLogger.error("Error deleting note", { error: error.message }, "notes");
+      throw error;
+    }
+  }
+
+  createNoteAsset({ id, noteId, filename, storedFilename, mimeType, sizeBytes }) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      this.db
+        .prepare(
+          `INSERT INTO note_assets
+            (id, note_id, filename, stored_filename, mime_type, size_bytes)
+           VALUES (?, ?, ?, ?, ?, ?)`
+        )
+        .run(id, noteId, filename, storedFilename, mimeType, sizeBytes);
+      return this.getNoteAsset(id);
+    } catch (error) {
+      debugLogger.error("Error creating note asset", { error: error.message }, "database");
+      throw error;
+    }
+  }
+
+  getNoteAsset(id) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      return this.db.prepare("SELECT * FROM note_assets WHERE id = ?").get(id) || null;
+    } catch (error) {
+      debugLogger.error("Error getting note asset", { error: error.message }, "database");
+      throw error;
+    }
+  }
+
+  getNoteAssets(noteId) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      return this.db
+        .prepare("SELECT * FROM note_assets WHERE note_id = ? ORDER BY created_at ASC")
+        .all(noteId);
+    } catch (error) {
+      debugLogger.error("Error getting note assets", { error: error.message }, "database");
+      throw error;
+    }
+  }
+
+  deleteNoteAsset(id) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const result = this.db.prepare("DELETE FROM note_assets WHERE id = ?").run(id);
+      return { success: result.changes > 0 };
+    } catch (error) {
+      debugLogger.error("Error deleting note asset", { error: error.message }, "database");
       throw error;
     }
   }
@@ -2700,6 +2788,15 @@ class DatabaseManager {
   hardDeleteNote(id) {
     try {
       if (!this.db) throw new Error("Database not initialized");
+      try {
+        require("./noteAssetStorage").cleanupNoteAssetFiles(this, id);
+      } catch (cleanupError) {
+        debugLogger.warn(
+          "Failed to clean up note assets before hard deleting note",
+          { noteId: id, error: cleanupError.message },
+          "notes"
+        );
+      }
       const result = this.db.prepare("DELETE FROM notes WHERE id = ?").run(id);
       return { success: result.changes > 0, id };
     } catch (error) {

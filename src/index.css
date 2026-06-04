@@ -1055,6 +1055,15 @@ body:has(.agent-overlay-window) #root {
   margin-bottom: 0.25rem;
 }
 
+.rich-text-editor-content img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.75rem 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+}
+
 .rich-text-editor-content ul,
 .rich-text-editor-content ol {
   padding-left: 1.25rem;

@@ -1967,7 +1967,18 @@
       "recordedDateTitle": "記錄日期：{{date}}",
       "recordedDateDescription": "設定這次轉錄或會議實際發生的時間。",
       "recordedDateInvalid": "請輸入有效的記錄日期",
-      "recordedDateSaveFailed": "無法更新記錄日期"
+      "recordedDateSaveFailed": "無法更新記錄日期",
+      "asPdf": "匯出為 PDF (.pdf)",
+      "imageUploadFailed": "新增圖片失敗",
+      "imageAlt": "圖片",
+      "importTranscript": "匯入轉錄",
+      "transcriptImportFailed": "匯入轉錄失敗",
+      "transcriptImportNoSegments": "未在這個 txt 檔中識別到轉錄片段。",
+      "transcriptImportOverwriteConfirm": "是否用這個 txt 檔覆蓋目前轉錄？",
+      "transcriptImportSuccess": "已匯入 {{count}} 個轉錄片段",
+      "transcriptImportUnsupported": "僅支援 .txt 轉錄檔",
+      "transcriptEmptyTitle": "尚無轉錄內容",
+      "transcriptEmptyDescription": "匯入 txt 轉錄檔，或開始錄音產生含時間軸的轉錄。"
     },
     "bulkExport": {
       "select": "選擇",

@@ -1872,7 +1872,18 @@
       "recordedDateTitle": "記録日: {{date}}",
       "recordedDateDescription": "この文字起こしまたは会議が実際に行われた日時を設定します。",
       "recordedDateInvalid": "有効な記録日を入力してください",
-      "recordedDateSaveFailed": "記録日を更新できませんでした"
+      "recordedDateSaveFailed": "記録日を更新できませんでした",
+      "asPdf": "As PDF (.pdf)",
+      "imageUploadFailed": "Could not add image",
+      "imageAlt": "Image",
+      "importTranscript": "Import transcript",
+      "transcriptImportFailed": "Could not import transcript",
+      "transcriptImportNoSegments": "No transcript segments were found in this txt file.",
+      "transcriptImportOverwriteConfirm": "Replace the current transcript with this txt file?",
+      "transcriptImportSuccess": "Imported {{count}} transcript segments",
+      "transcriptImportUnsupported": "Only .txt transcript files are supported",
+      "transcriptEmptyTitle": "No transcript yet",
+      "transcriptEmptyDescription": "Import a txt transcript file or start recording to create the transcript timeline."
     },
     "bulkExport": {
       "select": "Select",

@@ -20,6 +20,7 @@ import {
   Pencil,
   X,
   Filter,
+  FileUp,
 } from "lucide-react";
 import ShareNoteDialog from "./ShareNoteDialog";
 import { useShareCacheEntry } from "../../stores/noteStore";
@@ -60,6 +61,7 @@ import {
   mergeTranscriptSegments,
   serializeTranscriptSegments,
 } from "../../utils/transcriptSpeakerState";
+import { parseImportedTranscriptTxt } from "../../utils/importTranscriptTxt";
 import {
   assignSelectedTranscriptSegments,
   assignSpeakerGroupName,
@@ -248,7 +250,7 @@ interface NoteEditorProps {
   isProcessing: boolean;
   onStartRecording: () => void;
   onStopRecording: () => void;
-  onExportNote?: (format: "md" | "txt") => void;
+  onExportNote?: (format: "md" | "txt" | "pdf") => void;
   onExportTranscript?: (format: "txt" | "srt" | "json" | "md") => void;
   onDownloadOriginalAudio?: () => void;
   hasDownloadableAudio?: boolean;
@@ -366,6 +368,7 @@ export default function NoteEditor({
   const editorRef = useRef<Editor | null>(null);
   const findInputRef = useRef<HTMLInputElement>(null);
   const plainTranscriptTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const transcriptImportInputRef = useRef<HTMLInputElement>(null);
   const replaceRequestIdRef = useRef(0);
   const displaySegmentsRef = useRef<TranscriptSegment[]>([]);
   const effectiveTranscript = selectEmbeddedChatTranscript({
@@ -445,6 +448,7 @@ export default function NoteEditor({
   );
   const hasTranscriptEditControls = !!effectiveTranscript;
   const canEditTranscript = hasTranscriptEditControls && !isRecording;
+  const canImportTranscript = !isRecording && !isTranscriptEditing;
 
   const knownSpeakers = useMemo<SpeakerOption[]>(() => {
     const seen = new Set<string>();
@@ -967,6 +971,135 @@ export default function NoteEditor({
     [enhancement]
   );
 
+  const handleImageUpload = useCallback(
+    async (file: File) => {
+      const data = await file.arrayBuffer();
+      const result = await window.electronAPI?.saveNoteImageAsset?.(note.id, {
+        name: file.name,
+        mimeType: file.type,
+        data,
+      });
+      if (!result?.success || !result.asset?.url) {
+        toast({
+          title: t("notes.editor.imageUploadFailed"),
+          description: result?.error,
+          variant: "destructive",
+        });
+        throw new Error(result?.error || "Image upload failed");
+      }
+      return { src: result.asset.url, alt: file.name || t("notes.editor.imageAlt") };
+    },
+    [note.id, t, toast]
+  );
+
+  const shouldUseImportedTitle = useCallback(
+    (title: string | null) => {
+      if (!title) return false;
+      const current = (note.title || "").trim();
+      return (
+        !current ||
+        current === "Untitled Note" ||
+        current === "New note" ||
+        current === t("notes.editor.untitled")
+      );
+    },
+    [note.title, t]
+  );
+
+  const importTranscriptText = useCallback(
+    async (raw: string) => {
+      const imported = parseImportedTranscriptTxt(raw);
+      if (imported.segments.length === 0) {
+        toast({
+          title: t("notes.editor.transcriptImportFailed"),
+          description: t("notes.editor.transcriptImportNoSegments"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (effectiveTranscript) {
+        const confirmed = window.confirm(t("notes.editor.transcriptImportOverwriteConfirm"));
+        if (!confirmed) return;
+      }
+
+      const transcript = serializeTranscriptSegments(imported.segments);
+      const updates: { transcript: string; title?: string } = { transcript };
+      if (shouldUseImportedTitle(imported.title)) updates.title = imported.title || undefined;
+
+      const result = await window.electronAPI?.updateNote(note.id, updates);
+      if (!result?.success) {
+        toast({
+          title: t("notes.editor.transcriptImportFailed"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setDiarizedSegments(imported.segments);
+      setSelectedSpeakerFilterKeys(null);
+      setIsTranscriptEditing(false);
+      setEditableTranscriptSegments([]);
+      setEditableTranscriptText("");
+      setViewMode("transcript");
+      toast({
+        title: t("notes.editor.transcriptImportSuccess", {
+          count: imported.segments.length,
+        }),
+      });
+    },
+    [effectiveTranscript, note.id, shouldUseImportedTitle, t, toast]
+  );
+
+  const importTranscriptFile = useCallback(
+    async (file: File) => {
+      if (!file.name.toLowerCase().endsWith(".txt")) {
+        toast({
+          title: t("notes.editor.transcriptImportUnsupported"),
+          variant: "destructive",
+        });
+        return;
+      }
+      await importTranscriptText(await file.text());
+    },
+    [importTranscriptText, t, toast]
+  );
+
+  const handleTranscriptImportInput = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (file) void importTranscriptFile(file);
+    },
+    [importTranscriptFile]
+  );
+
+  const handleNoteDragOver = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!canImportTranscript) return;
+      const hasFile = Array.from(event.dataTransfer.items || []).some(
+        (item) => item.kind === "file"
+      );
+      if (!hasFile) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    },
+    [canImportTranscript]
+  );
+
+  const handleNoteDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!canImportTranscript) return;
+      const file = Array.from(event.dataTransfer.files || []).find((candidate) =>
+        candidate.name.toLowerCase().endsWith(".txt")
+      );
+      if (!file) return;
+      event.preventDefault();
+      void importTranscriptFile(file);
+    },
+    [canImportTranscript, importTranscriptFile]
+  );
+
   const handleStartTranscriptEdit = useCallback(() => {
     if (!canEditTranscript) return;
     setViewMode("transcript");
@@ -1219,7 +1352,11 @@ export default function NoteEditor({
     : t("notes.editor.transcriptNoSearch");
 
   return (
-    <div className="flex h-full min-w-0 min-h-0 overflow-hidden">
+    <div
+      className="flex h-full min-w-0 min-h-0 overflow-hidden"
+      onDragOver={handleNoteDragOver}
+      onDrop={handleNoteDrop}
+    >
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <div className="min-w-0 px-5 pt-4 pb-3">
           <div
@@ -1399,93 +1536,106 @@ export default function NoteEditor({
               </span>
             )}
             <div className="flex min-w-0 flex-wrap items-center gap-1 pl-1">
-              {(enhancement || hasMeetingTranscript || hasChatSegments || isRecording) && (
-                <div className="ow-segmented flex shrink-0 items-center gap-0.5 shadow-none">
-                  {(hasMeetingTranscript || hasChatSegments || isRecording) && (
-                    <div
-                      className={cn(
-                        "flex h-6 shrink-0 items-center rounded-md",
-                        viewMode === "transcript" && "bg-background shadow-sm"
-                      )}
-                    >
-                      <button
-                        data-segment-button
-                        data-segment-value="transcript"
-                        onClick={() => setViewMode("transcript")}
-                        className={cn(
-                          "ow-segmented-item h-6 shrink-0 whitespace-nowrap rounded-r-none px-2 py-0 text-[11px]",
-                          viewMode === "transcript" && "bg-transparent text-foreground shadow-none"
-                        )}
-                      >
-                        <MessageSquareText size={10} />
-                        {t("notes.editor.transcript")}
-                      </button>
-                      {hasTranscriptEditControls && !isTranscriptEditing && (
-                        <button
-                          type="button"
-                          onClick={handleStartTranscriptEdit}
-                          disabled={!canEditTranscript}
-                          className={cn(
-                            "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border-l transition-colors",
-                            viewMode === "transcript"
-                              ? "border-border/70 text-muted-foreground hover:bg-muted hover:text-foreground"
-                              : "border-transparent text-muted-foreground/70 hover:bg-background/80 hover:text-foreground",
-                            "disabled:cursor-not-allowed disabled:opacity-40"
-                          )}
-                          aria-label={t("notes.editor.transcriptEdit")}
-                          title={
-                            isRecording
-                              ? t("notes.editor.transcriptEditDisabledRecording")
-                              : t("notes.editor.transcriptEdit")
-                          }
-                        >
-                          <Pencil size={10} />
-                        </button>
-                      )}
-                    </div>
+              <div className="ow-segmented flex shrink-0 items-center gap-0.5 shadow-none">
+                <div
+                  className={cn(
+                    "flex h-6 shrink-0 items-center rounded-md",
+                    viewMode === "transcript" && "bg-background shadow-sm"
                   )}
+                >
                   <button
                     data-segment-button
-                    data-segment-value="raw"
-                    onClick={() => {
-                      if (!isTranscriptEditing) setViewMode("raw");
-                    }}
+                    data-segment-value="transcript"
+                    onClick={() => setViewMode("transcript")}
                     className={cn(
-                      "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
-                      viewMode === "raw" && "ow-segmented-item-active",
-                      isTranscriptEditing && viewMode !== "raw" && "cursor-not-allowed opacity-40"
+                      "ow-segmented-item h-6 shrink-0 whitespace-nowrap rounded-r-none px-2 py-0 text-[11px]",
+                      viewMode === "transcript" && "bg-transparent text-foreground shadow-none"
                     )}
                   >
-                    <AlignLeft size={10} />
-                    {t("notes.editor.notes")}
+                    <MessageSquareText size={10} />
+                    {t("notes.editor.transcript")}
                   </button>
-                  {enhancement && (
+                  {hasTranscriptEditControls && !isTranscriptEditing && (
                     <button
-                      data-segment-button
-                      data-segment-value="enhanced"
-                      onClick={() => {
-                        if (!isTranscriptEditing) setViewMode("enhanced");
-                      }}
+                      type="button"
+                      onClick={handleStartTranscriptEdit}
+                      disabled={!canEditTranscript}
                       className={cn(
-                        "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
-                        viewMode === "enhanced" && "ow-segmented-item-active",
-                        isTranscriptEditing &&
-                          viewMode !== "enhanced" &&
-                          "cursor-not-allowed opacity-40"
+                        "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border-l transition-colors",
+                        viewMode === "transcript"
+                          ? "border-border/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          : "border-transparent text-muted-foreground/70 hover:bg-background/80 hover:text-foreground",
+                        "disabled:cursor-not-allowed disabled:opacity-40"
                       )}
+                      aria-label={t("notes.editor.transcriptEdit")}
+                      title={
+                        isRecording
+                          ? t("notes.editor.transcriptEditDisabledRecording")
+                          : t("notes.editor.transcriptEdit")
+                      }
                     >
-                      <Sparkles size={9} />
-                      {t("notes.editor.enhanced")}
-                      {enhancement.isStale && (
-                        <span
-                          className="w-1 h-1 rounded-full bg-amber-400/60"
-                          title={t("notes.editor.staleIndicator")}
-                        />
-                      )}
+                      <Pencil size={10} />
                     </button>
                   )}
                 </div>
-              )}
+                <button
+                  data-segment-button
+                  data-segment-value="raw"
+                  onClick={() => {
+                    if (!isTranscriptEditing) setViewMode("raw");
+                  }}
+                  className={cn(
+                    "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
+                    viewMode === "raw" && "ow-segmented-item-active",
+                    isTranscriptEditing && viewMode !== "raw" && "cursor-not-allowed opacity-40"
+                  )}
+                >
+                  <AlignLeft size={10} />
+                  {t("notes.editor.notes")}
+                </button>
+                {enhancement && (
+                  <button
+                    data-segment-button
+                    data-segment-value="enhanced"
+                    onClick={() => {
+                      if (!isTranscriptEditing) setViewMode("enhanced");
+                    }}
+                    className={cn(
+                      "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
+                      viewMode === "enhanced" && "ow-segmented-item-active",
+                      isTranscriptEditing &&
+                        viewMode !== "enhanced" &&
+                        "cursor-not-allowed opacity-40"
+                    )}
+                  >
+                    <Sparkles size={9} />
+                    {t("notes.editor.enhanced")}
+                    {enhancement.isStale && (
+                      <span
+                        className="w-1 h-1 rounded-full bg-amber-400/60"
+                        title={t("notes.editor.staleIndicator")}
+                      />
+                    )}
+                  </button>
+                )}
+              </div>
+              <input
+                ref={transcriptImportInputRef}
+                type="file"
+                accept=".txt,text/plain"
+                className="hidden"
+                onChange={handleTranscriptImportInput}
+              />
+              <button
+                type="button"
+                onClick={() => transcriptImportInputRef.current?.click()}
+                disabled={!canImportTranscript}
+                className="shrink-0 h-6 w-6 inline-flex items-center justify-center rounded-md bg-foreground/4 dark:bg-white/5 text-foreground/45 dark:text-foreground/35 hover:text-foreground/70 hover:bg-foreground/8 dark:hover:bg-white/8 disabled:opacity-40 disabled:pointer-events-none transition-colors duration-150"
+                aria-label={t("notes.editor.importTranscript")}
+                title={t("notes.editor.importTranscript")}
+              >
+                <FileUp size={11} />
+              </button>
               {hasTranscriptEditControls && isTranscriptEditing && (
                 <div className="flex shrink-0 items-center gap-1">
                   <button
@@ -1607,6 +1757,13 @@ export default function NoteEditor({
                         >
                           <FileText size={13} className="text-foreground/40" />
                           {t("notes.editor.asPlainText")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => onExportNote?.("pdf")}
+                          className="text-xs gap-2"
+                        >
+                          <FileText size={13} className="text-foreground/40" />
+                          {t("notes.editor.asPdf")}
                         </DropdownMenuItem>
                       </>
                     )}
@@ -1779,10 +1936,30 @@ export default function NoteEditor({
                   onFindMatchCountChange={handleTranscriptFindMatchCountChange}
                 />
               )
+            ) : viewMode === "transcript" ? (
+              <div className="mx-5 mt-5 mb-24 flex h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] flex-col items-center justify-center rounded-xl border border-dashed border-border/70 bg-background/70 px-6 text-center">
+                <MessageSquareText size={22} className="mb-3 text-foreground/30" />
+                <p className="text-sm font-medium text-foreground/70">
+                  {t("notes.editor.transcriptEmptyTitle")}
+                </p>
+                <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
+                  {t("notes.editor.transcriptEmptyDescription")}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => transcriptImportInputRef.current?.click()}
+                  disabled={!canImportTranscript}
+                  className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  <FileUp size={13} />
+                  {t("notes.editor.importTranscript")}
+                </button>
+              </div>
             ) : viewMode === "enhanced" && enhancement ? (
               <RichTextEditor
                 value={enhancement.content}
                 onChange={handleEnhancedChange}
+                onImageUpload={handleImageUpload}
                 className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm"
                 findQuery={findText}
                 findActiveIndex={activeFindIndex}
@@ -1795,6 +1972,7 @@ export default function NoteEditor({
               <RichTextEditor
                 value={note.content}
                 onChange={handleContentChange}
+                onImageUpload={handleImageUpload}
                 editorRef={editorRef}
                 placeholder={t("notes.editor.startWriting")}
                 disabled={actionProcessingState === "processing"}

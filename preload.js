@@ -86,6 +86,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("db-get-notes", noteType, limit, folderId, sortBy),
   updateNote: (id, updates) => ipcRenderer.invoke("db-update-note", id, updates),
   deleteNote: (id) => ipcRenderer.invoke("db-delete-note", id),
+  saveNoteImageAsset: (noteId, payload) =>
+    ipcRenderer.invoke("save-note-image-asset", noteId, payload),
+  deleteNoteImageAsset: (assetId) => ipcRenderer.invoke("delete-note-image-asset", assetId),
   exportNote: (noteId, format) => ipcRenderer.invoke("export-note", noteId, format),
   exportTranscript: (noteId, format) => ipcRenderer.invoke("export-transcript", noteId, format),
   exportSelectedNotes: (noteIds, options) =>

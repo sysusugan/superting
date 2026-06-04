@@ -62,6 +62,7 @@ class MarkdownMirror {
       const glob = this._globNoteFiles(note.id);
       const slug = this._slugify(note.title);
       const newFileName = `${note.id}-${slug}.md`;
+      const baseName = `${note.id}-${slug}`;
       const newFilePath = path.join(dirPath, newFileName);
       for (const existing of glob) {
         if (existing !== newFilePath) {
@@ -70,9 +71,16 @@ class MarkdownMirror {
           } catch {}
         }
       }
+      this._deleteStaleAssetDirs(note.id, path.join(dirPath, `${baseName}-assets`));
 
       const frontmatter = this._buildFrontmatter(note, dirName);
-      const body = note.enhanced_content || note.content || "";
+      const { copyNoteAssetsForMarkdown } = require("./noteAssetExport");
+      const body = copyNoteAssetsForMarkdown(
+        note.enhanced_content || note.content || "",
+        this._databaseManager,
+        newFilePath,
+        baseName
+      ).content;
       fs.writeFileSync(newFilePath, `${frontmatter}\n\n${body}`, "utf-8");
     } catch (err) {
       debugLogger.error(
@@ -124,6 +132,7 @@ class MarkdownMirror {
       for (const f of files) {
         fs.unlinkSync(f);
       }
+      this._deleteStaleAssetDirs(noteId, null);
     } catch (err) {
       debugLogger.error("Failed to delete note file", { noteId, error: err.message }, "note-files");
     }
@@ -191,6 +200,10 @@ class MarkdownMirror {
     }
   }
 
+  setDatabaseManager(databaseManager) {
+    this._databaseManager = databaseManager;
+  }
+
   getNotePath(noteId) {
     if (!this._basePath) return null;
     const files = this._globNoteFiles(noteId);
@@ -244,6 +257,26 @@ class MarkdownMirror {
       }
     } catch {}
     return results;
+  }
+
+  _deleteStaleAssetDirs(noteId, keepPath) {
+    if (!this._basePath) return;
+    try {
+      const prefix = `${noteId}-`;
+      const keep = keepPath ? path.resolve(keepPath) : null;
+      const dirs = fs.readdirSync(this._basePath, { withFileTypes: true });
+      for (const dir of dirs) {
+        if (!dir.isDirectory()) continue;
+        const dirPath = path.join(this._basePath, dir.name);
+        const children = fs.readdirSync(dirPath, { withFileTypes: true });
+        for (const child of children) {
+          if (!child.isDirectory()) continue;
+          if (!child.name.startsWith(prefix) || !child.name.endsWith("-assets")) continue;
+          const assetDir = path.resolve(dirPath, child.name);
+          if (!keep || assetDir !== keep) fs.rmSync(assetDir, { recursive: true, force: true });
+        }
+      }
+    } catch {}
   }
 }
 

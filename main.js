@@ -24,6 +24,7 @@ const {
   dialog,
   ipcMain,
   net,
+  protocol,
   session,
   systemPreferences,
 } = require("electron");
@@ -85,6 +86,17 @@ function resolveAppChannel() {
 
 const APP_CHANNEL = resolveAppChannel();
 process.env.OPENWHISPR_CHANNEL = APP_CHANNEL;
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "openwhispr-note-asset",
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+    },
+  },
+]);
 
 function configureChannelUserDataPath() {
   if (APP_CHANNEL === "production") {
@@ -348,6 +360,7 @@ function initializeCoreManagers() {
   windowManager = new WindowManager();
   hotkeyManager = windowManager.hotkeyManager;
   databaseManager = new DatabaseManager();
+  require("./src/helpers/noteAssetStorage").registerNoteAssetProtocol(databaseManager);
   clipboardManager = new ClipboardManager();
   whisperManager = new WhisperManager();
   if (process.platform !== "darwin") {

@@ -2083,7 +2083,18 @@
       "recordedDateTitle": "Date d'enregistrement : {{date}}",
       "recordedDateDescription": "Définissez quand cette transcription ou réunion a eu lieu.",
       "recordedDateInvalid": "Saisissez une date d'enregistrement valide",
-      "recordedDateSaveFailed": "Impossible de mettre à jour la date d'enregistrement"
+      "recordedDateSaveFailed": "Impossible de mettre à jour la date d'enregistrement",
+      "asPdf": "As PDF (.pdf)",
+      "imageUploadFailed": "Could not add image",
+      "imageAlt": "Image",
+      "importTranscript": "Import transcript",
+      "transcriptImportFailed": "Could not import transcript",
+      "transcriptImportNoSegments": "No transcript segments were found in this txt file.",
+      "transcriptImportOverwriteConfirm": "Replace the current transcript with this txt file?",
+      "transcriptImportSuccess": "Imported {{count}} transcript segments",
+      "transcriptImportUnsupported": "Only .txt transcript files are supported",
+      "transcriptEmptyTitle": "No transcript yet",
+      "transcriptEmptyDescription": "Import a txt transcript file or start recording to create the transcript timeline."
     },
     "bulkExport": {
       "select": "Select",

@@ -5,8 +5,9 @@ import StarterKit from "@tiptap/starter-kit";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Placeholder from "@tiptap/extension-placeholder";
+import Image from "@tiptap/extension-image";
 import { Markdown } from "tiptap-markdown";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { cn } from "../lib/utils";
 import { makeCurrentPageFindPattern, type FindMatch } from "../../utils/currentPageFind";
@@ -148,6 +149,12 @@ interface RichTextEditorProps {
     ignoreCase: boolean;
   } | null;
   onReplaceRequestComplete?: (result: { id: number; replaced: number }) => void;
+  onImageUpload?: (file: File) => Promise<{ src: string; alt?: string }>;
+}
+
+function getFirstImageFile(fileList?: FileList | null): File | null {
+  if (!fileList) return null;
+  return Array.from(fileList).find((file) => file.type.startsWith("image/")) ?? null;
 }
 
 export function RichTextEditor({
@@ -163,10 +170,29 @@ export function RichTextEditor({
   onFindMatchCountChange,
   replaceRequest,
   onReplaceRequestComplete,
+  onImageUpload,
 }: RichTextEditorProps) {
   const internalValueRef = useRef(value);
   const suppressUpdateRef = useRef(false);
   const lastReplaceRequestIdRef = useRef<number | null>(null);
+  const imageUploadRef = useRef(onImageUpload);
+
+  useEffect(() => {
+    imageUploadRef.current = onImageUpload;
+  }, [onImageUpload]);
+
+  const insertImageFile = useCallback(async (view: any, file: File) => {
+    const upload = imageUploadRef.current;
+    if (!upload) return;
+    const result = await upload(file);
+    if (!result?.src || view.isDestroyed) return;
+    const imageNode = view.state.schema.nodes.image?.create({
+      src: result.src,
+      alt: result.alt || file.name || "",
+    });
+    if (!imageNode) return;
+    view.dispatch(view.state.tr.replaceSelectionWith(imageNode).scrollIntoView());
+  }, []);
 
   const editor = useEditor({
     extensions: [
@@ -180,6 +206,10 @@ export function RichTextEditor({
       Placeholder.configure({
         placeholder: placeholder || "",
         emptyEditorClass: "is-editor-empty",
+      }),
+      Image.configure({
+        inline: false,
+        allowBase64: false,
       }),
       FindHighlight,
       Markdown.configure({
@@ -200,6 +230,28 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class: "rich-text-editor-content",
+      },
+      handlePaste(view, event) {
+        if (disabled || !imageUploadRef.current) return false;
+        const imageFile = getFirstImageFile(event.clipboardData?.files);
+        if (!imageFile) return false;
+        event.preventDefault();
+        void insertImageFile(view, imageFile);
+        return true;
+      },
+      handleDrop(view, event) {
+        if (disabled || !imageUploadRef.current) return false;
+        const imageFile = getFirstImageFile(event.dataTransfer?.files);
+        if (!imageFile) return false;
+        const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        if (pos) {
+          view.dispatch(
+            view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(pos.pos)))
+          );
+        }
+        event.preventDefault();
+        void insertImageFile(view, imageFile);
+        return true;
       },
     },
   });

@@ -350,6 +350,7 @@ class IPCHandlers {
     this.audioStorageManager = new AudioStorageManager();
     this._audioCleanupInterval = null;
     this._noteFilesEnabled = false;
+    require("./markdownMirror").setDatabaseManager(this.databaseManager);
     this.speakerDiarizationEnabled = true;
     this.activeMeetingSpeakerConfig = null;
     this.whisperVadSettings = {
@@ -1030,6 +1031,29 @@ class IPCHandlers {
       return this.deleteNoteInternal(id);
     });
 
+    ipcMain.handle("save-note-image-asset", async (_event, noteId, payload) => {
+      try {
+        const { createNoteImageAsset } = require("./noteAssetStorage");
+        return {
+          success: true,
+          asset: createNoteImageAsset(this.databaseManager, noteId, payload),
+        };
+      } catch (error) {
+        debugLogger.error("Error saving note image asset", { error: error.message }, "notes");
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("delete-note-image-asset", async (_event, assetId) => {
+      try {
+        const { deleteNoteAsset } = require("./noteAssetStorage");
+        return deleteNoteAsset(this.databaseManager, assetId);
+      } catch (error) {
+        debugLogger.error("Error deleting note image asset", { error: error.message }, "notes");
+        return { success: false, error: error.message };
+      }
+    });
+
     ipcMain.handle("db-search-notes", async (event, query, limit) => {
       return this.databaseManager.searchNotes(query, limit);
     });
@@ -1417,12 +1441,20 @@ class IPCHandlers {
 
         const { dialog } = require("electron");
         const fs = require("fs");
-        const ext = format === "txt" ? "txt" : "md";
+        const path = require("path");
+        const os = require("os");
+        const {
+          copyNoteAssetsForMarkdown,
+          inlineNoteAssetsForHtml,
+          markdownToHtml,
+        } = require("./noteAssetExport");
+        const ext = format === "txt" ? "txt" : format === "pdf" ? "pdf" : "md";
         const safeName = (note.title || "Untitled").replace(/[/\\?%*:|"<>]/g, "-");
 
         const result = await dialog.showSaveDialog({
           defaultPath: `${safeName}.${ext}`,
           filters: [
+            { name: "PDF", extensions: ["pdf"] },
             { name: "Markdown", extensions: ["md"] },
             { name: "Text", extensions: ["txt"] },
           ],
@@ -1443,7 +1475,49 @@ class IPCHandlers {
           exportContent = note.enhanced_content || note.content;
         }
 
-        fs.writeFileSync(result.filePath, exportContent, "utf-8");
+        if (format === "pdf") {
+          const markdown = inlineNoteAssetsForHtml(
+            note.enhanced_content || note.content,
+            this.databaseManager
+          );
+          const html = markdownToHtml(markdown, note.title);
+          const tempPath = path.join(os.tmpdir(), `openwhispr-note-${Date.now()}.html`);
+          const win = new BrowserWindow({
+            show: false,
+            webPreferences: {
+              contextIsolation: true,
+              nodeIntegration: false,
+              sandbox: true,
+            },
+          });
+          try {
+            fs.writeFileSync(tempPath, html, "utf-8");
+            await win.loadFile(tempPath);
+            const pdf = await win.webContents.printToPDF({
+              printBackground: true,
+              pageSize: "A4",
+              margins: {
+                marginType: "default",
+              },
+            });
+            fs.writeFileSync(result.filePath, pdf);
+          } finally {
+            if (!win.isDestroyed()) win.destroy();
+            try {
+              fs.unlinkSync(tempPath);
+            } catch {}
+          }
+        } else if (format === "md") {
+          const markdownExport = copyNoteAssetsForMarkdown(
+            exportContent,
+            this.databaseManager,
+            result.filePath,
+            safeName
+          );
+          fs.writeFileSync(result.filePath, markdownExport.content, "utf-8");
+        } else {
+          fs.writeFileSync(result.filePath, exportContent, "utf-8");
+        }
         return { success: true };
       } catch (error) {
         debugLogger.error("Error exporting note", { error: error.message }, "notes");

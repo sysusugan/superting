@@ -1972,7 +1972,18 @@
       "recordedDateTitle": "Data de registro: {{date}}",
       "recordedDateDescription": "Defina quando esta transcrição ou reunião aconteceu.",
       "recordedDateInvalid": "Insira uma data de registro válida",
-      "recordedDateSaveFailed": "Não foi possível atualizar a data de registro"
+      "recordedDateSaveFailed": "Não foi possível atualizar a data de registro",
+      "asPdf": "As PDF (.pdf)",
+      "imageUploadFailed": "Could not add image",
+      "imageAlt": "Image",
+      "importTranscript": "Import transcript",
+      "transcriptImportFailed": "Could not import transcript",
+      "transcriptImportNoSegments": "No transcript segments were found in this txt file.",
+      "transcriptImportOverwriteConfirm": "Replace the current transcript with this txt file?",
+      "transcriptImportSuccess": "Imported {{count}} transcript segments",
+      "transcriptImportUnsupported": "Only .txt transcript files are supported",
+      "transcriptEmptyTitle": "No transcript yet",
+      "transcriptEmptyDescription": "Import a txt transcript file or start recording to create the transcript timeline."
     },
     "bulkExport": {
       "select": "Select",

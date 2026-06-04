@@ -2179,7 +2179,18 @@
       "recordedDateTitle": "Recorded date: {{date}}",
       "recordedDateDescription": "Set when this transcription or meeting happened.",
       "recordedDateInvalid": "Enter a valid recorded date",
-      "recordedDateSaveFailed": "Could not update recorded date"
+      "recordedDateSaveFailed": "Could not update recorded date",
+      "asPdf": "As PDF (.pdf)",
+      "imageUploadFailed": "Could not add image",
+      "imageAlt": "Image",
+      "importTranscript": "Import transcript",
+      "transcriptImportFailed": "Could not import transcript",
+      "transcriptImportNoSegments": "No transcript segments were found in this txt file.",
+      "transcriptImportOverwriteConfirm": "Replace the current transcript with this txt file?",
+      "transcriptImportSuccess": "Imported {{count}} transcript segments",
+      "transcriptImportUnsupported": "Only .txt transcript files are supported",
+      "transcriptEmptyTitle": "No transcript yet",
+      "transcriptEmptyDescription": "Import a txt transcript file or start recording to create the transcript timeline."
     },
     "bulkExport": {
       "select": "Select",
