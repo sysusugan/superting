@@ -657,6 +657,9 @@ declare global {
         id: number,
         name: string
       ) => Promise<{ success: boolean; folder?: FolderItem; error?: string }>;
+      reorderFolders: (
+        folderIds: number[]
+      ) => Promise<{ success: boolean; folders?: FolderItem[]; error?: string }>;
       getFolderNoteCounts: () => Promise<Array<{ folder_id: number; count: number }>>;
 
       // Note files (markdown mirror)

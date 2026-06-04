@@ -19,6 +19,33 @@ function getNoteOrderByClause(sortBy = "updatedAt") {
   return orderBy;
 }
 
+function buildFolderReorderPlan(existingIds, requestedIds) {
+  if (!Array.isArray(requestedIds) || requestedIds.length === 0) {
+    throw new Error("Folder order is required");
+  }
+
+  const normalizedExistingIds = existingIds.map((id) => Number(id));
+  const normalizedRequestedIds = requestedIds.map((id) => Number(id));
+  if (normalizedRequestedIds.some((id) => !Number.isInteger(id))) {
+    throw new Error("Folder order contains invalid folder ids");
+  }
+
+  const uniqueRequestedIds = new Set(normalizedRequestedIds);
+  if (uniqueRequestedIds.size !== normalizedRequestedIds.length) {
+    throw new Error("Folder order contains duplicate folder ids");
+  }
+
+  const existingIdSet = new Set(normalizedExistingIds);
+  const hasSameIds =
+    normalizedRequestedIds.length === normalizedExistingIds.length &&
+    normalizedRequestedIds.every((id) => existingIdSet.has(id));
+  if (!hasSameIds) {
+    throw new Error("Folder order must include all existing folders");
+  }
+
+  return normalizedRequestedIds.map((id, sortOrder) => ({ id, sortOrder }));
+}
+
 const DEFAULT_NOTE_ACTIONS = [
   {
     key: "notes.actions.builtin.meetingMinutes",
@@ -1315,6 +1342,35 @@ class DatabaseManager {
       return { success: true, folder: updated };
     } catch (error) {
       debugLogger.error("Error renaming folder", { error: error.message }, "notes");
+      throw error;
+    }
+  }
+
+  reorderFolders(folderIds) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const existingIds = this.db
+        .prepare("SELECT id FROM folders WHERE deleted_at IS NULL")
+        .all()
+        .map((row) => row.id);
+      let plan;
+      try {
+        plan = buildFolderReorderPlan(existingIds, folderIds);
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+
+      const update = this.db.prepare(
+        "UPDATE folders SET sort_order = ?, sync_status = 'pending', updated_at = datetime('now') WHERE id = ?"
+      );
+      this.db.transaction(() => {
+        for (const { id, sortOrder } of plan) {
+          update.run(sortOrder, id);
+        }
+      })();
+      return { success: true, folders: this.getFolders() };
+    } catch (error) {
+      debugLogger.error("Error reordering folders", { error: error.message }, "notes");
       throw error;
     }
   }
@@ -3044,3 +3100,4 @@ class DatabaseManager {
 
 module.exports = DatabaseManager;
 module.exports.getNoteOrderByClause = getNoteOrderByClause;
+module.exports.buildFolderReorderPlan = buildFolderReorderPlan;

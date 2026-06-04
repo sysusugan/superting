@@ -2008,6 +2008,8 @@
       "couldNotCreate": "Impossible de créer le dossier",
       "couldNotRename": "Impossible de renommer le dossier",
       "couldNotDelete": "Impossible de supprimer le dossier",
+      "couldNotReorder": "Impossible de réordonner les dossiers",
+      "reorder": "Réordonner le dossier",
       "deleteTitle": "Supprimer le dossier ?",
       "deleteDescription": "Cette action supprimera définitivement \"{{name}}\" et ses {{count}} note(s). Cette action est irréversible.",
       "deleteDescriptionEmpty": "Cette action supprimera définitivement \"{{name}}\". Cette action est irréversible.",

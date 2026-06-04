@@ -109,6 +109,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   createFolder: (name) => ipcRenderer.invoke("db-create-folder", name),
   deleteFolder: (id) => ipcRenderer.invoke("db-delete-folder", id),
   renameFolder: (id, name) => ipcRenderer.invoke("db-rename-folder", id, name),
+  reorderFolders: (folderIds) => ipcRenderer.invoke("db-reorder-folders", folderIds),
   getFolderNoteCounts: () => ipcRenderer.invoke("db-get-folder-note-counts"),
 
   // Note files (markdown mirror) functions

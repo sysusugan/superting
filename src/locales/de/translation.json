@@ -1897,6 +1897,8 @@
       "couldNotCreate": "Ordner konnte nicht erstellt werden",
       "couldNotRename": "Ordner konnte nicht umbenannt werden",
       "couldNotDelete": "Ordner konnte nicht gelöscht werden",
+      "couldNotReorder": "Ordner konnten nicht neu sortiert werden",
+      "reorder": "Ordner neu sortieren",
       "deleteTitle": "Ordner löschen?",
       "deleteDescription": "Dadurch werden \"{{name}}\" und {{count}} enthaltene Notiz(en) dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
       "deleteDescriptionEmpty": "Dadurch wird \"{{name}}\" dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",

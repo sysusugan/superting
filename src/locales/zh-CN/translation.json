@@ -1892,6 +1892,8 @@
       "couldNotCreate": "无法创建文件夹",
       "couldNotRename": "无法重命名文件夹",
       "couldNotDelete": "无法删除文件夹",
+      "couldNotReorder": "无法调整文件夹顺序",
+      "reorder": "调整文件夹顺序",
       "deleteTitle": "删除文件夹？",
       "deleteDescription": "这将永久删除「{{name}}」及其 {{count}} 条笔记。此操作无法撤销。",
       "deleteDescriptionEmpty": "这将永久删除「{{name}}」。此操作无法撤销。",

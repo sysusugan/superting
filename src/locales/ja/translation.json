@@ -1963,6 +1963,8 @@
       "couldNotCreate": "フォルダを作成できませんでした",
       "couldNotRename": "フォルダの名前を変更できませんでした",
       "couldNotDelete": "フォルダを削除できませんでした",
+      "couldNotReorder": "フォルダを並べ替えられませんでした",
+      "reorder": "フォルダを並べ替え",
       "deleteTitle": "フォルダを削除しますか？",
       "deleteDescription": "「{{name}}」と {{count}} 件のノートを完全に削除します。この操作は取り消せません。",
       "deleteDescriptionEmpty": "「{{name}}」を完全に削除します。この操作は取り消せません。",

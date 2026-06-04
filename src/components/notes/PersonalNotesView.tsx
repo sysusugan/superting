@@ -19,6 +19,7 @@ import {
   SquareCheckBig,
   ChevronLeft,
   ChevronRight,
+  GripVertical,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import {
@@ -62,6 +63,7 @@ import {
   selectResolvedNoteFormatting,
 } from "../../stores/settingsStore";
 import { useFolderManagement } from "../../hooks/useFolderManagement";
+import { useFolderReorderDrag } from "../../hooks/useFolderReorderDrag";
 import { useNoteDragAndDrop } from "../../hooks/useNoteDragAndDrop";
 import { cn } from "../lib/utils";
 import { MEETINGS_FOLDER_NAME, findDefaultFolder } from "./shared";
@@ -245,6 +247,7 @@ export default function PersonalNotesView({
     handleCreateFolder,
     handleConfirmRename,
     handleDeleteFolder,
+    handleReorderFolders,
   } = useFolderManagement(noteSortBy);
 
   const { confirmDialog, showConfirmDialog, hideConfirmDialog } = useDialogs();
@@ -612,6 +615,11 @@ export default function PersonalNotesView({
     onMoveToFolder: handleMoveToFolder,
     currentFolderId: activeFolderId,
   });
+  const { folderReorderState, folderDragHandleProps, folderReorderDropHandlers } =
+    useFolderReorderDrag({
+      folders,
+      onReorderFolders: handleReorderFolders,
+    });
 
   const handleCreateFolderAndMove = useCallback(
     async (noteId: number, folderName: string) => {
@@ -784,416 +792,442 @@ export default function PersonalNotesView({
         style={{ width: isSidePanelLayout || isMiddlePaneCollapsed ? 0 : "14rem" }}
       >
         <div className="ow-collapsible-pane-content">
-        <div className="w-56 h-full shrink-0 ow-inner-sidebar">
-          <div className="px-3 pt-4 pb-3 shrink-0 space-y-1">
-            <button
-              onClick={handleOpenNewNoteDialog}
-              className="ow-inner-nav-item h-7"
-            >
-              <SquarePen size={14} className="shrink-0" />
-              {t("notes.sidebar.newNote")}
-            </button>
-            {onOpenSearch && (
-              <button
-                onClick={onOpenSearch}
-                className="ow-inner-nav-item h-7"
-              >
-                <Search size={14} className="shrink-0" />
-                {t("notes.sidebar.searchNotes")}
+          <div className="w-56 h-full shrink-0 ow-inner-sidebar">
+            <div className="px-3 pt-4 pb-3 shrink-0 space-y-1">
+              <button onClick={handleOpenNewNoteDialog} className="ow-inner-nav-item h-7">
+                <SquarePen size={14} className="shrink-0" />
+                {t("notes.sidebar.newNote")}
               </button>
-            )}
-            <button
-              onClick={() => setShowActionManager(true)}
-              className="ow-inner-nav-item h-7"
-            >
-              <Sparkles size={14} className="shrink-0" />
-              {t("notes.sidebar.actions")}
-            </button>
-          </div>
+              {onOpenSearch && (
+                <button onClick={onOpenSearch} className="ow-inner-nav-item h-7">
+                  <Search size={14} className="shrink-0" />
+                  {t("notes.sidebar.searchNotes")}
+                </button>
+              )}
+              <button onClick={() => setShowActionManager(true)} className="ow-inner-nav-item h-7">
+                <Sparkles size={14} className="shrink-0" />
+                {t("notes.sidebar.actions")}
+              </button>
+            </div>
 
-          {/* Folders */}
-          <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {t("notes.folders.title")}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsCreatingFolder(true)}
-              aria-label={t("notes.context.newFolder")}
-              className="h-6 w-6 ow-icon-button-muted"
-            >
-              <Plus size={13} />
-            </Button>
-          </div>
+            {/* Folders */}
+            <div className="flex items-center justify-between px-4 pt-3 pb-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {t("notes.folders.title")}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsCreatingFolder(true)}
+                aria-label={t("notes.context.newFolder")}
+                className="h-6 w-6 ow-icon-button-muted"
+              >
+                <Plus size={13} />
+              </Button>
+            </div>
 
-          <div className="px-3 space-y-0.5">
-            {folders.map((folder) => {
-              const isActive = folder.id === activeFolderId;
-              const isMeetings = folder.name === MEETINGS_FOLDER_NAME;
-              const count = folderCounts[folder.id] || 0;
-              const isRenaming = renamingFolderId === folder.id;
+            <div className="px-3 space-y-0.5">
+              {folders.map((folder) => {
+                const isActive = folder.id === activeFolderId;
+                const isMeetings = folder.name === MEETINGS_FOLDER_NAME;
+                const count = folderCounts[folder.id] || 0;
+                const isRenaming = renamingFolderId === folder.id;
 
-              if (isRenaming) {
+                if (isRenaming) {
+                  return (
+                    <div key={folder.id} className="px-2">
+                      <input
+                        ref={renameInputRef}
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleConfirmRename();
+                          if (e.key === "Escape") {
+                            setRenamingFolderId(null);
+                            setRenameValue("");
+                          }
+                        }}
+                        onBlur={handleConfirmRename}
+                        className={FOLDER_INPUT_CLASS}
+                      />
+                    </div>
+                  );
+                }
+
+                const isDragOver = dragState.dragOverFolderId === folder.id;
+                const isDropSuccess = dragState.dropSuccessFolderId === folder.id;
+                const isFolderDragging = folderReorderState.draggingFolderId === folder.id;
+                const isFolderSortOver = folderReorderState.dragOverFolderId === folder.id;
+                const noteFolderDropHandlers = folderDropHandlers(folder.id, folder.name);
+                const folderSortDropHandlers = folderReorderDropHandlers(folder.id);
+
                 return (
-                  <div key={folder.id} className="px-2">
-                    <input
-                      ref={renameInputRef}
-                      value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleConfirmRename();
-                        if (e.key === "Escape") {
-                          setRenamingFolderId(null);
-                          setRenameValue("");
-                        }
-                      }}
-                      onBlur={handleConfirmRename}
-                      className={FOLDER_INPUT_CLASS}
-                    />
-                  </div>
-                );
-              }
-
-              const isDragOver = dragState.dragOverFolderId === folder.id;
-              const isDropSuccess = dragState.dropSuccessFolderId === folder.id;
-
-              return (
-                <button
-                  key={folder.id}
-                  onClick={() => setActiveFolderId(folder.id)}
-                  {...folderDropHandlers(folder.id, folder.name)}
-                  className={cn(
-                    "ow-list-row group relative h-8 gap-2 cursor-pointer",
-                    isActive ? "ow-list-row-active" : "ow-list-row-idle",
-                    isDragOver &&
-                      !isMeetings &&
-                      "bg-muted ring-1 ring-border-hover scale-[1.01]",
-                    isDropSuccess &&
-                      "bg-emerald-500/10 dark:bg-emerald-400/10 ring-1 ring-emerald-500/20"
-                  )}
-                >
-                  <FolderOpen
-                    size={13}
+                  <button
+                    key={folder.id}
+                    onClick={() => setActiveFolderId(folder.id)}
+                    onDragOver={(e) => {
+                      folderSortDropHandlers.onDragOver(e);
+                      noteFolderDropHandlers.onDragOver(e);
+                    }}
+                    onDragEnter={noteFolderDropHandlers.onDragEnter}
+                    onDragLeave={(e) => {
+                      folderSortDropHandlers.onDragLeave(e);
+                      noteFolderDropHandlers.onDragLeave();
+                    }}
+                    onDrop={async (e) => {
+                      await folderSortDropHandlers.onDrop(e);
+                      await noteFolderDropHandlers.onDrop(e);
+                    }}
                     className={cn(
-                      "shrink-0 transition-colors duration-150",
-                      isDragOver || isActive
-                        ? "text-foreground/70"
-                        : "text-muted-foreground group-hover:text-foreground/65"
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      "text-xs truncate flex-1 transition-colors duration-150",
-                      isDragOver || isActive
-                        ? "text-foreground font-medium"
-                        : "text-muted-foreground group-hover:text-foreground/75"
+                      "ow-list-row group relative h-8 gap-1.5 cursor-pointer border-y border-transparent",
+                      isActive ? "ow-list-row-active" : "ow-list-row-idle",
+                      isDragOver && !isMeetings && "bg-muted ring-1 ring-border-hover scale-[1.01]",
+                      isDropSuccess &&
+                        "bg-emerald-500/10 dark:bg-emerald-400/10 ring-1 ring-emerald-500/20",
+                      isFolderDragging && "opacity-50",
+                      isFolderSortOver &&
+                        folderReorderState.dropPosition === "before" &&
+                        "border-t-primary",
+                      isFolderSortOver &&
+                        folderReorderState.dropPosition === "after" &&
+                        "border-b-primary"
                     )}
                   >
-                    {folder.name}
-                  </span>
-
-                  {isDropSuccess ? (
-                    <Check
-                      size={10}
-                      className="text-emerald-500 dark:text-emerald-400 shrink-0 animate-[scale-in_200ms_ease-out]"
+                    <span
+                      role="button"
+                      tabIndex={-1}
+                      aria-label={t("notes.folders.reorder")}
+                      title={t("notes.folders.reorder")}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-5 w-3.5 flex items-center justify-center rounded-sm opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/60 hover:text-foreground cursor-grab active:cursor-grabbing"
+                      {...folderDragHandleProps(folder)}
+                    >
+                      <GripVertical size={11} />
+                    </span>
+                    <FolderOpen
+                      size={13}
+                      className={cn(
+                        "shrink-0 transition-colors duration-150",
+                        isDragOver || isActive
+                          ? "text-foreground/70"
+                          : "text-muted-foreground group-hover:text-foreground/65"
+                      )}
                     />
-                  ) : (
                     <span
                       className={cn(
-                        "text-xs tabular-nums shrink-0 transition-colors group-hover:opacity-0",
-                        isActive ? "text-muted-foreground" : "text-muted-foreground/70"
+                        "text-xs truncate flex-1 transition-colors duration-150",
+                        isDragOver || isActive
+                          ? "text-foreground font-medium"
+                          : "text-muted-foreground group-hover:text-foreground/75"
                       )}
                     >
-                      {count > 0 ? count : ""}
+                      {folder.name}
                     </span>
-                  )}
-                  {(!folder.is_default || noteFilesEnabled) && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <span
-                          role="button"
-                          tabIndex={-1}
-                          onClick={(e) => e.stopPropagation()}
-                          className="h-5 w-5 flex items-center justify-center rounded-md opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity absolute right-1.5 text-muted-foreground hover:text-foreground hover:bg-background cursor-pointer"
-                        >
-                          <MoreHorizontal size={11} />
-                        </span>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" sideOffset={4} className="min-w-32">
-                        {noteFilesEnabled && (
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.electronAPI?.showFolderInExplorer?.(folder.name);
-                            }}
-                            className="text-xs gap-2 rounded-md px-2 py-1"
-                          >
-                            <ExternalLink size={11} className="text-muted-foreground/60" />
-                            {t("notes.context.showInFileManager", { manager: fileManagerName })}
-                          </DropdownMenuItem>
+
+                    {isDropSuccess ? (
+                      <Check
+                        size={10}
+                        className="text-emerald-500 dark:text-emerald-400 shrink-0 animate-[scale-in_200ms_ease-out]"
+                      />
+                    ) : (
+                      <span
+                        className={cn(
+                          "text-xs tabular-nums shrink-0 transition-colors group-hover:opacity-0",
+                          isActive ? "text-muted-foreground" : "text-muted-foreground/70"
                         )}
-                        {!folder.is_default && (
-                          <>
-                            {noteFilesEnabled && <DropdownMenuSeparator />}
+                      >
+                        {count > 0 ? count : ""}
+                      </span>
+                    )}
+                    {(!folder.is_default || noteFilesEnabled) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <span
+                            role="button"
+                            tabIndex={-1}
+                            onClick={(e) => e.stopPropagation()}
+                            className="h-5 w-5 flex items-center justify-center rounded-md opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity absolute right-1.5 text-muted-foreground hover:text-foreground hover:bg-background cursor-pointer"
+                          >
+                            <MoreHorizontal size={11} />
+                          </span>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" sideOffset={4} className="min-w-32">
+                          {noteFilesEnabled && (
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setRenamingFolderId(folder.id);
-                                setRenameValue(folder.name);
+                                window.electronAPI?.showFolderInExplorer?.(folder.name);
                               }}
                               className="text-xs gap-2 rounded-md px-2 py-1"
                             >
-                              <Pencil size={11} className="text-muted-foreground/60" />
-                              {t("notes.context.rename")}
+                              <ExternalLink size={11} className="text-muted-foreground/60" />
+                              {t("notes.context.showInFileManager", { manager: fileManagerName })}
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                requestDeleteFolder(folder);
-                              }}
-                              className="text-xs gap-2 rounded-md px-2 py-1 text-destructive focus:text-destructive focus:bg-destructive/10"
-                            >
-                              <Trash2 size={11} />
-                              {t("notes.context.delete")}
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </button>
-              );
-            })}
+                          )}
+                          {!folder.is_default && (
+                            <>
+                              {noteFilesEnabled && <DropdownMenuSeparator />}
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setRenamingFolderId(folder.id);
+                                  setRenameValue(folder.name);
+                                }}
+                                className="text-xs gap-2 rounded-md px-2 py-1"
+                              >
+                                <Pencil size={11} className="text-muted-foreground/60" />
+                                {t("notes.context.rename")}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  requestDeleteFolder(folder);
+                                }}
+                                className="text-xs gap-2 rounded-md px-2 py-1 text-destructive focus:text-destructive focus:bg-destructive/10"
+                              >
+                                <Trash2 size={11} />
+                                {t("notes.context.delete")}
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </button>
+                );
+              })}
 
-            {isCreatingFolder && (
-              <div className="px-2">
-                <input
-                  ref={newFolderInputRef}
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCreateFolder();
-                    if (e.key === "Escape") {
-                      setIsCreatingFolder(false);
-                      setNewFolderName("");
-                    }
-                  }}
-                  onBlur={handleCreateFolder}
-                  placeholder={t("notes.folders.folderName")}
-                  className={cn(FOLDER_INPUT_CLASS, "placeholder:text-foreground/20")}
-                />
-              </div>
-            )}
-          </div>
+              {isCreatingFolder && (
+                <div className="px-2">
+                  <input
+                    ref={newFolderInputRef}
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreateFolder();
+                      if (e.key === "Escape") {
+                        setIsCreatingFolder(false);
+                        setNewFolderName("");
+                      }
+                    }}
+                    onBlur={handleCreateFolder}
+                    placeholder={t("notes.folders.folderName")}
+                    className={cn(FOLDER_INPUT_CLASS, "placeholder:text-foreground/20")}
+                  />
+                </div>
+              )}
+            </div>
 
-          <div className="mx-4 h-px bg-border/70 dark:bg-white/8 my-3" />
+            <div className="mx-4 h-px bg-border/70 dark:bg-white/8 my-3" />
 
-          {/* Notes list */}
-          <div className="flex items-center justify-between px-4 py-1.5 gap-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              {isSelectionMode
-                ? t("notes.bulkExport.selectedCount", { count: selectedCount })
-                : t("notes.list.title")}
-            </span>
-            {isSelectionMode ? (
-              <div className="flex items-center gap-0.5">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSelectAllVisibleNotes}
-                  className="h-6 px-2 text-[11px] rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-                >
-                  {t("notes.bulkExport.selectAll")}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowBulkExportDialog(true)}
-                  disabled={selectedCount === 0}
-                  aria-label={t("notes.bulkExport.exportSelected")}
-                  className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30"
-                >
-                  <Download size={11} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={clearNoteSelection}
-                  aria-label={t("common.cancel")}
-                  className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-                >
-                  <X size={11} />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-0.5">
-                {notes.length > 0 && (
+            {/* Notes list */}
+            <div className="flex items-center justify-between px-4 py-1.5 gap-1">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {isSelectionMode
+                  ? t("notes.bulkExport.selectedCount", { count: selectedCount })
+                  : t("notes.list.title")}
+              </span>
+              {isSelectionMode ? (
+                <div className="flex items-center gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSelectAllVisibleNotes}
+                    className="h-6 px-2 text-[11px] rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+                  >
+                    {t("notes.bulkExport.selectAll")}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setIsSelectionMode(true)}
-                    aria-label={t("notes.bulkExport.select")}
-                    title={t("notes.bulkExport.select")}
+                    onClick={() => setShowBulkExportDialog(true)}
+                    disabled={selectedCount === 0}
+                    aria-label={t("notes.bulkExport.exportSelected")}
+                    className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30"
+                  >
+                    <Download size={11} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={clearNoteSelection}
+                    aria-label={t("common.cancel")}
                     className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
-                    <SquareCheckBig size={10} />
+                    <X size={11} />
                   </Button>
-                )}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                </div>
+              ) : (
+                <div className="flex items-center gap-0.5">
+                  {notes.length > 0 && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label={t("notes.list.sort")}
-                      title={t("notes.list.sort")}
+                      onClick={() => setIsSelectionMode(true)}
+                      aria-label={t("notes.bulkExport.select")}
+                      title={t("notes.bulkExport.select")}
                       className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
                     >
-                      <ArrowDownUp size={10} />
+                      <SquareCheckBig size={10} />
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" sideOffset={4} className="min-w-36">
-                    <DropdownMenuLabel className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
-                      {t("notes.list.sort")}
-                    </DropdownMenuLabel>
-                    <DropdownMenuRadioGroup value={noteSortBy} onValueChange={handleNoteSortChange}>
-                      <DropdownMenuRadioItem
-                        value="updatedAt"
-                        className="text-xs gap-2 rounded-md py-1"
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={t("notes.list.sort")}
+                        title={t("notes.list.sort")}
+                        className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
                       >
-                        {t("notes.list.sortUpdated")}
-                      </DropdownMenuRadioItem>
-                      <DropdownMenuRadioItem
-                        value="createdAt"
-                        className="text-xs gap-2 rounded-md py-1"
+                        <ArrowDownUp size={10} />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" sideOffset={4} className="min-w-36">
+                      <DropdownMenuLabel className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                        {t("notes.list.sort")}
+                      </DropdownMenuLabel>
+                      <DropdownMenuRadioGroup
+                        value={noteSortBy}
+                        onValueChange={handleNoteSortChange}
                       >
-                        {t("notes.list.sortCreated")}
-                      </DropdownMenuRadioItem>
-                    </DropdownMenuRadioGroup>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleNewNote}
-                  aria-label={t("notes.list.newNote")}
-                  className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-                >
-                  <Plus size={11} />
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-2 pb-3">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 size={12} className="animate-spin text-foreground/15" />
-              </div>
-            ) : notes.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 px-4">
-                <svg
-                  className="text-foreground dark:text-white mb-3"
-                  width="40"
-                  height="36"
-                  viewBox="0 0 40 36"
-                  fill="none"
-                >
-                  <rect
-                    x="12"
-                    y="1"
-                    width="20"
-                    height="26"
-                    rx="2"
-                    transform="rotate(5 22 14)"
-                    fill="currentColor"
-                    fillOpacity={0.025}
-                    stroke="currentColor"
-                    strokeOpacity={0.06}
-                  />
-                  <rect
-                    x="8"
-                    y="3"
-                    width="20"
-                    height="26"
-                    rx="2"
-                    fill="currentColor"
-                    fillOpacity={0.04}
-                    stroke="currentColor"
-                    strokeOpacity={0.08}
-                  />
-                  <rect
-                    x="12"
-                    y="9"
-                    width="10"
-                    height="1.5"
-                    rx="0.75"
-                    fill="currentColor"
-                    fillOpacity={0.07}
-                  />
-                  <rect
-                    x="12"
-                    y="13"
-                    width="12"
-                    height="1.5"
-                    rx="0.75"
-                    fill="currentColor"
-                    fillOpacity={0.05}
-                  />
-                  <rect
-                    x="12"
-                    y="17"
-                    width="8"
-                    height="1.5"
-                    rx="0.75"
-                    fill="currentColor"
-                    fillOpacity={0.04}
-                  />
-                </svg>
-                <p className="text-xs text-muted-foreground mb-3">
-                  {t("notes.empty.emptyFolder")}
-                </p>
-                <div className="flex flex-col gap-1.5 w-full max-w-36">
-                  <button
+                        <DropdownMenuRadioItem
+                          value="updatedAt"
+                          className="text-xs gap-2 rounded-md py-1"
+                        >
+                          {t("notes.list.sortUpdated")}
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem
+                          value="createdAt"
+                          className="text-xs gap-2 rounded-md py-1"
+                        >
+                          {t("notes.list.sortCreated")}
+                        </DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={handleNewNote}
-                    className="flex items-center justify-center gap-1.5 h-6 rounded-md bg-foreground/[0.06] dark:bg-white/[0.08] border border-border/60 text-xs font-medium text-foreground/70 hover:bg-foreground/[0.08] hover:text-foreground hover:border-border-hover transition-colors"
+                    aria-label={t("notes.list.newNote")}
+                    className="h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
                   >
-                    <Plus size={10} />
-                    {t("notes.empty.createNote")}
-                  </button>
-                  <button
-                    onClick={() => setShowAddNotesDialog(true)}
-                    className="flex items-center justify-center gap-1.5 h-6 rounded-md border border-border bg-card text-xs font-medium text-muted-foreground hover:text-foreground hover:border-border-hover hover:bg-muted transition-colors"
-                  >
-                    {t("notes.addToFolder.addExisting")}
-                  </button>
+                    <Plus size={11} />
+                  </Button>
                 </div>
-              </div>
-            ) : (
-              notes.map((note) => (
-                <NoteListItem
-                  key={note.id}
-                  note={note}
-                  isActive={note.id === activeNoteId}
-                  onClick={() => setActiveNoteId(note.id)}
-                  onDelete={handleDelete}
-                  folders={folders}
-                  currentFolderId={activeFolderId}
-                  onMoveToFolder={handleMoveToFolder}
-                  onCreateFolderAndMove={handleCreateFolderAndMove}
-                  isSelectionMode={isSelectionMode}
-                  isSelected={selectedNoteIds.has(note.id)}
-                  onToggleSelected={toggleNoteSelection}
-                  dragHandlers={noteDragHandlers(note.id, note.title)}
-                  isDragging={dragState.draggingNoteId === note.id}
-                  noteFilesEnabled={noteFilesEnabled}
-                  timestamp={noteSortBy === "createdAt" ? note.created_at : note.updated_at}
-                />
-              ))
-            )}
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-2 pb-3">
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 size={12} className="animate-spin text-foreground/15" />
+                </div>
+              ) : notes.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 px-4">
+                  <svg
+                    className="text-foreground dark:text-white mb-3"
+                    width="40"
+                    height="36"
+                    viewBox="0 0 40 36"
+                    fill="none"
+                  >
+                    <rect
+                      x="12"
+                      y="1"
+                      width="20"
+                      height="26"
+                      rx="2"
+                      transform="rotate(5 22 14)"
+                      fill="currentColor"
+                      fillOpacity={0.025}
+                      stroke="currentColor"
+                      strokeOpacity={0.06}
+                    />
+                    <rect
+                      x="8"
+                      y="3"
+                      width="20"
+                      height="26"
+                      rx="2"
+                      fill="currentColor"
+                      fillOpacity={0.04}
+                      stroke="currentColor"
+                      strokeOpacity={0.08}
+                    />
+                    <rect
+                      x="12"
+                      y="9"
+                      width="10"
+                      height="1.5"
+                      rx="0.75"
+                      fill="currentColor"
+                      fillOpacity={0.07}
+                    />
+                    <rect
+                      x="12"
+                      y="13"
+                      width="12"
+                      height="1.5"
+                      rx="0.75"
+                      fill="currentColor"
+                      fillOpacity={0.05}
+                    />
+                    <rect
+                      x="12"
+                      y="17"
+                      width="8"
+                      height="1.5"
+                      rx="0.75"
+                      fill="currentColor"
+                      fillOpacity={0.04}
+                    />
+                  </svg>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {t("notes.empty.emptyFolder")}
+                  </p>
+                  <div className="flex flex-col gap-1.5 w-full max-w-36">
+                    <button
+                      onClick={handleNewNote}
+                      className="flex items-center justify-center gap-1.5 h-6 rounded-md bg-foreground/[0.06] dark:bg-white/[0.08] border border-border/60 text-xs font-medium text-foreground/70 hover:bg-foreground/[0.08] hover:text-foreground hover:border-border-hover transition-colors"
+                    >
+                      <Plus size={10} />
+                      {t("notes.empty.createNote")}
+                    </button>
+                    <button
+                      onClick={() => setShowAddNotesDialog(true)}
+                      className="flex items-center justify-center gap-1.5 h-6 rounded-md border border-border bg-card text-xs font-medium text-muted-foreground hover:text-foreground hover:border-border-hover hover:bg-muted transition-colors"
+                    >
+                      {t("notes.addToFolder.addExisting")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                notes.map((note) => (
+                  <NoteListItem
+                    key={note.id}
+                    note={note}
+                    isActive={note.id === activeNoteId}
+                    onClick={() => setActiveNoteId(note.id)}
+                    onDelete={handleDelete}
+                    folders={folders}
+                    currentFolderId={activeFolderId}
+                    onMoveToFolder={handleMoveToFolder}
+                    onCreateFolderAndMove={handleCreateFolderAndMove}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedNoteIds.has(note.id)}
+                    onToggleSelected={toggleNoteSelection}
+                    dragHandlers={noteDragHandlers(note.id, note.title)}
+                    isDragging={dragState.draggingNoteId === note.id}
+                    noteFilesEnabled={noteFilesEnabled}
+                    timestamp={noteSortBy === "createdAt" ? note.created_at : note.updated_at}
+                  />
+                ))
+              )}
+            </div>
           </div>
-        </div>
         </div>
         {!isSidePanelLayout && (
           <button

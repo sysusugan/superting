@@ -34,6 +34,7 @@ export interface UseFolderManagementReturn {
   handleCreateFolder: () => Promise<void>;
   handleConfirmRename: () => Promise<void>;
   handleDeleteFolder: (id: number) => Promise<void>;
+  handleReorderFolders: (folderIds: number[]) => Promise<void>;
 }
 
 export function useFolderManagement(
@@ -222,6 +223,36 @@ export function useFolderManagement(
     [loadFolders, toast, t]
   );
 
+  const handleReorderFolders = useCallback(
+    async (folderIds: number[]) => {
+      const previousFolders = folders;
+      const folderById = new Map(folders.map((folder) => [folder.id, folder]));
+      const reorderedFolders = folderIds
+        .map((id) => folderById.get(id))
+        .filter((folder): folder is FolderItem => Boolean(folder));
+      if (reorderedFolders.length !== folders.length) return;
+
+      setFolders(reorderedFolders);
+      const result = await window.electronAPI.reorderFolders(folderIds);
+      if (result.success && result.folders) {
+        setFolders(result.folders);
+        for (const folder of result.folders) {
+          syncService.debouncedPush("folder", folder.id);
+        }
+        return;
+      }
+
+      setFolders(previousFolders);
+      await loadFolders();
+      toast({
+        title: t("notes.folders.couldNotReorder"),
+        description: result.error,
+        variant: "destructive",
+      });
+    },
+    [folders, loadFolders, toast, t]
+  );
+
   return {
     folders,
     folderCounts,
@@ -242,5 +273,6 @@ export function useFolderManagement(
     handleCreateFolder,
     handleConfirmRename,
     handleDeleteFolder,
+    handleReorderFolders,
   };
 }

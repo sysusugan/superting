@@ -1,6 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { MEETINGS_FOLDER_NAME } from "../components/notes/shared";
 
+const NOTE_DRAG_TYPE = "application/x-note-id";
+
+function hasNoteDragData(e: React.DragEvent): boolean {
+  return Array.from(e.dataTransfer.types).includes(NOTE_DRAG_TYPE);
+}
+
 interface DragState {
   draggingNoteId: number | null;
   dragOverFolderId: number | null;
@@ -33,7 +39,7 @@ export function useNoteDragAndDrop({ onMoveToFolder, currentFolderId }: UseNoteD
       draggable: true as const,
       onDragStart: (e: React.DragEvent) => {
         e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("application/x-note-id", String(noteId));
+        e.dataTransfer.setData(NOTE_DRAG_TYPE, String(noteId));
 
         const ghost = document.createElement("div");
         const label = noteTitle || "Untitled";
@@ -77,13 +83,15 @@ export function useNoteDragAndDrop({ onMoveToFolder, currentFolderId }: UseNoteD
 
       return {
         onDragOver: (e: React.DragEvent) => {
+          if (!hasNoteDragData(e)) return;
           if (!canDrop) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
         },
         onDragEnter: (e: React.DragEvent) => {
-          e.preventDefault();
+          if (!hasNoteDragData(e)) return;
           if (!canDrop) return;
+          e.preventDefault();
           const count = (enterCounterRef.current.get(folderId) ?? 0) + 1;
           enterCounterRef.current.set(folderId, count);
           if (count === 1) {
@@ -102,10 +110,11 @@ export function useNoteDragAndDrop({ onMoveToFolder, currentFolderId }: UseNoteD
           }
         },
         onDrop: async (e: React.DragEvent) => {
+          if (!hasNoteDragData(e)) return;
           e.preventDefault();
           if (!canDrop) return;
 
-          const noteIdStr = e.dataTransfer.getData("application/x-note-id");
+          const noteIdStr = e.dataTransfer.getData(NOTE_DRAG_TYPE);
           const noteId = parseInt(noteIdStr, 10);
           if (isNaN(noteId)) return;
 

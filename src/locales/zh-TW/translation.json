@@ -1072,12 +1072,7 @@
           "annualEquivalent": "$16.67",
           "includesPrefix": "所有 Pro 功能 +",
           "badge": "最熱門",
-          "features": [
-            "無限會議錄製",
-            "代理模式",
-            "與您的資料對話",
-            "優先支援"
-          ],
+          "features": ["無限會議錄製", "代理模式", "與您的資料對話", "優先支援"],
           "cta": "開始使用",
           "switchToAnnual": "切換為年付"
         },
@@ -1897,6 +1892,8 @@
       "couldNotCreate": "無法建立資料夾",
       "couldNotRename": "無法重新命名資料夾",
       "couldNotDelete": "無法刪除資料夾",
+      "couldNotReorder": "無法調整資料夾順序",
+      "reorder": "調整資料夾順序",
       "deleteTitle": "刪除資料夾？",
       "deleteDescription": "這將永久刪除「{{name}}」及其 {{count}} 則筆記。此操作無法復原。",
       "deleteDescriptionEmpty": "這將永久刪除「{{name}}」。此操作無法復原。",

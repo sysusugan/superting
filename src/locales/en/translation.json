@@ -2104,6 +2104,8 @@
       "couldNotCreate": "Couldn't create folder",
       "couldNotRename": "Couldn't rename folder",
       "couldNotDelete": "Couldn't delete folder",
+      "couldNotReorder": "Couldn't reorder folders",
+      "reorder": "Reorder folder",
       "deleteTitle": "Delete folder?",
       "deleteDescription": "This will permanently delete \"{{name}}\" and its {{count}} note(s). This cannot be undone.",
       "deleteDescriptionEmpty": "This will permanently delete \"{{name}}\". This cannot be undone.",

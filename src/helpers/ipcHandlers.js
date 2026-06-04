@@ -1147,6 +1147,16 @@ class IPCHandlers {
       return result;
     });
 
+    ipcMain.handle("db-reorder-folders", async (event, folderIds) => {
+      const result = this.databaseManager.reorderFolders(folderIds);
+      if (result?.success && result?.folders) {
+        setImmediate(() => {
+          this.broadcastToWindows("folders-reordered", result.folders);
+        });
+      }
+      return result;
+    });
+
     ipcMain.handle("db-get-folder-note-counts", async () => {
       return this.databaseManager.getFolderNoteCounts();
     });
