@@ -22,15 +22,15 @@ import { formatTranscriptTimestamp } from "../../utils/recordingTime";
 const BUBBLE_STYLES = {
   mic: {
     align: "justify-start",
-    radius: "rounded-bl-sm",
-    bg: "bg-foreground text-background/90",
-    cursor: "bg-background/60",
+    radius: "rounded-bl-md",
+    bg: "bg-white border border-slate-200 text-slate-900 shadow-sm",
+    cursor: "bg-slate-500/55",
   },
   system: {
     align: "justify-end",
-    radius: "rounded-br-sm",
-    bg: "bg-surface-2/70 border border-border/20 text-foreground/80",
-    cursor: "bg-foreground/40",
+    radius: "rounded-br-md",
+    bg: "bg-slate-50 border border-slate-200 text-slate-800 shadow-sm",
+    cursor: "bg-slate-500/45",
   },
 } as const;
 
@@ -188,7 +188,7 @@ function PartialBubble({
         )}
         <div
           className={cn(
-            "px-3 py-1.5 rounded-lg",
+            "px-3 py-1.5 rounded-xl",
             s.radius,
             s.bg,
             "text-[13px] leading-relaxed italic"
@@ -931,7 +931,7 @@ export function MeetingTranscriptChat({
       )}
       <div
         ref={scrollRef}
-        className="h-full overflow-y-auto px-4 pt-3 pb-24 flex flex-col gap-1.5 agent-chat-scroll"
+        className="h-full overflow-y-auto bg-white px-5 pt-4 pb-24 flex flex-col gap-2 agent-chat-scroll"
       >
         {segments.map((segment, i) => {
           const searchMeta = segmentSearchMeta[i] ?? { start: 0, count: 0 };
@@ -1038,7 +1038,7 @@ export function MeetingTranscriptChat({
                   <div className="overflow-hidden">{labelElement}</div>
                 </div>
               )}
-              <div className="relative max-w-[80%]">
+              <div className="relative max-w-[82%]">
                 {isEditing ? (
                   <div>
                     <textarea
@@ -1050,13 +1050,13 @@ export function MeetingTranscriptChat({
                       )}
                       data-find-active={hasActiveSearchMatch ? "true" : undefined}
                       className={cn(
-                        "min-w-56 max-w-full resize-y px-3 py-1.5 outline-none transition-colors",
-                        "text-[13px] leading-relaxed rounded-lg border",
+                        "min-w-56 max-w-full resize-y px-3 py-2 outline-none transition-colors",
+                        "text-[13px] leading-relaxed rounded-xl border shadow-sm",
                         "focus-visible:ring-1 focus-visible:ring-ring/70",
                         selfSide
-                          ? "bg-foreground text-background border-foreground/20 placeholder:text-background/50"
+                          ? "bg-white text-slate-900 border-slate-200 placeholder:text-slate-400"
                           : cn(
-                              "bg-surface-2 text-foreground border-border/40",
+                              "bg-slate-50 text-slate-900 border-slate-200",
                               isSystemSpeaker && cn("border-l-2", SPEAKER_BORDER_COLORS[colorIdx])
                             ),
                         hasSearchMatch && "ring-1 ring-amber-300/70 dark:ring-amber-400/45",
@@ -1069,16 +1069,16 @@ export function MeetingTranscriptChat({
                 ) : (
                   <div
                     className={cn(
-                      "px-3 py-1.5 cursor-default transition-colors",
+                      "px-3.5 py-2 cursor-default transition-colors shadow-sm",
                       "text-[13px] leading-relaxed",
                       selfSide
                         ? cn(
-                            "bg-foreground text-background",
-                            sameSpeaker ? "rounded-lg rounded-tl-sm" : "rounded-lg rounded-bl-sm"
+                            "bg-white border border-slate-200 text-slate-900",
+                            sameSpeaker ? "rounded-xl rounded-tl-md" : "rounded-xl rounded-bl-md"
                           )
                         : cn(
-                            "bg-surface-2 border border-border/30 text-foreground",
-                            sameSpeaker ? "rounded-lg rounded-tr-sm" : "rounded-lg rounded-br-sm",
+                            "bg-slate-50 border border-slate-200 text-slate-900",
+                            sameSpeaker ? "rounded-xl rounded-tr-md" : "rounded-xl rounded-br-md",
                             isSystemSpeaker && cn("border-l-2", SPEAKER_BORDER_COLORS[colorIdx])
                           ),
                       isSelected && "ring-2 ring-primary/60"
