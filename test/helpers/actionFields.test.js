@@ -71,6 +71,41 @@ test("database seeds four default actions with only meeting minutes built in", (
   );
 });
 
+test("database seeding preserves user edits to built-in meeting minutes action", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-actions-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const dbPath = path.join(root, "transcriptions.db");
+  const customPrompt = "Use my company-specific meeting minutes format.";
+  const customDescription = "My meeting minutes template";
+
+  const db = new DatabaseManager({ dbPath });
+  const meetingMinutes = db
+    .getActions()
+    .find((action) => action.translation_key === "notes.actions.builtin.meetingMinutes");
+  assert.ok(meetingMinutes);
+
+  const updated = db.updateAction(meetingMinutes.id, {
+    description: customDescription,
+    prompt: customPrompt,
+    output_target: "enhanced_content",
+    write_mode: "append",
+  });
+  assert.equal(updated.success, true);
+  db.db.close();
+  db.db = null;
+
+  const reopened = new DatabaseManager({ dbPath });
+  t.after(() => reopened.cleanup());
+
+  const seededAgain = reopened.getAction(meetingMinutes.id);
+  assert.equal(seededAgain.prompt, customPrompt);
+  assert.equal(seededAgain.description, customDescription);
+  assert.equal(seededAgain.output_target, "enhanced_content");
+  assert.equal(seededAgain.write_mode, "append");
+  assert.equal(seededAgain.is_builtin, 1);
+  assert.equal(seededAgain.translation_key, "notes.actions.builtin.meetingMinutes");
+});
+
 test("actions can persist output target and write mode", (t) => {
   const db = createDatabase(t);
   const result = db.createAction("Append to note", "", "Append this", "sparkles", {
