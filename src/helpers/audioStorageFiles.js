@@ -19,16 +19,24 @@ function buildDictationAudioFilename(transcriptionId, timestamp) {
 }
 
 function buildMeetingAudioFilename(noteId, timestamp) {
+  return `OpenWhispr-meeting-${formatTimestamp(timestamp)}-${noteId}.webm`;
+}
+
+function buildMeetingWavFallbackFilename(noteId, timestamp) {
   return `OpenWhispr-meeting-${formatTimestamp(timestamp)}-${noteId}.wav`;
+}
+
+function buildMergedMeetingAudioFilename(noteId, timestamp) {
+  return `OpenWhispr-meeting-merged-${formatTimestamp(timestamp)}-${noteId}.webm`;
 }
 
 function parseMeetingAudioFilename(filename) {
   const match = String(filename || "").match(
-    /^OpenWhispr-meeting-(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d+)\.wav$/i
+    /^OpenWhispr-meeting-(merged-)?(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d+)\.(wav|webm)$/i
   );
   if (!match) return null;
 
-  const [, year, month, day, hour, minute, second, noteId] = match;
+  const [, merged, year, month, day, hour, minute, second, noteId] = match;
   return {
     noteId: Number(noteId),
     recordedAt: new Date(
@@ -39,6 +47,7 @@ function parseMeetingAudioFilename(filename) {
       Number(minute),
       Number(second)
     ).toISOString(),
+    isMerged: !!merged,
   };
 }
 
@@ -81,8 +90,10 @@ function buildAudioDownloadFilename(title, sourceFilename) {
 
 module.exports = {
   buildAudioDownloadFilename,
+  buildMergedMeetingAudioFilename,
   buildDictationAudioFilename,
   buildMeetingAudioFilename,
+  buildMeetingWavFallbackFilename,
   isDictationAudioFile,
   isRetainedAudioFile,
   parseMeetingAudioFilename,

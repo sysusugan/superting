@@ -1299,6 +1299,77 @@ class DatabaseManager {
     }
   }
 
+  replaceNoteAudioFilesWithMergedFile(
+    noteId,
+    oldFilenames,
+    mergedFilename,
+    durationSeconds = null,
+    options = {}
+  ) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const safeMergedFilename = path.basename(String(mergedFilename || ""));
+      if (
+        !safeMergedFilename ||
+        safeMergedFilename !== mergedFilename ||
+        !isRetainedAudioFile(safeMergedFilename)
+      ) {
+        return { success: false, error: "Invalid merged audio filename" };
+      }
+
+      const names = [...new Set((oldFilenames || []).filter(Boolean))];
+      const invalidOldName = names.find(
+        (filename) =>
+          path.basename(String(filename || "")) !== filename || !isRetainedAudioFile(filename)
+      );
+      if (invalidOldName) {
+        return { success: false, error: "Invalid source audio filename" };
+      }
+
+      const recordedAt = options.recordedAt || new Date().toISOString();
+      const transaction = this.db.transaction(() => {
+        if (names.length > 0) {
+          const placeholders = names.map(() => "?").join(", ");
+          this.db
+            .prepare(
+              `DELETE FROM note_audio_files
+               WHERE note_id = ?
+                 AND filename IN (${placeholders})`
+            )
+            .run(noteId, ...names);
+        }
+
+        this.db
+          .prepare(
+            `INSERT OR REPLACE INTO note_audio_files
+              (note_id, filename, duration_seconds, recorded_at)
+             VALUES (?, ?, ?, ?)`
+          )
+          .run(noteId, safeMergedFilename, durationSeconds, recordedAt);
+
+        this.db
+          .prepare(
+            `UPDATE notes
+             SET source_file = ?,
+                 audio_duration_seconds = ?,
+                 updated_at = CURRENT_TIMESTAMP,
+                 sync_status = 'pending'
+             WHERE id = ?`
+          )
+          .run(safeMergedFilename, durationSeconds, noteId);
+
+        return this.db
+          .prepare("SELECT * FROM note_audio_files WHERE note_id = ? AND filename = ?")
+          .get(noteId, safeMergedFilename);
+      });
+
+      return { success: true, audioFile: transaction() };
+    } catch (error) {
+      debugLogger.error("Error replacing note audio files", { error: error.message }, "notes");
+      throw error;
+    }
+  }
+
   clearNoteAudioFiles() {
     try {
       if (!this.db) throw new Error("Database not initialized");

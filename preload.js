@@ -97,6 +97,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getNoteAudioFiles: (noteId) => ipcRenderer.invoke("get-note-audio-files", noteId),
   downloadNoteAudio: (noteId, audioFileId) =>
     ipcRenderer.invoke("download-note-audio", noteId, audioFileId),
+  showNoteAudioInFolder: (noteId, audioFileId) =>
+    ipcRenderer.invoke("show-note-audio-in-folder", noteId, audioFileId),
+  compressNoteAudio: (noteId, audioFileId) =>
+    ipcRenderer.invoke("compress-note-audio", noteId, audioFileId),
+  mergeNoteAudioFiles: (noteId) => ipcRenderer.invoke("merge-note-audio-files", noteId),
   searchNotes: (query, limit) => ipcRenderer.invoke("db-search-notes", query, limit),
   semanticSearchNotes: (query, limit) =>
     ipcRenderer.invoke("db-semantic-search-notes", query, limit),

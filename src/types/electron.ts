@@ -682,6 +682,17 @@ declare global {
         noteId: number,
         audioFileId?: number | null
       ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
+      showNoteAudioInFolder: (
+        noteId: number,
+        audioFileId?: number | null
+      ) => Promise<{ success: boolean; error?: string }>;
+      compressNoteAudio: (
+        noteId: number,
+        audioFileId: number
+      ) => Promise<{ success: boolean; audioFile?: unknown; note?: NoteItem; error?: string }>;
+      mergeNoteAudioFiles: (
+        noteId: number
+      ) => Promise<{ success: boolean; audioFile?: unknown; note?: NoteItem; error?: string }>;
       searchNotes: (query: string, limit?: number) => Promise<NoteItem[]>;
       semanticSearchNotes: (query: string, limit?: number) => Promise<NoteItem[]>;
       semanticReindexAll: () => Promise<{ success: boolean; indexed?: number; error?: string }>;

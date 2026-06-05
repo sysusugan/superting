@@ -89,6 +89,40 @@ test("removing note audio files falls back note source_file to latest remaining 
   );
 });
 
+test("replaceNoteAudioFilesWithMergedFile keeps only merged recording as latest source", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Meeting", "", "meeting").note;
+  const older = "OpenWhispr-meeting-2026-05-29-10-00-00-3.wav";
+  const newer = "OpenWhispr-meeting-2026-05-29-10-30-00-3.wav";
+  const merged = "OpenWhispr-meeting-merged-2026-05-29-10-45-00-3.webm";
+
+  db.addNoteAudioFile(note.id, older, 60, {
+    recordedAt: "2026-05-29T10:00:00.000Z",
+    updateLatest: true,
+  });
+  db.addNoteAudioFile(note.id, newer, 30, {
+    recordedAt: "2026-05-29T10:30:00.000Z",
+    updateLatest: true,
+  });
+
+  const result = db.replaceNoteAudioFilesWithMergedFile(
+    note.id,
+    [older, newer],
+    merged,
+    90,
+    { recordedAt: "2026-05-29T10:45:00.000Z" }
+  );
+
+  assert.equal(result.success, true);
+  const updated = db.getNote(note.id);
+  assert.equal(updated.source_file, merged);
+  assert.equal(updated.audio_duration_seconds, 90);
+  assert.deepEqual(
+    db.getNoteAudioFiles(note.id).map((file) => file.filename),
+    [merged]
+  );
+});
+
 test("backfill from audio directory imports old meeting audio files with note ids", (t) => {
   const db = createDatabase(t);
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));

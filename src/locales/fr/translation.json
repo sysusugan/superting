@@ -2104,7 +2104,19 @@
       "transcriptImportSuccess": "Imported {{count}} transcript segments",
       "transcriptImportUnsupported": "Only .txt or Markdown transcript files are supported",
       "transcriptEmptyTitle": "No transcript yet",
-      "transcriptEmptyDescription": "Import a txt or Markdown transcript file, or start recording to create the transcript timeline."
+      "transcriptEmptyDescription": "Import a txt or Markdown transcript file, or start recording to create the transcript timeline.",
+      "showAudioInFolder": "Afficher l’audio dans le dossier",
+      "audioShowInFolderFailed": "Impossible d’afficher l’audio dans le dossier",
+      "downloadAudio": "Télécharger l’audio",
+      "compressAudio": "Compresser l’audio",
+      "audioCompressFailed": "Impossible de compresser l’audio",
+      "audioCompressed": "Audio compressé",
+      "audioMergeFailed": "Impossible de fusionner l’audio",
+      "audioMerged": "Audio fusionné",
+      "mergeAudioConfirmTitle": "Fusionner l’audio enregistré ?",
+      "mergeAudioConfirmDescription": "Cela remplacera les fichiers audio enregistrés séparément par un seul fichier WebM compressé. Cette action est irréversible.",
+      "mergeAudio": "Fusionner l’audio",
+      "mergingAudio": "Fusion de l’audio..."
     },
     "bulkExport": {
       "select": "Select",

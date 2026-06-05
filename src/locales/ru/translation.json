@@ -1993,7 +1993,19 @@
       "transcriptImportSuccess": "Imported {{count}} transcript segments",
       "transcriptImportUnsupported": "Only .txt or Markdown transcript files are supported",
       "transcriptEmptyTitle": "No transcript yet",
-      "transcriptEmptyDescription": "Import a txt or Markdown transcript file, or start recording to create the transcript timeline."
+      "transcriptEmptyDescription": "Import a txt or Markdown transcript file, or start recording to create the transcript timeline.",
+      "showAudioInFolder": "Показать аудио в папке",
+      "audioShowInFolderFailed": "Не удалось показать аудио в папке",
+      "downloadAudio": "Скачать аудио",
+      "compressAudio": "Сжать аудио",
+      "audioCompressFailed": "Не удалось сжать аудио",
+      "audioCompressed": "Аудио сжато",
+      "audioMergeFailed": "Не удалось объединить аудио",
+      "audioMerged": "Аудио объединено",
+      "mergeAudioConfirmTitle": "Объединить сохранённое аудио?",
+      "mergeAudioConfirmDescription": "Отдельные сохранённые аудиофайлы будут заменены одним сжатым файлом WebM. Это действие нельзя отменить.",
+      "mergeAudio": "Объединить аудио",
+      "mergingAudio": "Объединение аудио..."
     },
     "bulkExport": {
       "select": "Select",

@@ -182,6 +182,7 @@ export default function PersonalNotesView({
   const [showActionManager, setShowActionManager] = useState(false);
   const [showNewNoteDialog, setShowNewNoteDialog] = useState(false);
   const [showAudioDownloadDialog, setShowAudioDownloadDialog] = useState(false);
+  const [audioActionKey, setAudioActionKey] = useState<string | null>(null);
   const [showBulkExportDialog, setShowBulkExportDialog] = useState(false);
   const [noteSortBy, setNoteSortByState] = useState<NoteSortBy>(readNoteSortBy);
   const [noteAudioFiles, setNoteAudioFiles] = useState<NoteAudioFile[]>([]);
@@ -733,6 +734,85 @@ export default function PersonalNotesView({
     [activeNoteId, t, toast]
   );
 
+  const showAudioFileInFolder = useCallback(
+    async (audioFileId: number) => {
+      if (!activeNoteId) return;
+      const result = await window.electronAPI.showNoteAudioInFolder(activeNoteId, audioFileId);
+      if (!result.success) {
+        toast({
+          title: t("notes.editor.audioShowInFolderFailed"),
+          description: result.error || t("notes.editor.audioUnavailableDescription"),
+          variant: "destructive",
+        });
+      }
+    },
+    [activeNoteId, t, toast]
+  );
+
+  const compressAudioFile = useCallback(
+    async (audioFileId: number) => {
+      if (!activeNoteId) return;
+      const key = `compress-${audioFileId}`;
+      setAudioActionKey(key);
+      try {
+        const result = await window.electronAPI.compressNoteAudio(activeNoteId, audioFileId);
+        if (!result.success) {
+          toast({
+            title: t("notes.editor.audioCompressFailed"),
+            description: result.error || t("notes.editor.audioUnavailableDescription"),
+            variant: "destructive",
+          });
+          return;
+        }
+        await loadNoteAudioFiles(activeNoteId);
+        toast({
+          title: t("notes.editor.audioCompressed"),
+          variant: "success",
+          duration: 2000,
+        });
+      } finally {
+        setAudioActionKey(null);
+      }
+    },
+    [activeNoteId, loadNoteAudioFiles, t, toast]
+  );
+
+  const mergeAudioFiles = useCallback(async () => {
+    if (!activeNoteId) return;
+    setAudioActionKey("merge");
+    try {
+      const result = await window.electronAPI.mergeNoteAudioFiles(activeNoteId);
+      if (!result.success) {
+        toast({
+          title: t("notes.editor.audioMergeFailed"),
+          description: result.error || t("notes.editor.audioUnavailableDescription"),
+          variant: "destructive",
+        });
+        return;
+      }
+      await loadNoteAudioFiles(activeNoteId);
+      toast({
+        title: t("notes.editor.audioMerged"),
+        variant: "success",
+        duration: 2000,
+      });
+    } finally {
+      setAudioActionKey(null);
+    }
+  }, [activeNoteId, loadNoteAudioFiles, t, toast]);
+
+  const confirmMergeAudioFiles = useCallback(() => {
+    setShowAudioDownloadDialog(false);
+    showConfirmDialog({
+      title: t("notes.editor.mergeAudioConfirmTitle"),
+      description: t("notes.editor.mergeAudioConfirmDescription"),
+      confirmText: t("notes.editor.mergeAudio"),
+      cancelText: t("common.cancel"),
+      onConfirm: mergeAudioFiles,
+      variant: "destructive",
+    });
+  }, [mergeAudioFiles, showConfirmDialog, t]);
+
   const handleDownloadOriginalAudio = useCallback(async () => {
     if (!activeNoteId) return;
     const files =
@@ -751,6 +831,25 @@ export default function PersonalNotesView({
     }
     setShowAudioDownloadDialog(true);
   }, [activeNoteId, downloadAudioFile, loadNoteAudioFiles, noteAudioFiles, t, toast]);
+
+  const handleShowOriginalAudioInFolder = useCallback(async () => {
+    if (!activeNoteId) return;
+    const files =
+      noteAudioFiles.length > 0 ? noteAudioFiles : await loadNoteAudioFiles(activeNoteId);
+    if (files.length === 0) {
+      toast({
+        title: t("notes.editor.originalAudioUnavailable"),
+        description: t("notes.editor.audioUnavailableDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
+    if (files.length === 1) {
+      await showAudioFileInFolder(files[0].id);
+      return;
+    }
+    setShowAudioDownloadDialog(true);
+  }, [activeNoteId, loadNoteAudioFiles, noteAudioFiles, showAudioFileInFolder, t, toast]);
 
   useEffect(() => {
     if (!meetingRecordingRequest || activeNoteId !== meetingRecordingRequest.noteId) return;
@@ -1340,6 +1439,7 @@ export default function PersonalNotesView({
               onExportNote={handleExportNote}
               onExportTranscript={handleExportTranscript}
               onDownloadOriginalAudio={handleDownloadOriginalAudio}
+              onShowOriginalAudioInFolder={handleShowOriginalAudioInFolder}
               hasDownloadableAudio={noteAudioFiles.length > 0}
               enhancement={
                 localEnhancedContent
@@ -1665,15 +1765,12 @@ export default function PersonalNotesView({
               const duration = formatAudioDuration(file.duration_seconds);
               const size = formatFileSize(file.size_bytes);
               const details = [duration, size, file.extension?.toUpperCase()].filter(Boolean);
+              const isCompressing = audioActionKey === `compress-${file.id}`;
+              const isWebm = file.extension?.toLowerCase() === "webm";
               return (
-                <button
+                <div
                   key={file.id}
-                  type="button"
-                  onClick={async () => {
-                    setShowAudioDownloadDialog(false);
-                    await downloadAudioFile(file.id);
-                  }}
-                  className="w-full flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-left hover:bg-muted transition-colors"
+                  className="w-full flex items-center gap-3 rounded-md border border-border bg-card px-3 py-2 text-left"
                 >
                   <FileAudio size={16} className="text-foreground/50 shrink-0" />
                   <span className="min-w-0 flex-1">
@@ -1684,11 +1781,67 @@ export default function PersonalNotesView({
                       {details.join(" \u00b7 ") || file.filename}
                     </span>
                   </span>
-                </button>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-sm"
+                      title={t("notes.editor.downloadAudio")}
+                      onClick={() => downloadAudioFile(file.id)}
+                    >
+                      <Download size={13} />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-sm"
+                      title={t("notes.editor.showAudioInFolder")}
+                      onClick={() => showAudioFileInFolder(file.id)}
+                    >
+                      <FolderOpen size={13} />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-sm"
+                      title={t("notes.editor.compressAudio")}
+                      disabled={isWebm || isCompressing || audioActionKey !== null}
+                      onClick={() => compressAudioFile(file.id)}
+                    >
+                      {isCompressing ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <FileAudio size={13} />
+                      )}
+                    </Button>
+                  </span>
+                </div>
               );
             })}
           </div>
           <DialogFooter>
+            {noteAudioFiles.length > 1 && (
+              <Button
+                variant="outline"
+                onClick={confirmMergeAudioFiles}
+                disabled={audioActionKey !== null}
+              >
+                {audioActionKey === "merge" ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    {t("notes.editor.mergingAudio")}
+                  </>
+                ) : (
+                  <>
+                    <ArrowDownUp size={13} />
+                    {t("notes.editor.mergeAudio")}
+                  </>
+                )}
+              </Button>
+            )}
             <Button variant="ghost" onClick={() => setShowAudioDownloadDialog(false)}>
               {t("common.cancel")}
             </Button>

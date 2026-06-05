@@ -1733,6 +1733,110 @@ class IPCHandlers {
       }
     });
 
+    ipcMain.handle("show-note-audio-in-folder", async (_event, noteId, audioFileId = null) => {
+      try {
+        const note = this.databaseManager.getNote(noteId);
+        if (!note) return { success: false, error: "Note not found" };
+
+        let sourceFilename = note.source_file;
+        if (audioFileId != null) {
+          const audioFile = this.databaseManager.getNoteAudioFile(noteId, audioFileId);
+          if (!audioFile) return { success: false, error: "Audio file not found for this note" };
+          sourceFilename = audioFile.filename;
+        }
+        if (!sourceFilename) return { success: false, error: "Original audio is not available" };
+
+        const audioPath = this.audioStorageManager.getRetainedAudioPath(sourceFilename);
+        if (!audioPath) {
+          return { success: false, error: "Audio file has been removed or is unavailable" };
+        }
+
+        shell.showItemInFolder(audioPath);
+        return { success: true };
+      } catch (error) {
+        debugLogger.error("Error showing note audio in folder", { error: error.message }, "notes");
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("compress-note-audio", async (_event, noteId, audioFileId) => {
+      try {
+        const note = this.databaseManager.getNote(noteId);
+        if (!note) return { success: false, error: "Note not found" };
+        const audioFile = this.databaseManager.getNoteAudioFile(noteId, audioFileId);
+        if (!audioFile) return { success: false, error: "Audio file not found for this note" };
+
+        const compressed = await this.audioStorageManager.compressRetainedAudioToOpusWebm(
+          audioFile.filename
+        );
+        if (!compressed.success) return compressed;
+
+        if (!compressed.alreadyCompressed && compressed.filename !== audioFile.filename) {
+          this.databaseManager.replaceNoteAudioFilesWithMergedFile(
+            noteId,
+            [audioFile.filename],
+            compressed.filename,
+            audioFile.duration_seconds,
+            { recordedAt: audioFile.recorded_at || audioFile.created_at || undefined }
+          );
+          this.audioStorageManager.deleteRetainedAudioFiles([audioFile.filename]);
+        }
+
+        const updatedNote = this.databaseManager.getNote(noteId);
+        if (updatedNote) {
+          setImmediate(() => this.broadcastToWindows("note-updated", updatedNote));
+          this._asyncMirrorWrite(updatedNote);
+        }
+        return { success: true, audioFile: compressed, note: updatedNote };
+      } catch (error) {
+        debugLogger.error("Error compressing note audio", { error: error.message }, "notes");
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("merge-note-audio-files", async (_event, noteId) => {
+      try {
+        const note = this.databaseManager.getNote(noteId);
+        if (!note) return { success: false, error: "Note not found" };
+
+        const files = this.databaseManager.getNoteAudioFiles(noteId);
+        if (files.length < 2) {
+          return { success: false, error: "At least two audio files are required to merge" };
+        }
+
+        const ordered = [...files].reverse();
+        const mergeResult = await this.audioStorageManager.mergeRetainedAudioToOpusWebm(
+          noteId,
+          ordered.map((file) => file.filename),
+          new Date()
+        );
+        if (!mergeResult.success) return mergeResult;
+
+        const totalDuration = ordered.reduce(
+          (sum, file) => sum + (Number(file.duration_seconds) || 0),
+          0
+        );
+        this.databaseManager.replaceNoteAudioFilesWithMergedFile(
+          noteId,
+          ordered.map((file) => file.filename),
+          mergeResult.filename,
+          totalDuration || null,
+          { recordedAt: new Date().toISOString() }
+        );
+        this.audioStorageManager.deleteRetainedAudioFiles(ordered.map((file) => file.filename));
+
+        const updatedNote = this.databaseManager.getNote(noteId);
+        if (updatedNote) {
+          setImmediate(() => this.broadcastToWindows("note-updated", updatedNote));
+          this._asyncMirrorWrite(updatedNote);
+        }
+        return { success: true, audioFile: mergeResult, note: updatedNote };
+      } catch (error) {
+        debugLogger.error("Error merging note audio", { error: error.message }, "notes");
+        return { success: false, error: error.message };
+      }
+    });
+
     ipcMain.handle("select-audio-file", async () => {
       const { dialog } = require("electron");
       const result = await dialog.showOpenDialog({
@@ -4404,12 +4508,12 @@ class IPCHandlers {
       return { diarizationPcmPath, diarizationSegments, diarizationStartedAt };
     };
 
-    const persistMeetingAudioForNote = (noteId, rawPcmPath, audioStartedAt) => {
+    const persistMeetingAudioForNote = async (noteId, rawPcmPath, audioStartedAt) => {
       if (!meetingShouldRetainAudio || !noteId || !rawPcmPath) {
         return null;
       }
 
-      const result = this.audioStorageManager.saveMeetingPcmAudio(
+      const result = await this.audioStorageManager.saveMeetingPcmAudio(
         noteId,
         rawPcmPath,
         audioStartedAt,
@@ -5941,7 +6045,7 @@ class IPCHandlers {
           flushPendingMicFinals(true);
           const { diarizationPcmPath, diarizationSegments, diarizationStartedAt } =
             await captureMeetingDiarizationState();
-          const savedAudio = persistMeetingAudioForNote(
+          const savedAudio = await persistMeetingAudioForNote(
             meetingNoteId,
             diarizationPcmPath,
             diarizationStartedAt
@@ -5974,7 +6078,7 @@ class IPCHandlers {
         const results = await disconnectMeetingStreaming({ flushPending: true });
         const { diarizationPcmPath, diarizationSegments, diarizationStartedAt } =
           await captureMeetingDiarizationState();
-        const savedAudio = persistMeetingAudioForNote(
+        const savedAudio = await persistMeetingAudioForNote(
           meetingNoteId,
           diarizationPcmPath,
           diarizationStartedAt

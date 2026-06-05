@@ -1,5 +1,7 @@
 const { spawn } = require("child_process");
+const crypto = require("crypto");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const debugLogger = require("./debugLogger");
 
@@ -400,6 +402,288 @@ function clearCache() {
   cachedFFmpegPath = null;
 }
 
+function makeTempPath(suffix) {
+  return path.join(
+    os.tmpdir(),
+    `openwhispr-${suffix}-${crypto.randomBytes(6).toString("hex")}`
+  );
+}
+
+function _buildOpusEncodeArgs({
+  input,
+  output,
+  bitrate = "24k",
+  sampleRate = 24000,
+  channels = 1,
+  application = "voip",
+} = {}) {
+  if (!input) throw new Error("_buildOpusEncodeArgs requires `input`");
+  if (!output) throw new Error("_buildOpusEncodeArgs requires `output`");
+  return [
+    "-y",
+    "-i",
+    input,
+    "-c:a",
+    "libopus",
+    "-b:a",
+    bitrate,
+    "-ac",
+    String(channels),
+    "-ar",
+    String(sampleRate),
+    "-application",
+    application,
+    "-vbr",
+    "on",
+    "-f",
+    "webm",
+    output,
+  ];
+}
+
+function _buildConcatEncodeArgs({
+  listFile,
+  output,
+  bitrate = "24k",
+  sampleRate = 24000,
+  channels = 1,
+  application = "voip",
+} = {}) {
+  if (!listFile) throw new Error("_buildConcatEncodeArgs requires `listFile`");
+  if (!output) throw new Error("_buildConcatEncodeArgs requires `output`");
+  return [
+    "-y",
+    "-f",
+    "concat",
+    "-safe",
+    "0",
+    "-i",
+    listFile,
+    "-c:a",
+    "libopus",
+    "-b:a",
+    bitrate,
+    "-ac",
+    String(channels),
+    "-ar",
+    String(sampleRate),
+    "-application",
+    application,
+    "-vbr",
+    "on",
+    "-f",
+    "webm",
+    output,
+  ];
+}
+
+function _runFFmpeg(args, { signal, onStart } = {}) {
+  return new Promise((resolve, reject) => {
+    try {
+      throwIfAborted(signal);
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    const ffmpegPath = getFFmpegPath();
+    if (!ffmpegPath) {
+      reject(new Error("FFmpeg not found - required for audio conversion"));
+      return;
+    }
+
+    debugLogger.debug("Spawning FFmpeg", { args });
+    const proc = spawn(ffmpegPath, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    });
+
+    let stderr = "";
+    let settled = false;
+    const cleanupAbort = onAbort(signal, () => {
+      if (settled) return;
+      settled = true;
+      try {
+        proc.kill("SIGKILL");
+      } catch {
+        // ignore kill errors
+      }
+      reject(createAbortError(signal));
+    });
+
+    const settle = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      cleanupAbort();
+      fn(value);
+    };
+
+    proc.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    proc.on("error", (error) => {
+      settle(reject, new Error(`FFmpeg process error: ${error.message}`));
+    });
+
+    proc.on("close", (code) => {
+      if (settled) return;
+      if (code !== 0) {
+        const stderrPreview = stderr.slice(-500).trim();
+        debugLogger.debug("FFmpeg exited with non-zero code", {
+          code,
+          stderr: stderrPreview,
+        });
+        settle(
+          reject,
+          new Error(
+            `FFmpeg exited with code ${code}${stderrPreview ? `: ${stderrPreview}` : ""}`
+          )
+        );
+        return;
+      }
+      settle(resolve, { stderr });
+    });
+
+    if (typeof onStart === "function") {
+      try {
+        onStart(proc);
+      } catch {
+        // ignore start hook errors
+      }
+    }
+  });
+}
+
+function compressToOpusWebm(inputPath, outputPath, options = {}) {
+  const { signal, ...encodeOpts } = options;
+  const tempPath = makeTempPath("opus-compress");
+
+  return _runFFmpeg(
+    _buildOpusEncodeArgs({ input: inputPath, output: tempPath, ...encodeOpts }),
+    { signal }
+  ).then(
+    () => {
+      if (!fs.existsSync(tempPath)) {
+        throw new Error("FFmpeg Opus compression produced no output file");
+      }
+      const stats = fs.statSync(tempPath);
+      if (stats.size === 0) {
+        try {
+          fs.unlinkSync(tempPath);
+        } catch {
+          // ignore
+        }
+        throw new Error("FFmpeg Opus compression produced empty output file");
+      }
+      try {
+        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+        fs.renameSync(tempPath, outputPath);
+      } catch (renameErr) {
+        try {
+          fs.unlinkSync(tempPath);
+        } catch {
+          // ignore
+        }
+        throw new Error(
+          `Failed to move compressed audio into place: ${renameErr.message}`
+        );
+      }
+      debugLogger.debug("FFmpeg Opus compression complete", {
+        outputPath,
+        outputSize: stats.size,
+      });
+    },
+    (err) => {
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {
+        // ignore
+      }
+      throw err;
+    }
+  );
+}
+
+function mergeToOpusWebm(inputPaths, outputPath, options = {}) {
+  if (!Array.isArray(inputPaths) || inputPaths.length === 0) {
+    return Promise.reject(
+      new Error("mergeToOpusWebm requires at least one input path")
+    );
+  }
+
+  const { signal, ...encodeOpts } = options;
+  const listFile = makeTempPath("opus-concat-list.txt");
+  const tempPath = makeTempPath("opus-merge");
+
+  // Build concat list. Escape single quotes per ffmpeg concat demuxer rules.
+  const lines = inputPaths
+    .map((p) => `file '${String(p).replace(/'/g, "'\\''")}'`)
+    .join("\n");
+  try {
+    fs.writeFileSync(listFile, lines + "\n");
+  } catch (writeErr) {
+    return Promise.reject(
+      new Error(`Failed to write concat list: ${writeErr.message}`)
+    );
+  }
+
+  return _runFFmpeg(
+    _buildConcatEncodeArgs({ listFile, output: tempPath, ...encodeOpts }),
+    { signal }
+  ).then(
+    () => {
+      try {
+        fs.unlinkSync(listFile);
+      } catch {
+        // ignore
+      }
+      if (!fs.existsSync(tempPath)) {
+        throw new Error("FFmpeg Opus merge produced no output file");
+      }
+      const stats = fs.statSync(tempPath);
+      if (stats.size === 0) {
+        try {
+          fs.unlinkSync(tempPath);
+        } catch {
+          // ignore
+        }
+        throw new Error("FFmpeg Opus merge produced empty output file");
+      }
+      try {
+        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+        fs.renameSync(tempPath, outputPath);
+      } catch (renameErr) {
+        try {
+          fs.unlinkSync(tempPath);
+        } catch {
+          // ignore
+        }
+        throw new Error(
+          `Failed to move merged audio into place: ${renameErr.message}`
+        );
+      }
+      debugLogger.debug("FFmpeg Opus merge complete", {
+        outputPath,
+        outputSize: stats.size,
+      });
+    },
+    (err) => {
+      try {
+        fs.unlinkSync(listFile);
+      } catch {
+        // ignore
+      }
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {
+        // ignore
+      }
+      throw err;
+    }
+  );
+}
+
 module.exports = {
   getFFmpegPath,
   isWavFormat,
@@ -409,5 +693,11 @@ module.exports = {
   computeFloat32RMS,
   createAbortError,
   throwIfAborted,
+  compressToOpusWebm,
+  mergeToOpusWebm,
+  _buildOpusEncodeArgs,
+  _buildConcatEncodeArgs,
+  _runFFmpeg,
+  makeTempPath,
   clearCache,
 };

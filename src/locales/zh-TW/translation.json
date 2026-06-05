@@ -1073,7 +1073,12 @@
           "annualEquivalent": "$16.67",
           "includesPrefix": "所有 Pro 功能 +",
           "badge": "最熱門",
-          "features": ["無限會議錄製", "代理模式", "與您的資料對話", "優先支援"],
+          "features": [
+            "無限會議錄製",
+            "代理模式",
+            "與您的資料對話",
+            "優先支援"
+          ],
           "cta": "開始使用",
           "switchToAnnual": "切換為年付"
         },
@@ -1988,7 +1993,19 @@
       "transcriptImportSuccess": "已匯入 {{count}} 個轉錄片段",
       "transcriptImportUnsupported": "僅支援 .txt 或 Markdown 轉錄檔",
       "transcriptEmptyTitle": "尚無轉錄內容",
-      "transcriptEmptyDescription": "匯入 txt 或 Markdown 轉錄檔，或開始錄音產生含時間軸的轉錄。"
+      "transcriptEmptyDescription": "匯入 txt 或 Markdown 轉錄檔，或開始錄音產生含時間軸的轉錄。",
+      "showAudioInFolder": "在資料夾中顯示音訊",
+      "audioShowInFolderFailed": "無法在資料夾中顯示音訊",
+      "downloadAudio": "下載音訊",
+      "compressAudio": "壓縮音訊",
+      "audioCompressFailed": "壓縮音訊失敗",
+      "audioCompressed": "音訊已壓縮",
+      "audioMergeFailed": "合併音訊失敗",
+      "audioMerged": "音訊已合併",
+      "mergeAudioConfirmTitle": "合併已儲存音訊？",
+      "mergeAudioConfirmDescription": "這會用一個壓縮後的 WebM 檔案取代目前分段儲存的音訊。此操作無法復原。",
+      "mergeAudio": "合併音訊",
+      "mergingAudio": "正在合併音訊..."
     },
     "bulkExport": {
       "select": "選擇",

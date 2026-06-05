@@ -1073,7 +1073,12 @@
           "annualEquivalent": "$16.67",
           "includesPrefix": "所有 Pro 功能 +",
           "badge": "最受欢迎",
-          "features": ["无限会议录制", "代理模式", "与您的数据对话", "优先支持"],
+          "features": [
+            "无限会议录制",
+            "代理模式",
+            "与您的数据对话",
+            "优先支持"
+          ],
           "cta": "开始使用",
           "switchToAnnual": "切换为年付"
         },
@@ -1988,7 +1993,19 @@
       "transcriptImportSuccess": "已导入 {{count}} 条转录片段",
       "transcriptImportUnsupported": "仅支持 .txt 或 Markdown 转录文件",
       "transcriptEmptyTitle": "还没有转录内容",
-      "transcriptEmptyDescription": "导入 txt 或 Markdown 转录文件，或开始录音生成带时间轴的转录。"
+      "transcriptEmptyDescription": "导入 txt 或 Markdown 转录文件，或开始录音生成带时间轴的转录。",
+      "showAudioInFolder": "在文件夹中显示音频",
+      "audioShowInFolderFailed": "无法在文件夹中显示音频",
+      "downloadAudio": "下载音频",
+      "compressAudio": "压缩音频",
+      "audioCompressFailed": "压缩音频失败",
+      "audioCompressed": "音频已压缩",
+      "audioMergeFailed": "合并音频失败",
+      "audioMerged": "音频已合并",
+      "mergeAudioConfirmTitle": "合并已保存音频？",
+      "mergeAudioConfirmDescription": "这会用一个压缩后的 WebM 文件替换当前分段保存的音频。此操作无法撤销。",
+      "mergeAudio": "合并音频",
+      "mergingAudio": "正在合并音频..."
     },
     "bulkExport": {
       "select": "选择",

@@ -1893,7 +1893,19 @@
       "transcriptImportSuccess": "Imported {{count}} transcript segments",
       "transcriptImportUnsupported": "Only .txt or Markdown transcript files are supported",
       "transcriptEmptyTitle": "No transcript yet",
-      "transcriptEmptyDescription": "Import a txt or Markdown transcript file, or start recording to create the transcript timeline."
+      "transcriptEmptyDescription": "Import a txt or Markdown transcript file, or start recording to create the transcript timeline.",
+      "showAudioInFolder": "フォルダで音声を表示",
+      "audioShowInFolderFailed": "フォルダで音声を表示できませんでした",
+      "downloadAudio": "音声をダウンロード",
+      "compressAudio": "音声を圧縮",
+      "audioCompressFailed": "音声を圧縮できませんでした",
+      "audioCompressed": "音声を圧縮しました",
+      "audioMergeFailed": "音声を結合できませんでした",
+      "audioMerged": "音声を結合しました",
+      "mergeAudioConfirmTitle": "保存済み音声を結合しますか？",
+      "mergeAudioConfirmDescription": "分割保存された音声ファイルを、圧縮済みの WebM ファイル 1 つに置き換えます。この操作は元に戻せません。",
+      "mergeAudio": "音声を結合",
+      "mergingAudio": "音声を結合中..."
     },
     "bulkExport": {
       "select": "Select",
