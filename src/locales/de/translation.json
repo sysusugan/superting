@@ -2229,9 +2229,11 @@
     "clearDescription": "Dadurch werden alle Wörter aus deinem benutzerdefinierten Wörterbuch entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
     "addPlaceholder": "Ein Wort oder eine Phrase hinzufügen...",
     "dictionary": "Dictionary",
+    "dictionaryUsage": "Wird als Kontext beim Diktieren und bei cleanup/refine genutzt, damit Produktnamen, Fachbegriffe, Akronyme und eigene Formulierungen korrekt erkannt und behalten werden.",
     "people": "People",
     "peopleTitle": "Speaker names",
     "peopleDescription": "Names created while labeling transcripts will appear here for quick reuse.",
+    "peopleUsage": "Wird beim Zuordnen von Sprechern in Transkripten und Meeting-Notizen genutzt; diese Namen machen die Zuordnung schneller und konsistenter.",
     "addPerson": "Add person",
     "addPersonPlaceholder": "Add a speaker name...",
     "removePerson": "Remove {{name}}"

@@ -2277,9 +2277,11 @@
     "clearDescription": "Esto eliminará todas las palabras de tu diccionario personalizado. Esta acción no se puede deshacer.",
     "addPlaceholder": "Añadir una palabra o frase...",
     "dictionary": "Dictionary",
+    "dictionaryUsage": "Se usa como contexto durante el dictado y cleanup/refine para reconocer y conservar nombres de producto, jerga, siglas y frases personalizadas.",
     "people": "People",
     "peopleTitle": "Speaker names",
     "peopleDescription": "Names created while labeling transcripts will appear here for quick reuse.",
+    "peopleUsage": "Se usa al etiquetar hablantes en transcripciones y notas de reunión; estos nombres hacen que la asignación sea más rápida y consistente.",
     "addPerson": "Add person",
     "addPersonPlaceholder": "Add a speaker name...",
     "removePerson": "Remove {{name}}"

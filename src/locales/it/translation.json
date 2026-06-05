@@ -2229,9 +2229,11 @@
     "clearDescription": "Verranno rimossi tutti i termini dal tuo dizionario personalizzato. Questa azione non può essere annullata.",
     "addPlaceholder": "Aggiungi una parola o una frase...",
     "dictionary": "Dictionary",
+    "dictionaryUsage": "Usato come contesto durante la dettatura e cleanup/refine per riconoscere e mantenere nomi di prodotto, gergo, acronimi e frasi personalizzate.",
     "people": "People",
     "peopleTitle": "Speaker names",
     "peopleDescription": "Names created while labeling transcripts will appear here for quick reuse.",
+    "peopleUsage": "Usato quando assegni i parlanti in trascrizioni e note riunione; questi nomi rendono l'assegnazione più rapida e coerente.",
     "addPerson": "Add person",
     "addPersonPlaceholder": "Add a speaker name...",
     "removePerson": "Remove {{name}}"

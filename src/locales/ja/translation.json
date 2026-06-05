@@ -2157,9 +2157,11 @@
     "clearDescription": "カスタム辞書のすべての単語が削除されます。この操作は元に戻せません。",
     "addPlaceholder": "単語やフレーズを追加...",
     "dictionary": "Dictionary",
+    "dictionaryUsage": "ディクテーションと cleanup/refine の文脈ヒントとして使われ、製品名、専門用語、略語、カスタムフレーズを正しく認識して保持しやすくします。",
     "people": "People",
     "peopleTitle": "Speaker names",
     "peopleDescription": "Names created while labeling transcripts will appear here for quick reuse.",
+    "peopleUsage": "文字起こしや会議メモで話者をラベル付けするときに使われます。これらの名前により、話者の割り当てが速く一貫します。",
     "addPerson": "Add person",
     "addPersonPlaceholder": "Add a speaker name...",
     "removePerson": "Remove {{name}}"

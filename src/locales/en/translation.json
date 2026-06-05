@@ -2436,9 +2436,11 @@
     "autoManaged": "Auto-managed — synced from agent name",
     "inputHint": "Separate multiple words with commas. Add context phrases like \"The word is Synty\" for better recognition.",
     "dictionary": "Dictionary",
+    "dictionaryUsage": "Used as context hints during dictation and cleanup/refine so product names, jargon, acronyms, and custom phrases are recognized and kept correctly.",
     "people": "People",
     "peopleTitle": "Speaker names",
     "peopleDescription": "Names created while labeling transcripts will appear here for quick reuse.",
+    "peopleUsage": "Used when labeling speakers in transcripts and meeting notes; these names make speaker assignment quicker and more consistent.",
     "addPerson": "Add person",
     "addPersonPlaceholder": "Add a speaker name...",
     "removePerson": "Remove {{name}}"

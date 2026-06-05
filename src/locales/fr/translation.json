@@ -2340,9 +2340,11 @@
     "autoManaged": "Géré automatiquement — synchronisé depuis le nom de l'agent",
     "inputHint": "Séparez les mots par des virgules. Ajoutez des phrases de contexte comme « Le mot est Synty » pour une meilleure reconnaissance.",
     "dictionary": "Dictionary",
+    "dictionaryUsage": "Utilisé comme contexte pendant la dictée et cleanup/refine afin de reconnaître et conserver les noms de produits, le jargon, les acronymes et les phrases personnalisées.",
     "people": "People",
     "peopleTitle": "Speaker names",
     "peopleDescription": "Names created while labeling transcripts will appear here for quick reuse.",
+    "peopleUsage": "Utilisé lors de l'étiquetage des intervenants dans les transcriptions et notes de réunion ; ces noms rendent l'attribution plus rapide et cohérente.",
     "addPerson": "Add person",
     "addPersonPlaceholder": "Add a speaker name...",
     "removePerson": "Remove {{name}}"

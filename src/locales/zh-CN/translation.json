@@ -2224,9 +2224,11 @@
     "clearDescription": "这将删除自定义词典中的所有词汇，此操作无法撤销。",
     "addPlaceholder": "添加词语或短语...",
     "dictionary": "词典",
+    "dictionaryUsage": "用于听写转录和 cleanup/refine 整理阶段，帮助识别并保留品牌名、术语、缩写和自定义短语。",
     "people": "人名表",
     "peopleTitle": "人名表",
     "peopleDescription": "给转录分配过的人名会保存在这里，后续可快速选择。",
+    "peopleUsage": "用于转录和会议笔记里的发言人标注；这些人名会让分配发言人更快、更一致。",
     "addPerson": "添加人名",
     "addPersonPlaceholder": "添加发言人姓名...",
     "removePerson": "移除 {{name}}"

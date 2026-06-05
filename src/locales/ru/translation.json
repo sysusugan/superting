@@ -2231,9 +2231,11 @@
     "clearTitle": "Очистить словарь?",
     "clearDescription": "Все слова будут удалены без возможности восстановления.",
     "dictionary": "Dictionary",
+    "dictionaryUsage": "Используется как контекст при диктовке и cleanup/refine, чтобы корректно распознавать и сохранять названия продуктов, термины, аббревиатуры и пользовательские фразы.",
     "people": "People",
     "peopleTitle": "Speaker names",
     "peopleDescription": "Names created while labeling transcripts will appear here for quick reuse.",
+    "peopleUsage": "Используется при разметке говорящих в транскриптах и заметках встреч; эти имена ускоряют и упорядочивают назначение говорящих.",
     "addPerson": "Add person",
     "addPersonPlaceholder": "Add a speaker name...",
     "removePerson": "Remove {{name}}"
