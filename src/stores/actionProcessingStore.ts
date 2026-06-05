@@ -60,6 +60,8 @@ export interface RunActionOptions {
   currentContent?: string | null;
   currentEnhancedContent?: string | null;
   currentTranscript?: string | null;
+  currentRecordedAt?: string | null;
+  currentCreatedAt?: string | null;
   speakerLabels?: {
     you: string;
     them: string;
@@ -107,6 +109,8 @@ export function runBackgroundAction(
           content: options.currentContent ?? noteContent,
           enhanced_content: options.currentEnhancedContent ?? null,
           transcript: options.currentTranscript ?? null,
+          recorded_at: options.currentRecordedAt ?? null,
+          created_at: options.currentCreatedAt ?? "",
         },
         action,
         modelId,

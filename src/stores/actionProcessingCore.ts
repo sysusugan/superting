@@ -13,6 +13,36 @@ export function shouldAutoGenerateActionTitle(title: string | null | undefined):
   return DEFAULT_NOTE_TITLES.has((title ?? "").trim());
 }
 
+function formatTwoDigit(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+export function formatActionTitleDatePrefix(dateValue: string | null | undefined): string {
+  const value = String(dateValue || "").trim();
+  if (!value) return "";
+
+  const dbDateMatch = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\b|[ T])/);
+  if (dbDateMatch) {
+    return `${formatTwoDigit(Number(dbDateMatch[2]))}-${formatTwoDigit(Number(dbDateMatch[3]))}：`;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${formatTwoDigit(date.getMonth() + 1)}-${formatTwoDigit(date.getDate())}：`;
+}
+
+export function applyActionTitleDatePrefix(
+  title: string | null | undefined,
+  dateValue: string | null | undefined
+): string {
+  const cleanedTitle = String(title || "").trim();
+  if (!cleanedTitle) return "";
+  if (/^\d{2}-\d{2}[：:]\s*/.test(cleanedTitle)) return cleanedTitle;
+
+  const prefix = formatActionTitleDatePrefix(dateValue);
+  return prefix ? `${prefix} ${cleanedTitle}` : cleanedTitle;
+}
+
 export type ActionOutputTarget = "content" | "enhanced_content";
 export type ActionWriteMode = "overwrite" | "append";
 

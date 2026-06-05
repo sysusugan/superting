@@ -1401,6 +1401,8 @@ export default function PersonalNotesView({
                       currentContent: editorNote.content,
                       currentEnhancedContent: editorNote.enhanced_content,
                       currentTranscript: rawTranscript,
+                      currentRecordedAt: editorNote.recorded_at,
+                      currentCreatedAt: editorNote.created_at,
                       speakerLabels: {
                         you: t("notes.speaker.you"),
                         them: t("notes.speaker.them"),

@@ -9,10 +9,17 @@ import {
 import { buildNoteActionSystemPrompt } from "./noteActionPrompt";
 import { generateNoteTitle } from "../utils/generateTitle";
 import { buildNoteActionInput } from "../components/notes/noteActionInput";
-import { buildActionOutputUpdates, shouldAutoGenerateActionTitle } from "./actionProcessingCore";
+import {
+  applyActionTitleDatePrefix,
+  buildActionOutputUpdates,
+  shouldAutoGenerateActionTitle,
+} from "./actionProcessingCore";
 
 interface RunNoteActionOnceInput {
-  note: Pick<NoteItem, "title" | "content" | "enhanced_content" | "transcript">;
+  note: Pick<
+    NoteItem,
+    "title" | "content" | "enhanced_content" | "transcript" | "recorded_at" | "created_at"
+  >;
   action: ActionItem;
   modelId: string;
   isCloudMode: boolean;
@@ -101,7 +108,7 @@ export async function runNoteActionOnce({
       settings.uiLanguage,
       reasoningConfig
     );
-    if (title) updates.title = title;
+    if (title) updates.title = applyActionTitleDatePrefix(title, note.recorded_at || note.created_at);
   }
 
   return { generatedContent, updates };
