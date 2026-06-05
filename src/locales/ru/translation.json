@@ -1496,7 +1496,13 @@
       "audioStorageFiles": "{{count}} файлов, {{size}}",
       "audioStorageEmpty": "Аудиофайлы отсутствуют",
       "clearAllAudio": "Удалить все аудиофайлы",
-      "clearAllAudioConfirm": "Удалить все сохранённые аудиофайлы? Это действие нельзя отменить."
+      "clearAllAudioConfirm": "Удалить все сохранённые аудиофайлы? Это действие нельзя отменить.",
+      "compressAllAudio": "Сжать все аудио",
+      "compressingAllAudio": "Сжатие...",
+      "compressAllAudioComplete": "Аудио сжато",
+      "compressAllAudioCompleteDescription": "Сжато файлов: {{count}}.",
+      "compressAllAudioFailed": "Не удалось сжать аудио",
+      "noUncompressedAudio": "Нет несжатого аудио"
     },
     "prompts": {
       "description": "Просматривайте, настраивайте и тестируйте единый системный промпт, который управляет очисткой текста и обнаружением инструкций",
@@ -2005,7 +2011,13 @@
       "mergeAudioConfirmTitle": "Объединить сохранённое аудио?",
       "mergeAudioConfirmDescription": "Отдельные сохранённые аудиофайлы будут заменены одним сжатым файлом WebM. Это действие нельзя отменить.",
       "mergeAudio": "Объединить аудио",
-      "mergingAudio": "Объединение аудио..."
+      "mergingAudio": "Объединение аудио...",
+      "manageSavedAudio": "Управлять сохраненным аудио",
+      "executeAudioAction": "Выполнить",
+      "executingAudioAction": "Выполняется...",
+      "compressingAudio": "Сжатие аудио...",
+      "mergeAndCompressAudio": "Объединить и сжать аудио",
+      "audioMergedAndCompressed": "Аудио объединено и сжато"
     },
     "bulkExport": {
       "select": "Select",

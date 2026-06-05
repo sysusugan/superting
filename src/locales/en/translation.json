@@ -1677,7 +1677,13 @@
       "hoursAgo": "{{count}}h ago",
       "justNow": "just now",
       "lastSynced": "Last synced {{time}}",
-      "minutesAgo": "{{count}}m ago"
+      "minutesAgo": "{{count}}m ago",
+      "compressAllAudio": "Compress all audio",
+      "compressingAllAudio": "Compressing...",
+      "compressAllAudioComplete": "Audio compressed",
+      "compressAllAudioCompleteDescription": "{{count}} files compressed.",
+      "compressAllAudioFailed": "Audio compression failed",
+      "noUncompressedAudio": "No uncompressed audio"
     },
     "prompts": {
       "description": "View, customize, and test the unified system prompt that powers text cleanup and instruction detection",
@@ -2212,7 +2218,13 @@
       "mergeAudioConfirmTitle": "Merge saved audio?",
       "mergeAudioConfirmDescription": "This will replace the separate saved audio files with one compressed WebM file. This cannot be undone.",
       "mergeAudio": "Merge audio",
-      "mergingAudio": "Merging audio..."
+      "mergingAudio": "Merging audio...",
+      "manageSavedAudio": "Manage saved audio",
+      "executeAudioAction": "Execute",
+      "executingAudioAction": "Executing...",
+      "compressingAudio": "Compressing audio...",
+      "mergeAndCompressAudio": "Merge and compress audio",
+      "audioMergedAndCompressed": "Audio merged and compressed"
     },
     "bulkExport": {
       "select": "Select",

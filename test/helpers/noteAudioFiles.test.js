@@ -123,6 +123,31 @@ test("replaceNoteAudioFilesWithMergedFile keeps only merged recording as latest 
   );
 });
 
+test("replaceNoteAudioFilename preserves a note recording when compressed globally", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Meeting", "", "meeting").note;
+  const wavName = "OpenWhispr-meeting-2026-05-29-10-00-00-4.wav";
+  const webmName = "OpenWhispr-meeting-2026-05-29-10-00-00-4.webm";
+
+  db.addNoteAudioFile(note.id, wavName, 60, {
+    recordedAt: "2026-05-29T10:00:00.000Z",
+    updateLatest: true,
+  });
+
+  const result = db.replaceNoteAudioFilename(wavName, webmName);
+
+  assert.equal(result.success, true);
+  assert.equal(result.affectedNotes, 1);
+  assert.deepEqual(result.affectedNoteIds, [note.id]);
+  const updated = db.getNote(note.id);
+  assert.equal(updated.source_file, webmName);
+  assert.equal(updated.audio_duration_seconds, 60);
+  const files = db.getNoteAudioFiles(note.id);
+  assert.equal(files.length, 1);
+  assert.equal(files[0].filename, webmName);
+  assert.equal(files[0].duration_seconds, 60);
+});
+
 test("backfill from audio directory imports old meeting audio files with note ids", (t) => {
   const db = createDatabase(t);
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));

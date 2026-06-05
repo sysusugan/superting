@@ -1496,7 +1496,13 @@
       "audioStorageFiles": "{{count}}ファイル、{{size}}",
       "audioStorageEmpty": "保存された音声ファイルはありません",
       "clearAllAudio": "すべての音声を削除",
-      "clearAllAudioConfirm": "保存されたすべての音声ファイルを削除しますか？この操作は元に戻せません。"
+      "clearAllAudioConfirm": "保存されたすべての音声ファイルを削除しますか？この操作は元に戻せません。",
+      "compressAllAudio": "すべての音声を圧縮",
+      "compressingAllAudio": "圧縮中...",
+      "compressAllAudioComplete": "音声を圧縮しました",
+      "compressAllAudioCompleteDescription": "{{count}}個のファイルを圧縮しました。",
+      "compressAllAudioFailed": "音声の圧縮に失敗しました",
+      "noUncompressedAudio": "未圧縮の音声はありません"
     },
     "prompts": {
       "description": "テキスト補正と指示検出を行う統合システムプロンプトの表示、カスタマイズ、テスト",
@@ -1905,7 +1911,13 @@
       "mergeAudioConfirmTitle": "保存済み音声を結合しますか？",
       "mergeAudioConfirmDescription": "分割保存された音声ファイルを、圧縮済みの WebM ファイル 1 つに置き換えます。この操作は元に戻せません。",
       "mergeAudio": "音声を結合",
-      "mergingAudio": "音声を結合中..."
+      "mergingAudio": "音声を結合中...",
+      "manageSavedAudio": "保存済み音声を管理",
+      "executeAudioAction": "実行",
+      "executingAudioAction": "実行中...",
+      "compressingAudio": "音声を圧縮中...",
+      "mergeAndCompressAudio": "音声を結合して圧縮",
+      "audioMergedAndCompressed": "音声を結合して圧縮しました"
     },
     "bulkExport": {
       "select": "Select",

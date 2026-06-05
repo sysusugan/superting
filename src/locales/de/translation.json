@@ -1496,7 +1496,13 @@
       "audioStorageFiles": "{{count}} Dateien, {{size}}",
       "audioStorageEmpty": "Keine Audiodateien gespeichert",
       "clearAllAudio": "Alle Audiodateien löschen",
-      "clearAllAudioConfirm": "Alle gespeicherten Audiodateien löschen? Dies kann nicht rückgängig gemacht werden."
+      "clearAllAudioConfirm": "Alle gespeicherten Audiodateien löschen? Dies kann nicht rückgängig gemacht werden.",
+      "compressAllAudio": "Alle Audiodateien komprimieren",
+      "compressingAllAudio": "Komprimieren...",
+      "compressAllAudioComplete": "Audio komprimiert",
+      "compressAllAudioCompleteDescription": "{{count}} Dateien komprimiert.",
+      "compressAllAudioFailed": "Audiokomprimierung fehlgeschlagen",
+      "noUncompressedAudio": "Keine unkomprimierten Audiodateien"
     },
     "prompts": {
       "description": "Den einheitlichen System-Prompt anzeigen, anpassen und testen, der Textbereinigung und Anweisungserkennung steuert",
@@ -2005,7 +2011,13 @@
       "mergeAudioConfirmTitle": "Gespeichertes Audio zusammenführen?",
       "mergeAudioConfirmDescription": "Dies ersetzt die getrennt gespeicherten Audiodateien durch eine komprimierte WebM-Datei. Dies kann nicht rückgängig gemacht werden.",
       "mergeAudio": "Audio zusammenführen",
-      "mergingAudio": "Audio wird zusammengeführt..."
+      "mergingAudio": "Audio wird zusammengeführt...",
+      "manageSavedAudio": "Gespeicherte Audiodateien verwalten",
+      "executeAudioAction": "Ausführen",
+      "executingAudioAction": "Wird ausgeführt...",
+      "compressingAudio": "Audio wird komprimiert...",
+      "mergeAndCompressAudio": "Audio zusammenführen und komprimieren",
+      "audioMergedAndCompressed": "Audio zusammengeführt und komprimiert"
     },
     "bulkExport": {
       "select": "Select",

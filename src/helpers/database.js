@@ -1370,6 +1370,74 @@ class DatabaseManager {
     }
   }
 
+  replaceNoteAudioFilename(oldFilename, newFilename) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const safeOldFilename = path.basename(String(oldFilename || ""));
+      const safeNewFilename = path.basename(String(newFilename || ""));
+      if (
+        !safeOldFilename ||
+        !safeNewFilename ||
+        safeOldFilename !== oldFilename ||
+        safeNewFilename !== newFilename ||
+        !isRetainedAudioFile(safeOldFilename) ||
+        !isRetainedAudioFile(safeNewFilename)
+      ) {
+        return { success: false, error: "Invalid audio filename", affectedNotes: 0 };
+      }
+
+      const transaction = this.db.transaction(() => {
+        const rows = this.db
+          .prepare(
+            `SELECT note_id, duration_seconds, recorded_at, created_at
+             FROM note_audio_files
+             WHERE filename = ?`
+          )
+          .all(safeOldFilename);
+
+        for (const row of rows) {
+          this.db
+            .prepare(
+              `DELETE FROM note_audio_files
+               WHERE note_id = ?
+                 AND filename = ?`
+            )
+            .run(row.note_id, safeOldFilename);
+          this.db
+            .prepare(
+              `INSERT OR REPLACE INTO note_audio_files
+                (note_id, filename, duration_seconds, recorded_at)
+               VALUES (?, ?, ?, ?)`
+            )
+            .run(
+              row.note_id,
+              safeNewFilename,
+              row.duration_seconds,
+              row.recorded_at || row.created_at || new Date().toISOString()
+            );
+        }
+
+        this.db
+          .prepare(
+            `UPDATE notes
+             SET source_file = ?,
+                 updated_at = CURRENT_TIMESTAMP,
+                 sync_status = 'pending'
+             WHERE source_file = ?`
+          )
+          .run(safeNewFilename, safeOldFilename);
+
+        return [...new Set(rows.map((row) => row.note_id))];
+      });
+
+      const affectedNoteIds = transaction();
+      return { success: true, affectedNotes: affectedNoteIds.length, affectedNoteIds };
+    } catch (error) {
+      debugLogger.error("Error replacing note audio filename", { error: error.message }, "notes");
+      throw error;
+    }
+  }
+
   clearNoteAudioFiles() {
     try {
       if (!this.db) throw new Error("Database not initialized");

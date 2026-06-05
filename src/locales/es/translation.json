@@ -1544,7 +1544,13 @@
       "audioStorageFiles": "{{count}} archivos, {{size}}",
       "audioStorageEmpty": "No hay archivos de audio almacenados",
       "clearAllAudio": "Eliminar todo el audio",
-      "clearAllAudioConfirm": "¿Eliminar todos los archivos de audio almacenados? Esta acción no se puede deshacer."
+      "clearAllAudioConfirm": "¿Eliminar todos los archivos de audio almacenados? Esta acción no se puede deshacer.",
+      "compressAllAudio": "Comprimir todo el audio",
+      "compressingAllAudio": "Comprimiendo...",
+      "compressAllAudioComplete": "Audio comprimido",
+      "compressAllAudioCompleteDescription": "{{count}} archivos comprimidos.",
+      "compressAllAudioFailed": "Error al comprimir audio",
+      "noUncompressedAudio": "No hay audio sin comprimir"
     },
     "prompts": {
       "description": "Visualiza, personaliza y prueba el prompt de sistema unificado que impulsa la corrección de texto y la detección de instrucciones",
@@ -2053,7 +2059,13 @@
       "mergeAudioConfirmTitle": "¿Unir audio guardado?",
       "mergeAudioConfirmDescription": "Esto reemplazará los archivos de audio guardados por separado con un único archivo WebM comprimido. No se puede deshacer.",
       "mergeAudio": "Unir audio",
-      "mergingAudio": "Uniendo audio..."
+      "mergingAudio": "Uniendo audio...",
+      "manageSavedAudio": "Gestionar audio guardado",
+      "executeAudioAction": "Ejecutar",
+      "executingAudioAction": "Ejecutando...",
+      "compressingAudio": "Comprimiendo audio...",
+      "mergeAndCompressAudio": "Unir y comprimir audio",
+      "audioMergedAndCompressed": "Audio unido y comprimido"
     },
     "bulkExport": {
       "select": "Select",

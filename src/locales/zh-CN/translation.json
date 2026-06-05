@@ -1496,7 +1496,13 @@
       "audioStorageFiles": "{{count}} 个文件，{{size}}",
       "audioStorageEmpty": "没有存储的音频文件",
       "clearAllAudio": "清除所有音频",
-      "clearAllAudioConfirm": "删除所有已存储的音频文件？此操作无法撤销。"
+      "clearAllAudioConfirm": "删除所有已存储的音频文件？此操作无法撤销。",
+      "compressAllAudio": "压缩所有音频",
+      "compressingAllAudio": "正在压缩...",
+      "compressAllAudioComplete": "音频压缩完成",
+      "compressAllAudioCompleteDescription": "已压缩 {{count}} 个文件。",
+      "compressAllAudioFailed": "音频压缩失败",
+      "noUncompressedAudio": "没有未压缩音频"
     },
     "prompts": {
       "description": "查看、自定义和测试用于文本整理和指令识别的统一系统提示词",
@@ -2005,7 +2011,13 @@
       "mergeAudioConfirmTitle": "合并已保存音频？",
       "mergeAudioConfirmDescription": "这会用一个压缩后的 WebM 文件替换当前分段保存的音频。此操作无法撤销。",
       "mergeAudio": "合并音频",
-      "mergingAudio": "正在合并音频..."
+      "mergingAudio": "正在合并音频...",
+      "manageSavedAudio": "管理已保存音频",
+      "executeAudioAction": "执行",
+      "executingAudioAction": "正在执行...",
+      "compressingAudio": "正在压缩音频...",
+      "mergeAndCompressAudio": "合并并压缩",
+      "audioMergedAndCompressed": "音频已合并并压缩"
     },
     "bulkExport": {
       "select": "选择",

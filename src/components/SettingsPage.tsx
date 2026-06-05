@@ -809,13 +809,15 @@ export default function SettingsPage({
   const [audioStorageUsage, setAudioStorageUsage] = useState<{
     fileCount: number;
     totalBytes: number;
-  }>({ fileCount: 0, totalBytes: 0 });
+    uncompressedCount?: number;
+  }>({ fileCount: 0, totalBytes: 0, uncompressedCount: 0 });
+  const [isCompressingAllAudio, setIsCompressingAllAudio] = useState(false);
 
   useEffect(() => {
     if (activeSection !== "privacyData") return;
     window.electronAPI
       ?.getAudioStorageUsage?.()
-      .then((usage: { fileCount: number; totalBytes: number }) => {
+      .then((usage: { fileCount: number; totalBytes: number; uncompressedCount?: number }) => {
         if (usage) setAudioStorageUsage(usage);
       })
       .catch(() => {});
@@ -840,10 +842,55 @@ export default function SettingsPage({
     if (!window.electronAPI?.deleteAllAudio) return;
     try {
       await window.electronAPI.deleteAllAudio();
-      setAudioStorageUsage({ fileCount: 0, totalBytes: 0 });
+      setAudioStorageUsage({ fileCount: 0, totalBytes: 0, uncompressedCount: 0 });
       toast({ title: t("settingsPage.privacy.clearAllAudio"), variant: "default" });
     } catch {
       // silent fail
+    }
+  };
+
+  const handleCompressAllAudio = async () => {
+    if (!window.electronAPI?.compressAllAudio || isCompressingAllAudio) return;
+    setIsCompressingAllAudio(true);
+    try {
+      const result = await window.electronAPI.compressAllAudio();
+      if (result.usage) setAudioStorageUsage(result.usage);
+      else {
+        const usage = await window.electronAPI.getAudioStorageUsage?.();
+        if (usage) setAudioStorageUsage(usage);
+      }
+
+      if (!result.success) {
+        toast({
+          title: t("settingsPage.privacy.compressAllAudioFailed"),
+          description: result.errors?.[0]?.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title:
+          result.compressed > 0
+            ? t("settingsPage.privacy.compressAllAudioComplete")
+            : t("settingsPage.privacy.noUncompressedAudio"),
+        description:
+          result.compressed > 0
+            ? t("settingsPage.privacy.compressAllAudioCompleteDescription", {
+                count: result.compressed,
+              })
+            : undefined,
+        variant: "success",
+        duration: 2500,
+      });
+    } catch (error) {
+      toast({
+        title: t("settingsPage.privacy.compressAllAudioFailed"),
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCompressingAllAudio(false);
     }
   };
 
@@ -3449,15 +3496,40 @@ EOF`,
                         : t("settingsPage.privacy.audioStorageEmpty")
                     }
                   >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      disabled={audioStorageUsage.fileCount === 0}
-                      onClick={handleClearAllAudio}
-                    >
-                      {t("settingsPage.privacy.clearAllAudio")}
-                    </Button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        disabled={
+                          isCompressingAllAudio ||
+                          (audioStorageUsage.uncompressedCount ?? audioStorageUsage.fileCount) ===
+                            0
+                        }
+                        onClick={handleCompressAllAudio}
+                      >
+                        {isCompressingAllAudio ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            {t("settingsPage.privacy.compressingAllAudio")}
+                          </>
+                        ) : (
+                          <>
+                            <FileAudio className="h-3.5 w-3.5" />
+                            {t("settingsPage.privacy.compressAllAudio")}
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        disabled={audioStorageUsage.fileCount === 0 || isCompressingAllAudio}
+                        onClick={handleClearAllAudio}
+                      >
+                        {t("settingsPage.privacy.clearAllAudio")}
+                      </Button>
+                    </div>
                   </SettingsRow>
                 </SettingsPanelRow>
               </SettingsPanel>

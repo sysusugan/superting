@@ -879,6 +879,35 @@ class IPCHandlers {
       return this.audioStorageManager.getStorageUsage();
     });
 
+    ipcMain.handle("compress-all-audio", async () => {
+      const affectedNoteIds = new Set();
+      const result = await this.audioStorageManager.compressAllRetainedAudioToOpusWebm({
+        onCompressed: (sourceFilename, compressed) => {
+          const updateResult = this.databaseManager.replaceNoteAudioFilename(
+            sourceFilename,
+            compressed.filename
+          );
+          for (const noteId of updateResult.affectedNoteIds || []) {
+            affectedNoteIds.add(noteId);
+          }
+        },
+      });
+
+      for (const noteId of affectedNoteIds) {
+        const updatedNote = this.databaseManager.getNote(noteId);
+        if (updatedNote) {
+          setImmediate(() => this.broadcastToWindows("note-updated", updatedNote));
+          this._asyncMirrorWrite(updatedNote);
+        }
+      }
+
+      return {
+        ...result,
+        affectedNotes: affectedNoteIds.size,
+        usage: this.audioStorageManager.getStorageUsage(),
+      };
+    });
+
     ipcMain.handle("delete-all-audio", async () => {
       const result = this.audioStorageManager.deleteAllAudio();
       try {

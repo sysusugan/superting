@@ -245,6 +245,76 @@ class AudioStorageManager {
     }
   }
 
+  async compressAllRetainedAudioToOpusWebm(options = {}) {
+    try {
+      const files = fs.readdirSync(this.audioDir).filter(isRetainedAudioFile);
+      const targets = files.filter((file) => path.extname(file).toLowerCase() !== ".webm");
+      const result = {
+        success: true,
+        scanned: files.length,
+        compressed: 0,
+        skipped: files.length - targets.length,
+        failed: 0,
+        files: [],
+        errors: [],
+      };
+
+      for (const filename of targets) {
+        try {
+          const compressed = await this.compressRetainedAudioToOpusWebm(filename, options);
+          if (!compressed.success) {
+            result.success = false;
+            result.failed += 1;
+            result.errors.push({ filename, error: compressed.error || "Compression failed" });
+            continue;
+          }
+          if (compressed.alreadyCompressed || compressed.filename === filename) {
+            result.skipped += 1;
+            continue;
+          }
+
+          if (typeof options.onCompressed === "function") {
+            await options.onCompressed(filename, compressed);
+          }
+          this.deleteRetainedAudioFiles([filename]);
+          result.compressed += 1;
+          result.files.push({ sourceFilename: filename, filename: compressed.filename });
+        } catch (error) {
+          result.success = false;
+          result.failed += 1;
+          result.errors.push({ filename, error: error.message });
+        }
+      }
+
+      debugLogger.info(
+        "Retained audio bulk compression complete",
+        {
+          scanned: result.scanned,
+          compressed: result.compressed,
+          skipped: result.skipped,
+          failed: result.failed,
+        },
+        "audio-storage"
+      );
+      return result;
+    } catch (error) {
+      debugLogger.error(
+        "Failed to compress all retained audio",
+        { error: error.message },
+        "audio-storage"
+      );
+      return {
+        success: false,
+        scanned: 0,
+        compressed: 0,
+        skipped: 0,
+        failed: 0,
+        files: [],
+        errors: [{ error: error.message }],
+      };
+    }
+  }
+
   getAudioPath(transcriptionId) {
     try {
       const files = fs.readdirSync(this.audioDir);
@@ -426,18 +496,22 @@ class AudioStorageManager {
     try {
       const files = fs.readdirSync(this.audioDir).filter(isRetainedAudioFile);
       let totalBytes = 0;
+      let uncompressedCount = 0;
       for (const file of files) {
         try {
           const stats = fs.statSync(path.join(this.audioDir, file));
           totalBytes += stats.size;
+          if (path.extname(file).toLowerCase() !== ".webm") {
+            uncompressedCount += 1;
+          }
         } catch {
           // Skip files that can't be stat'd
         }
       }
-      return { fileCount: files.length, totalBytes };
+      return { fileCount: files.length, totalBytes, uncompressedCount };
     } catch (error) {
       debugLogger.error("Failed to get storage usage", { error: error.message }, "audio-storage");
-      return { fileCount: 0, totalBytes: 0 };
+      return { fileCount: 0, totalBytes: 0, uncompressedCount: 0 };
     }
   }
 }

@@ -554,7 +554,25 @@ declare global {
       showAudioInFolder: (id: number) => Promise<{ success: boolean }>;
       getAudioBuffer: (id: number) => Promise<ArrayBuffer | null>;
       deleteTranscriptionAudio: (id: number) => Promise<{ success: boolean }>;
-      getAudioStorageUsage: () => Promise<{ fileCount: number; totalBytes: number }>;
+      getAudioStorageUsage: () => Promise<{
+        fileCount: number;
+        totalBytes: number;
+        uncompressedCount?: number;
+      }>;
+      compressAllAudio: () => Promise<{
+        success: boolean;
+        scanned: number;
+        compressed: number;
+        skipped: number;
+        failed: number;
+        affectedNotes?: number;
+        usage?: {
+          fileCount: number;
+          totalBytes: number;
+          uncompressedCount?: number;
+        };
+        errors?: Array<{ filename?: string; error: string }>;
+      }>;
       deleteAllAudio: () => Promise<{ deleted: number }>;
       retryTranscription: (
         id: number,

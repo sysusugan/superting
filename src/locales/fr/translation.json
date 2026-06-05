@@ -1544,7 +1544,13 @@
       "audioStorageFiles": "{{count}} fichiers, {{size}}",
       "audioStorageEmpty": "Aucun fichier audio stocké",
       "clearAllAudio": "Supprimer tous les fichiers audio",
-      "clearAllAudioConfirm": "Supprimer tous les fichiers audio stockés ? Cette action est irréversible."
+      "clearAllAudioConfirm": "Supprimer tous les fichiers audio stockés ? Cette action est irréversible.",
+      "compressAllAudio": "Compresser tout l’audio",
+      "compressingAllAudio": "Compression...",
+      "compressAllAudioComplete": "Audio compressé",
+      "compressAllAudioCompleteDescription": "{{count}} fichiers compressés.",
+      "compressAllAudioFailed": "Échec de la compression audio",
+      "noUncompressedAudio": "Aucun audio non compressé"
     },
     "prompts": {
       "description": "Affichez, personnalisez et testez le prompt système unifié qui gère la correction du texte et la détection des instructions",
@@ -2116,7 +2122,13 @@
       "mergeAudioConfirmTitle": "Fusionner l’audio enregistré ?",
       "mergeAudioConfirmDescription": "Cela remplacera les fichiers audio enregistrés séparément par un seul fichier WebM compressé. Cette action est irréversible.",
       "mergeAudio": "Fusionner l’audio",
-      "mergingAudio": "Fusion de l’audio..."
+      "mergingAudio": "Fusion de l’audio...",
+      "manageSavedAudio": "Gérer l’audio enregistré",
+      "executeAudioAction": "Exécuter",
+      "executingAudioAction": "Exécution...",
+      "compressingAudio": "Compression de l’audio...",
+      "mergeAndCompressAudio": "Fusionner et compresser l’audio",
+      "audioMergedAndCompressed": "Audio fusionné et compressé"
     },
     "bulkExport": {
       "select": "Select",
