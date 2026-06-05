@@ -43,6 +43,50 @@ function buildFolderReorderPlan(existingIds, requestedIds) {
   return normalizedRequestedIds.map((id, sortOrder) => ({ id, sortOrder }));
 }
 
+function serializeJsonColumn(value) {
+  if (value == null) return null;
+  if (typeof value === "string") return value;
+  return JSON.stringify(value);
+}
+
+function buildSaveTranscriptionInsert(
+  text,
+  rawText = null,
+  {
+    status = "completed",
+    errorMessage = null,
+    errorCode = null,
+    clientTranscriptionId = randomUUID(),
+    provider = null,
+    model = null,
+    language = null,
+    audioDurationMs = null,
+    warning = null,
+    partial = false,
+    processingMetadata = null,
+  } = {}
+) {
+  return {
+    sql:
+      "INSERT INTO transcriptions (text, raw_text, status, error_message, error_code, client_transcription_id, provider, model, language, audio_duration_ms, warning, partial, processing_metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    values: [
+      text,
+      rawText,
+      status,
+      errorMessage,
+      errorCode,
+      clientTranscriptionId,
+      provider,
+      model,
+      language,
+      audioDurationMs,
+      warning,
+      partial ? 1 : 0,
+      serializeJsonColumn(processingMetadata),
+    ],
+  };
+}
+
 const DEFAULT_NOTE_ACTIONS = [
   {
     key: "notes.actions.builtin.meetingMinutes",
@@ -148,6 +192,26 @@ class DatabaseManager {
       }
       try {
         this.db.exec("ALTER TABLE transcriptions ADD COLUMN error_code TEXT");
+      } catch (err) {
+        if (!err.message.includes("duplicate column")) throw err;
+      }
+      try {
+        this.db.exec("ALTER TABLE transcriptions ADD COLUMN language TEXT");
+      } catch (err) {
+        if (!err.message.includes("duplicate column")) throw err;
+      }
+      try {
+        this.db.exec("ALTER TABLE transcriptions ADD COLUMN warning TEXT");
+      } catch (err) {
+        if (!err.message.includes("duplicate column")) throw err;
+      }
+      try {
+        this.db.exec("ALTER TABLE transcriptions ADD COLUMN partial INTEGER NOT NULL DEFAULT 0");
+      } catch (err) {
+        if (!err.message.includes("duplicate column")) throw err;
+      }
+      try {
+        this.db.exec("ALTER TABLE transcriptions ADD COLUMN processing_metadata TEXT");
       } catch (err) {
         if (!err.message.includes("duplicate column")) throw err;
       }
@@ -687,28 +751,15 @@ class DatabaseManager {
   saveTranscription(
     text,
     rawText = null,
-    {
-      status = "completed",
-      errorMessage = null,
-      errorCode = null,
-      clientTranscriptionId = randomUUID(),
-    } = {}
+    options = {}
   ) {
     try {
       if (!this.db) {
         throw new Error("Database not initialized");
       }
-      const stmt = this.db.prepare(
-        "INSERT INTO transcriptions (text, raw_text, status, error_message, error_code, client_transcription_id) VALUES (?, ?, ?, ?, ?, ?)"
-      );
-      const result = stmt.run(
-        text,
-        rawText,
-        status,
-        errorMessage,
-        errorCode,
-        clientTranscriptionId
-      );
+      const insert = buildSaveTranscriptionInsert(text, rawText, options);
+      const stmt = this.db.prepare(insert.sql);
+      const result = stmt.run(...insert.values);
 
       const fetchStmt = this.db.prepare("SELECT * FROM transcriptions WHERE id = ?");
       const transcription = fetchStmt.get(result.lastInsertRowid);
@@ -3204,3 +3255,4 @@ class DatabaseManager {
 module.exports = DatabaseManager;
 module.exports.getNoteOrderByClause = getNoteOrderByClause;
 module.exports.buildFolderReorderPlan = buildFolderReorderPlan;
+module.exports.buildSaveTranscriptionInsert = buildSaveTranscriptionInsert;

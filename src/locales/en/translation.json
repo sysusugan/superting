@@ -2829,6 +2829,7 @@
     "listening": "Listening...",
     "polishing": "Polishing...",
     "ready": "Ready",
+    "usingOriginal": "Using original",
     "copy": "Copy",
     "copied": "Copied",
     "waitingForInput": "Say something..."

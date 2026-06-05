@@ -133,7 +133,10 @@ export const useAudioRecording = (toast, options = {}) => {
           }
 
           setTranscript(result.text);
-          window.electronAPI?.completeDictationPreview?.({ text: result.text });
+          window.electronAPI?.completeDictationPreview?.({
+            text: result.text,
+            warning: result.warning,
+          });
 
           const isStreaming = result.source?.includes("streaming");
           const { autoPasteEnabled, keepTranscriptionInClipboard } = getSettings();
@@ -160,6 +163,13 @@ export const useAudioRecording = (toast, options = {}) => {
 
           audioManagerRef.current.saveTranscription(result.text, result.rawText ?? result.text, {
             clientTranscriptionId: result.clientTranscriptionId,
+            provider: result.provider,
+            model: result.model,
+            language: result.language,
+            audioDurationMs: result.audioDurationMs,
+            warning: result.warning,
+            partial: result.partial,
+            processingMetadata: result.timings,
           });
 
           if (result.source === "openai" && getSettings().useLocalWhisper) {

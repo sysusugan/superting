@@ -813,9 +813,12 @@ class WindowManager {
     });
   }
 
-  completeTranscriptionPreview(text) {
+  completeTranscriptionPreview(text, options = {}) {
     if (!this.transcriptionPreviewWindow || this.transcriptionPreviewWindow.isDestroyed()) return;
-    this.transcriptionPreviewWindow.webContents.send("preview-result", { text });
+    this.transcriptionPreviewWindow.webContents.send("preview-result", {
+      text,
+      warning: options.warning || null,
+    });
     this.transcriptionPreviewWindow.showInactive();
     WindowPositionUtil.setupAlwaysOnTop(this.transcriptionPreviewWindow);
   }

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { getPreviewPhaseForResult, getPreviewStatusKey } from "../utils/transcriptionPreviewState";
 
-type PreviewPhase = "listening" | "live" | "cleanup" | "final";
+type PreviewPhase = "listening" | "live" | "cleanup" | "fallback" | "final";
 
 const FINAL_HIDE_DURATION_MS = 4000;
 const COPIED_RESET_MS = 1400;
@@ -68,7 +69,7 @@ export default function TranscriptionPreviewOverlay() {
   }, [phase]);
 
   const showFinalResult = useCallback(
-    (text: string) => {
+    (text: string, nextPhase: Extract<PreviewPhase, "fallback" | "final"> = "final") => {
       const trimmed = text.trim();
       if (!trimmed) {
         window.electronAPI?.hideDictationPreview?.();
@@ -77,7 +78,7 @@ export default function TranscriptionPreviewOverlay() {
 
       clearLifecycleTimers();
       setFinalText(trimmed);
-      setPhase("final");
+      setPhase(nextPhase);
       setCopied(false);
       setIsVisible(true);
       startHideTimer(FINAL_HIDE_DURATION_MS);
@@ -160,7 +161,7 @@ export default function TranscriptionPreviewOverlay() {
         return;
       }
 
-      showFinalResult(nextText);
+      showFinalResult(nextText, getPreviewPhaseForResult(payload));
     });
 
     const handlePreviewHide = window.electronAPI?.onPreviewHide?.(() => {
@@ -222,11 +223,9 @@ export default function TranscriptionPreviewOverlay() {
   }
 
   const statusLabel =
-    phase === "final"
-      ? t("transcriptionPreview.ready", { defaultValue: "Ready" })
-      : phase === "cleanup"
-        ? t("transcriptionPreview.polishing", { defaultValue: "Polishing..." })
-        : t("transcriptionPreview.listening", { defaultValue: "Listening..." });
+    phase === "live"
+      ? t("transcriptionPreview.listening")
+      : t(getPreviewStatusKey(phase as PreviewPhase));
 
   return (
     <div className="meeting-notification-window h-full w-full bg-transparent p-2">
@@ -236,7 +235,7 @@ export default function TranscriptionPreviewOverlay() {
           "relative overflow-hidden rounded-md border bg-background/95 p-3",
           "shadow-[0_8px_24px_rgba(0,0,0,0.14)]",
           "dark:bg-surface-2/92",
-          phase === "final"
+          phase === "final" || phase === "fallback"
             ? "border-emerald-500/18 dark:border-emerald-500/20"
             : phase === "cleanup"
               ? "border-accent/22 dark:border-accent/25"
@@ -249,7 +248,7 @@ export default function TranscriptionPreviewOverlay() {
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 min-w-0">
-            {phase === "final" ? (
+            {phase === "final" || phase === "fallback" ? (
               <Check className="h-3.5 w-3.5 shrink-0 text-emerald-500/70" />
             ) : phase === "cleanup" ? (
               <div className="flex items-end gap-[2px] shrink-0 h-3.5">
@@ -315,7 +314,7 @@ export default function TranscriptionPreviewOverlay() {
               ref={textRef}
               className={[
                 "preview-text-scroll rounded-lg border px-2.5 py-2 max-h-[220px] overflow-y-auto",
-                phase === "final"
+                phase === "final" || phase === "fallback"
                   ? "border-emerald-500/10 bg-emerald-500/[0.03]"
                   : phase === "cleanup"
                     ? "border-accent/12 bg-accent/[0.03]"

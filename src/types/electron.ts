@@ -29,6 +29,10 @@ export interface TranscriptionItem {
   audio_duration_ms: number | null;
   provider: string | null;
   model: string | null;
+  language: string | null;
+  warning: string | null;
+  partial: number;
+  processing_metadata: string | null;
   status: TranscriptionStatus;
   error_message: string | null;
   error_code: TranscriptionErrorCode;
@@ -526,6 +530,13 @@ declare global {
           errorMessage?: string | null;
           errorCode?: TranscriptionErrorCode;
           clientTranscriptionId?: string;
+          provider?: string | null;
+          model?: string | null;
+          language?: string | null;
+          audioDurationMs?: number | null;
+          warning?: string | null;
+          partial?: boolean;
+          processingMetadata?: Record<string, unknown> | string | null;
         }
       ) => Promise<{ id: number; success: boolean; transcription?: TranscriptionItem }>;
       getTranscriptions: (limit?: number) => Promise<TranscriptionItem[]>;
@@ -1898,7 +1909,9 @@ declare global {
       onPreviewText?: (callback: (text: string) => void) => () => void;
       onPreviewAppend?: (callback: (text: string) => void) => () => void;
       onPreviewHold?: (callback: (payload: { showCleanup: boolean }) => void) => () => void;
-      onPreviewResult?: (callback: (payload: { text: string }) => void) => () => void;
+      onPreviewResult?: (
+        callback: (payload: { text: string; warning?: string | null }) => void
+      ) => () => void;
       onPreviewHide?: (callback: () => void) => () => void;
       startDictationPreview?: (opts: {
         provider: string;
@@ -1907,7 +1920,10 @@ declare global {
       }) => Promise<{ success: boolean }>;
       stopDictationPreview?: (opts?: { showCleanup?: boolean }) => Promise<{ success: boolean }>;
       dismissDictationPreview?: () => Promise<{ success: boolean }>;
-      completeDictationPreview?: (payload: { text?: string }) => Promise<{ success: boolean }>;
+      completeDictationPreview?: (payload: {
+        text?: string;
+        warning?: string | null;
+      }) => Promise<{ success: boolean }>;
       hideDictationPreview?: () => Promise<{ success: boolean }>;
       resizeTranscriptionPreviewWindow?: (
         width: number,

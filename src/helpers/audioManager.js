@@ -15,6 +15,7 @@ import { detectAgentName } from "../config/agentDetection";
 import { resolvePrompt } from "../config/prompts";
 import { buildDictionaryPrompt } from "../config/dictionaryPrompt.js";
 import { syncService } from "../services/SyncService.js";
+import { normalizeDictationResult, resolveStreamingDictationText } from "./dictationFlowResult";
 
 const REASONING_CACHE_TTL = 30000; // 30 seconds
 const REALTIME_MODELS = new Set(["gpt-4o-mini-transcribe", "gpt-4o-transcribe"]);
@@ -121,6 +122,7 @@ class AudioManager {
     this.onError = null;
     this.onTranscriptionComplete = null;
     this.onPartialTranscript = null;
+    this.lastProcessingWarning = null;
     this.cachedApiKey = null;
     this.cachedApiKeyProvider = null;
 
@@ -607,7 +609,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         model: activeModel || null,
       };
 
-      this.onTranscriptionComplete?.(result);
+      const normalizedResult = normalizeDictationResult(result, {
+        provider: this.lastAudioMetadata.provider,
+        model: this.lastAudioMetadata.model,
+        language: getBaseLanguageCode(settings.preferredLanguage),
+        durationSeconds: metadata?.durationSeconds,
+      });
+
+      this.onTranscriptionComplete?.(normalizedResult);
 
       if (result?.source === "openwhispr") {
         window.dispatchEvent(new Event("usage-changed"));
@@ -718,7 +727,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
 
         if (text !== null && text !== undefined) {
-          return { success: true, text: text || result.text, rawText, source: "local", timings };
+          return {
+            success: true,
+            text: text || result.text,
+            rawText,
+            source: "local",
+            timings,
+            warning: this.lastProcessingWarning,
+          };
         } else {
           throw new Error("No text transcribed");
         }
@@ -793,6 +809,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             rawText,
             source: "local-parakeet",
             timings,
+            warning: this.lastProcessingWarning,
           };
         } else {
           throw new Error("No text transcribed");
@@ -1023,6 +1040,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
   }
 
   async processTranscription(text, source) {
+    this.lastProcessingWarning = null;
     const normalizedText = typeof text === "string" ? text.trim() : "";
 
     if (!normalizedText) {
@@ -1112,6 +1130,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           fallbackToCleanup: true,
         });
         logger.warn("Reasoning failed", { source, error: error.message }, "notes");
+        this.lastProcessingWarning = "cleanup_failed";
       }
     }
 
@@ -1317,61 +1336,73 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
     const rawText = result.text;
     let processedText = result.text;
+    let processingWarning = null;
     if (processedText && !this.skipReasoning) {
       const reasoningStart = performance.now();
-      const agentName = localStorage.getItem("agentName") || null;
-      const route = resolveReasoningRoute(processedText, settings, agentName);
-      const cleanupCloudMode = settings.cleanupCloudMode || "openwhispr";
+      try {
+        const agentName = localStorage.getItem("agentName") || null;
+        const route = resolveReasoningRoute(processedText, settings, agentName);
+        const cleanupCloudMode = settings.cleanupCloudMode || "openwhispr";
 
-      if (route.kind === "agent") {
-        const reasoned = await this.processWithReasoningModel(
-          processedText,
-          route.model,
-          agentName,
-          route.config
-        );
-        if (reasoned) processedText = reasoned;
-      } else if (route.kind === "cleanup" && cleanupCloudMode === "openwhispr") {
-        const reasonResult = await withSessionRefresh(async () => {
-          const res = await window.electronAPI.cloudReason(processedText, {
-            agentName,
-            customDictionary: settings.customDictionary,
-            customPrompt: this.getCustomPrompt(),
-            language: settings.preferredLanguage || "auto",
-            locale: settings.uiLanguage || "en",
-            sttProvider: result.sttProvider,
-            sttModel: result.sttModel,
-            sttProcessingMs: result.sttProcessingMs,
-            sttWordCount: result.sttWordCount,
-            sttLanguage: result.sttLanguage,
-            audioDurationMs: result.audioDurationMs,
-            audioSizeBytes,
-            audioFormat,
-          });
-          if (!res.success) {
-            const err = new Error(res.error || "Cloud reasoning failed");
-            err.code = res.code;
-            throw err;
-          }
-          return res;
-        });
-
-        if (reasonResult.success) {
-          processedText = reasonResult.text;
-        }
-      } else if (route.kind === "cleanup") {
-        const effectiveModel = getEffectiveCleanupModel();
-        if (effectiveModel) {
+        if (route.kind === "agent") {
           const reasoned = await this.processWithReasoningModel(
             processedText,
-            effectiveModel,
+            route.model,
             agentName,
             route.config
           );
           if (reasoned) processedText = reasoned;
+        } else if (route.kind === "cleanup" && cleanupCloudMode === "openwhispr") {
+          const reasonResult = await withSessionRefresh(async () => {
+            const res = await window.electronAPI.cloudReason(processedText, {
+              agentName,
+              customDictionary: settings.customDictionary,
+              customPrompt: this.getCustomPrompt(),
+              language: settings.preferredLanguage || "auto",
+              locale: settings.uiLanguage || "en",
+              sttProvider: result.sttProvider,
+              sttModel: result.sttModel,
+              sttProcessingMs: result.sttProcessingMs,
+              sttWordCount: result.sttWordCount,
+              sttLanguage: result.sttLanguage,
+              audioDurationMs: result.audioDurationMs,
+              audioSizeBytes,
+              audioFormat,
+            });
+            if (!res.success) {
+              const err = new Error(res.error || "Cloud reasoning failed");
+              err.code = res.code;
+              throw err;
+            }
+            return res;
+          });
+
+          if (reasonResult.success) {
+            processedText = reasonResult.text;
+          }
+        } else if (route.kind === "cleanup") {
+          const effectiveModel = getEffectiveCleanupModel();
+          if (effectiveModel) {
+            const reasoned = await this.processWithReasoningModel(
+              processedText,
+              effectiveModel,
+              agentName,
+              route.config
+            );
+            if (reasoned) processedText = reasoned;
+          }
         }
+      } catch (reasonError) {
+        processingWarning = "cleanup_failed";
+        processedText = rawText;
+        logger.error(
+          "OpenWhispr Cloud reasoning failed, using raw text",
+          { error: reasonError.message },
+          "transcription"
+        );
+      } finally {
+        timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
       }
-      timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
     }
 
     return {
@@ -1384,6 +1415,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       wordsUsed: result.wordsUsed,
       wordsRemaining: result.wordsRemaining,
       clientTranscriptionId: result.clientTranscriptionId,
+      warning: processingWarning,
     };
   }
 
@@ -1526,7 +1558,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
 
           const source = (await this.isReasoningAvailable()) ? "mistral-reasoned" : "mistral";
-          return { success: true, text, rawText, source, timings };
+          return { success: true, text, rawText, source, timings, warning: this.lastProcessingWarning };
         }
 
         throw new Error("No text transcribed - Mistral response was empty");
@@ -1678,7 +1710,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           },
           "transcription"
         );
-        return { success: true, text, rawText, source, timings };
+        return { success: true, text, rawText, source, timings, warning: this.lastProcessingWarning };
       } else {
         // Log at info level so it shows without debug mode
         logger.info(
@@ -1724,7 +1756,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           if (result.success && result.text) {
             const text = await this.processTranscription(result.text, "local-fallback");
             if (text) {
-              return { success: true, text, source: "local-fallback" };
+              return {
+                success: true,
+                text,
+                rawText: result.text,
+                source: "local-fallback",
+                warning: this.lastProcessingWarning,
+              };
             }
           }
           throw error;
@@ -1932,7 +1970,20 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     }
   }
 
-  async saveTranscription(text, rawText = null, { clientTranscriptionId } = {}) {
+  async saveTranscription(
+    text,
+    rawText = null,
+    {
+      clientTranscriptionId,
+      provider,
+      model,
+      language,
+      audioDurationMs,
+      warning,
+      partial,
+      processingMetadata,
+    } = {}
+  ) {
     if (!getSettings().dataRetentionEnabled) {
       logger.debug("Skipping transcription save — data retention disabled", {}, "audio");
       this.lastAudioBlob = null;
@@ -1943,6 +1994,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     try {
       const result = await window.electronAPI.saveTranscription(text, rawText, {
         clientTranscriptionId,
+        provider: provider ?? this.lastAudioMetadata?.provider ?? null,
+        model: model ?? this.lastAudioMetadata?.model ?? null,
+        language: language ?? null,
+        audioDurationMs: audioDurationMs ?? this.lastAudioMetadata?.durationMs ?? null,
+        warning: warning ?? null,
+        partial: Boolean(partial),
+        processingMetadata: processingMetadata ?? null,
       });
       if (result?.id) syncService.debouncedPush("transcription", result.id);
 
@@ -2480,23 +2538,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     });
     const tTerminate = performance.now();
 
-    finalText = this.streamingFinalText || "";
-
-    if (!finalText && this.streamingPartialText) {
-      finalText = this.streamingPartialText;
-      logger.debug("Using partial text as fallback", { textLength: finalText.length }, "streaming");
-    }
-
-    if (!finalText && stopResult?.text) {
-      finalText = stopResult.text;
-      logger.debug(
-        "Using disconnect result text as fallback",
-        { textLength: finalText.length },
-        "streaming"
-      );
-    }
+    const streamingText = resolveStreamingDictationText({
+      finalText: this.streamingFinalText,
+      stopText: stopResult?.text,
+      partialText: this.streamingPartialText,
+    });
+    finalText = streamingText.text;
 
     this.cleanupStreamingListeners();
+    let finalRawText = streamingText.rawText;
+    let usedPartialResult = streamingText.partial;
 
     logger.info(
       "Streaming stop timing",
@@ -2519,6 +2570,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const streamingSttWordCount = finalText ? finalText.split(/\s+/).filter(Boolean).length : 0;
 
     let usedCloudReasoning = false;
+    let processingWarning = streamingText.warning;
     if (finalText && !this.skipReasoning) {
       const reasoningStart = performance.now();
       const agentName = localStorage.getItem("agentName") || null;
@@ -2600,6 +2652,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           { error: reasonError.message },
           "streaming"
         );
+        processingWarning = "cleanup_failed";
       }
     }
 
@@ -2618,6 +2671,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         });
         if (batchResult?.text) {
           finalText = batchResult.text;
+          finalRawText = batchResult.rawText || batchResult.text;
+          usedPartialResult = false;
+          processingWarning = batchResult.warning || null;
           usedBatchFallback = true;
           logger.info("Batch fallback succeeded", { textLength: finalText.length }, "streaming");
         }
@@ -2636,12 +2692,23 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         provider: `${this.getStreamingProviderName()}-streaming`,
         model: streamingSttModel || null,
       };
-      this.onTranscriptionComplete?.({
-        success: true,
-        text: finalText,
-        rawText: finalText,
-        source: `${this.getStreamingProviderName()}-streaming`,
-      });
+      const normalizedResult = normalizeDictationResult(
+        {
+          success: true,
+          text: finalText,
+          rawText: finalRawText || finalText,
+          source: `${this.getStreamingProviderName()}-streaming`,
+          warning: processingWarning,
+          partial: usedPartialResult,
+        },
+        {
+          provider: this.lastAudioMetadata.provider,
+          model: this.lastAudioMetadata.model,
+          language: streamingSttLanguage || null,
+          durationSeconds,
+        }
+      );
+      this.onTranscriptionComplete?.(normalizedResult);
 
       if (!usedBatchFallback) {
         (async () => {

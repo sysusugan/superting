@@ -2781,6 +2781,7 @@
     "listening": "Escuchando...",
     "polishing": "Corrigiendo...",
     "ready": "Listo",
+    "usingOriginal": "Usando original",
     "copy": "Copiar",
     "copied": "Copiado",
     "waitingForInput": "Di algo..."

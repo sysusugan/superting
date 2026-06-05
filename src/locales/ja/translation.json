@@ -2781,6 +2781,7 @@
     "listening": "聞き取り中...",
     "polishing": "整えています...",
     "ready": "準備完了",
+    "usingOriginal": "原文を使用",
     "copy": "コピー",
     "copied": "コピー済み",
     "waitingForInput": "何か話してください..."

@@ -6084,12 +6084,12 @@ class IPCHandlers {
       return { success: true };
     });
 
-    ipcMain.handle("complete-dictation-preview", async (_event, { text } = {}) => {
+    ipcMain.handle("complete-dictation-preview", async (_event, { text, warning } = {}) => {
       if (!dictationPreviewSessionActive) {
         return { success: true };
       }
       if (typeof text === "string" && text.trim()) {
-        this.windowManager.completeTranscriptionPreview(text);
+        this.windowManager.completeTranscriptionPreview(text, { warning });
       } else {
         resetDictationPreviewState();
         this.windowManager.hideTranscriptionPreview();
