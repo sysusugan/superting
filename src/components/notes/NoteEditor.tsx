@@ -347,6 +347,7 @@ export default function NoteEditor({
   const [isTranscriptEditing, setIsTranscriptEditing] = useState(false);
   const [isTranscriptSaving, setIsTranscriptSaving] = useState(false);
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
+  const [queuedImportTarget, setQueuedImportTarget] = useState<ImportTarget | null>(null);
   const [isImportingNote, setIsImportingNote] = useState(false);
   const [editableTranscriptText, setEditableTranscriptText] = useState("");
   const [editableTranscriptSegments, setEditableTranscriptSegments] = useState<TranscriptSegment[]>(
@@ -381,6 +382,7 @@ export default function NoteEditor({
   const findInputRef = useRef<HTMLInputElement>(null);
   const plainTranscriptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const queuedImportTargetRef = useRef<ImportTarget | null>(null);
   const replaceRequestIdRef = useRef(0);
   const displaySegmentsRef = useRef<TranscriptSegment[]>([]);
   const effectiveTranscript = selectEmbeddedChatTranscript({
@@ -1118,13 +1120,34 @@ export default function NoteEditor({
   );
 
   const handleImportInput = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       event.target.value = "";
-      if (file) setPendingImportFile(file);
+      if (!file) return;
+
+      const target = queuedImportTargetRef.current;
+      queuedImportTargetRef.current = null;
+      setQueuedImportTarget(null);
+
+      if (target === "transcript") {
+        await importTranscriptFile(file);
+        return;
+      }
+      if (target === "note") {
+        await importNoteFile(file);
+        return;
+      }
+
+      setPendingImportFile(file);
     },
-    []
+    [importNoteFile, importTranscriptFile]
   );
+
+  const openImportFilePicker = useCallback((target: ImportTarget) => {
+    queuedImportTargetRef.current = target;
+    setQueuedImportTarget(target);
+    window.requestAnimationFrame(() => importInputRef.current?.click());
+  }, []);
 
   const handleChooseImportTarget = useCallback(
     async (target: ImportTarget) => {
@@ -1690,20 +1713,43 @@ export default function NoteEditor({
               <input
                 ref={importInputRef}
                 type="file"
-                accept=".txt,.md,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                accept={
+                  queuedImportTarget === "transcript"
+                    ? ".txt,.md,.markdown,text/plain,text/markdown"
+                    : ".txt,.md,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                }
                 className="hidden"
                 onChange={handleImportInput}
               />
-              <button
-                type="button"
-                onClick={() => importInputRef.current?.click()}
-                disabled={!canImportFile}
-                className="shrink-0 h-6 w-6 inline-flex items-center justify-center rounded-md bg-foreground/4 dark:bg-white/5 text-foreground/45 dark:text-foreground/35 hover:text-foreground/70 hover:bg-foreground/8 dark:hover:bg-white/8 disabled:opacity-40 disabled:pointer-events-none transition-colors duration-150"
-                aria-label={t("notes.editor.importFile")}
-                title={t("notes.editor.importFile")}
-              >
-                <FileUp size={11} />
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    disabled={!canImportFile}
+                    className="shrink-0 h-6 w-6 inline-flex items-center justify-center rounded-md bg-foreground/4 dark:bg-white/5 text-foreground/45 dark:text-foreground/35 hover:text-foreground/70 hover:bg-foreground/8 dark:hover:bg-white/8 disabled:opacity-40 disabled:pointer-events-none transition-colors duration-150"
+                    aria-label={t("notes.editor.importFile")}
+                    title={t("notes.editor.importFile")}
+                  >
+                    <FileUp size={11} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" sideOffset={4}>
+                  <DropdownMenuItem
+                    onClick={() => openImportFilePicker("transcript")}
+                    className="text-xs gap-2"
+                  >
+                    <MessageSquareText size={13} className="text-foreground/40" />
+                    {t("notes.editor.importToTranscript")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => openImportFilePicker("note")}
+                    className="text-xs gap-2"
+                  >
+                    <AlignLeft size={13} className="text-foreground/40" />
+                    {t("notes.editor.importToNote")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {hasTranscriptEditControls && isTranscriptEditing && (
                 <div className="flex shrink-0 items-center gap-1">
                   <button
@@ -2015,7 +2061,7 @@ export default function NoteEditor({
                 </p>
                 <button
                   type="button"
-                  onClick={() => importInputRef.current?.click()}
+                  onClick={() => openImportFilePicker("transcript")}
                   disabled={!canImportFile}
                   className="mt-4 inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                 >
