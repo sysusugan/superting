@@ -82,6 +82,34 @@ test("speaker filter options are deduped by effective speaker identity", () => {
   ]);
 });
 
+test("speaker filter options ignore unresolved provisional placeholder speakers", () => {
+  const segments = [
+    { id: "seg-1", text: "first", source: "mic" as const, speaker: "you" },
+    {
+      id: "seg-2",
+      text: "second",
+      source: "system" as const,
+      speaker: "speaker_91",
+      speakerIsPlaceholder: true,
+      speakerStatus: "provisional" as const,
+    },
+    {
+      id: "seg-3",
+      text: "third",
+      source: "system" as const,
+      speaker: "speaker_0",
+      speakerStatus: "confirmed" as const,
+    },
+  ];
+
+  const options = getTranscriptSpeakerFilterOptions(segments, {}, labels);
+
+  assert.deepEqual(options, [
+    { key: "speaker:you", label: "你", colorKey: "you" },
+    { key: "speaker:speaker_0", label: "发言人 1", colorKey: "speaker_0" },
+  ]);
+});
+
 test("speaker filtering only keeps selected effective speakers", () => {
   const segments = [
     { id: "seg-1", text: "first", source: "mic" as const, speaker: "you" },

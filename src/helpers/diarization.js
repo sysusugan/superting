@@ -10,6 +10,7 @@ const { convertToWav } = require("./ffmpegUtils");
 const { getSafeTempDir } = require("./safeTempDir");
 const { applyProvisionalSpeaker, applyConfirmedSpeaker } = require("./speakerAssignmentPolicy");
 const sidecarPidFile = require("./sidecarPidFile");
+const { MAX_SPEAKER_COUNT } = require("../constants/speakerDetection.json");
 const {
   transcriptsOverlap,
   transcriptsLooselyOverlap,
@@ -440,8 +441,13 @@ class DiarizationManager {
       return deduped.map((seg) => ({ ...seg }));
     }
 
+    const cappedDiarizationSegments = this.capSpeakerClusters(
+      diarizationSegments,
+      MAX_SPEAKER_COUNT
+    );
+
     // Build speaker renumbering map (e.g., speaker_00 → speaker_0)
-    const speakerSet = new Set(diarizationSegments.map((d) => d.speaker));
+    const speakerSet = new Set(cappedDiarizationSegments.map((d) => d.speaker));
     const speakerMap = new Map();
     let idx = 0;
     for (const sp of speakerSet) {
@@ -480,7 +486,7 @@ class DiarizationManager {
         let bestOverlap = 0;
         let bestDistance = Number.POSITIVE_INFINITY;
 
-        for (const dSeg of diarizationSegments) {
+        for (const dSeg of cappedDiarizationSegments) {
           const overlap = Math.min(segEnd, dSeg.end) - Math.max(segStart, dSeg.start);
           if (overlap > bestOverlap) {
             bestOverlap = overlap;

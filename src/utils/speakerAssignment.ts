@@ -31,6 +31,12 @@ const getSpeakerNumber = (speakerId: string) => {
 const getTranscriptSpeakerFilterKey = (segment: AssignableTranscriptSegment) =>
   segment.speaker ? `speaker:${segment.speaker}` : `source:${segment.source}`;
 
+const isUnresolvedProvisionalPlaceholder = (segment: AssignableTranscriptSegment) =>
+  segment.speakerIsPlaceholder === true &&
+  segment.speakerStatus === "provisional" &&
+  !segment.speakerName &&
+  !segment.speakerLocked;
+
 const stableManualSpeakerId = (segment: AssignableTranscriptSegment) =>
   `manual_${segment.id.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 
@@ -104,6 +110,10 @@ export function getTranscriptSpeakerFilterOptions<T extends AssignableTranscript
   const byKey = new Map<string, TranscriptSpeakerFilterOption>();
 
   for (const segment of segments) {
+    if (isUnresolvedProvisionalPlaceholder(segment)) {
+      continue;
+    }
+
     const key = getTranscriptSpeakerFilterKey(segment);
     const display = getTranscriptSpeakerDisplay(segment, speakerMappings, labels);
     const option = {
