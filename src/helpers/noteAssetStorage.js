@@ -12,6 +12,7 @@ const MAX_NOTE_IMAGE_BYTES = 10 * 1024 * 1024;
 const IMAGE_MIME_TO_EXT = {
   "image/png": "png",
   "image/jpeg": "jpg",
+  "image/svg+xml": "svg",
   "image/webp": "webp",
   "image/gif": "gif",
 };
@@ -55,6 +56,23 @@ function safeOriginalName(name, ext) {
   return `${base || "image"}.${ext}`;
 }
 
+function assertSafeSvg(buffer) {
+  const text = buffer.toString("utf8");
+  if (!/<svg[\s>]/i.test(text.slice(0, 4096))) {
+    throw new Error("Invalid SVG image");
+  }
+
+  if (
+    /<script\b/i.test(text) ||
+    /<foreignObject\b/i.test(text) ||
+    /\son[a-z]+\s*=/i.test(text) ||
+    /(?:href|xlink:href)\s*=\s*["']?\s*javascript:/i.test(text) ||
+    /(?:href|xlink:href)\s*=\s*["']?\s*data:text\/html/i.test(text)
+  ) {
+    throw new Error("Unsafe SVG image");
+  }
+}
+
 function createNoteImageAsset(databaseManager, noteId, payload = {}) {
   const mimeType = normalizeImageMimeType(payload.mimeType || payload.type);
   if (!mimeType) throw new Error("Unsupported image type");
@@ -62,6 +80,7 @@ function createNoteImageAsset(databaseManager, noteId, payload = {}) {
   const buffer = Buffer.from(payload.data || []);
   if (!buffer.length) throw new Error("Image data is empty");
   if (buffer.length > MAX_NOTE_IMAGE_BYTES) throw new Error("Image is larger than 10MB");
+  if (mimeType === "image/svg+xml") assertSafeSvg(buffer);
 
   const note = databaseManager.getNote(noteId);
   if (!note) throw new Error("Note not found");

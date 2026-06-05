@@ -154,7 +154,11 @@ interface RichTextEditorProps {
 
 function getFirstImageFile(fileList?: FileList | null): File | null {
   if (!fileList) return null;
-  return Array.from(fileList).find((file) => file.type.startsWith("image/")) ?? null;
+  return (
+    Array.from(fileList).find(
+      (file) => file.type.startsWith("image/") || file.name.toLowerCase().endsWith(".svg")
+    ) ?? null
+  );
 }
 
 export function RichTextEditor({

@@ -1447,6 +1447,7 @@ class IPCHandlers {
           copyNoteAssetsForMarkdown,
           inlineNoteAssetsForHtml,
           markdownToHtml,
+          selectNoteExportContent,
         } = require("./noteAssetExport");
         const ext = format === "txt" ? "txt" : format === "pdf" ? "pdf" : "md";
         const safeName = (note.title || "Untitled").replace(/[/\\?%*:|"<>]/g, "-");
@@ -1464,7 +1465,8 @@ class IPCHandlers {
 
         let exportContent;
         if (format === "txt") {
-          exportContent = (note.content || "")
+          exportContent = selectNoteExportContent(note)
+            .replace(/<img\b[^>]*>/gi, "")
             .replace(/#{1,6}\s+/g, "")
             .replace(/[*_~`]+/g, "")
             .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
@@ -1472,14 +1474,11 @@ class IPCHandlers {
             .replace(/^>\s+/gm, "")
             .trim();
         } else {
-          exportContent = note.enhanced_content || note.content;
+          exportContent = selectNoteExportContent(note);
         }
 
         if (format === "pdf") {
-          const markdown = inlineNoteAssetsForHtml(
-            note.enhanced_content || note.content,
-            this.databaseManager
-          );
+          const markdown = inlineNoteAssetsForHtml(exportContent, this.databaseManager);
           const html = markdownToHtml(markdown, note.title);
           const tempPath = path.join(os.tmpdir(), `openwhispr-note-${Date.now()}.html`);
           const win = new BrowserWindow({

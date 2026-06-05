@@ -74,9 +74,9 @@ class MarkdownMirror {
       this._deleteStaleAssetDirs(note.id, path.join(dirPath, `${baseName}-assets`));
 
       const frontmatter = this._buildFrontmatter(note, dirName);
-      const { copyNoteAssetsForMarkdown } = require("./noteAssetExport");
+      const { copyNoteAssetsForMarkdown, selectNoteExportContent } = require("./noteAssetExport");
       const body = copyNoteAssetsForMarkdown(
-        note.enhanced_content || note.content || "",
+        selectNoteExportContent(note),
         this._databaseManager,
         newFilePath,
         baseName

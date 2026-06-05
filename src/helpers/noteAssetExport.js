@@ -9,12 +9,58 @@ function safeExportName(value) {
     .slice(0, 80);
 }
 
-function replaceMarkdownImageUrls(markdown, replacer) {
-  return String(markdown || "").replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+function safeMarkdownAlt(value) {
+  return String(value || "image").replace(/[\[\]\r\n]/g, " ").trim() || "image";
+}
+
+function decodeHtmlAttribute(value) {
+  return String(value || "")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+function readHtmlAttribute(attrs, name) {
+  const pattern = new RegExp(`\\b${name}\\s*=\\s*([\"'])(.*?)\\1`, "i");
+  const match = String(attrs || "").match(pattern);
+  return match ? decodeHtmlAttribute(match[2]) : "";
+}
+
+function hasNoteAssetImage(markdown) {
+  return isNoteAssetUrl(String(markdown || ""));
+}
+
+function replaceNoteAssetImageReferences(markdown, replacer) {
+  let content = String(markdown || "").replace(
+    /!\[([^\]]*)\]\(([^)\s]+(?:\s+"[^"]*")?)\)/g,
+    (match, alt, rawSrc) => {
+      const src = String(rawSrc || "").trim().replace(/\s+"[^"]*"$/, "");
+      if (!isNoteAssetUrl(src)) return match;
+      const nextSrc = replacer(src);
+      return nextSrc ? `![${safeMarkdownAlt(alt)}](${nextSrc})` : `![${safeMarkdownAlt(alt)}]()`;
+    }
+  );
+
+  content = content.replace(/<img\b([^>]*?)>/gi, (match, attrs) => {
+    const src = readHtmlAttribute(attrs, "src");
     if (!isNoteAssetUrl(src)) return match;
     const nextSrc = replacer(src);
-    return nextSrc ? `![${alt}](${nextSrc})` : `![${alt}]()`;
+    const alt = readHtmlAttribute(attrs, "alt");
+    return nextSrc ? `![${safeMarkdownAlt(alt)}](${nextSrc})` : `![${safeMarkdownAlt(alt)}]()`;
   });
+
+  return content;
+}
+
+function selectNoteExportContent(note) {
+  const content = String(note?.content || "");
+  const enhancedContent = String(note?.enhanced_content || "");
+  if (hasNoteAssetImage(content) && !hasNoteAssetImage(enhancedContent)) {
+    return content;
+  }
+  return enhancedContent || content;
 }
 
 function copyNoteAssetsForMarkdown(markdown, databaseManager, outputFilePath, safeBaseName) {
@@ -22,23 +68,27 @@ function copyNoteAssetsForMarkdown(markdown, databaseManager, outputFilePath, sa
   const assetsDirName = `${safeBaseName}-assets`;
   const assetsDir = path.join(outputDir, assetsDirName);
   let copied = 0;
+  const copiedByAssetId = new Map();
 
-  const content = replaceMarkdownImageUrls(markdown, (src) => {
+  const content = replaceNoteAssetImageReferences(markdown, (src) => {
     const assetId = getAssetIdFromUrl(src);
+    if (copiedByAssetId.has(assetId)) return copiedByAssetId.get(assetId);
     const assetData = readNoteAssetBuffer(databaseManager, assetId);
     if (!assetData) return "";
     fs.mkdirSync(assetsDir, { recursive: true });
     const filename = `${assetData.asset.id}-${safeExportName(assetData.asset.filename)}`;
     fs.writeFileSync(path.join(assetsDir, filename), assetData.buffer);
     copied += 1;
-    return `./${assetsDirName}/${filename}`;
+    const relativePath = `./${assetsDirName}/${filename}`;
+    copiedByAssetId.set(assetId, relativePath);
+    return relativePath;
   });
 
   return { content, assetsDir, copied };
 }
 
 function inlineNoteAssetsForHtml(markdown, databaseManager) {
-  return replaceMarkdownImageUrls(markdown, (src) => {
+  return replaceNoteAssetImageReferences(markdown, (src) => {
     const assetId = getAssetIdFromUrl(src);
     const assetData = readNoteAssetBuffer(databaseManager, assetId);
     if (!assetData) return "";
@@ -144,6 +194,8 @@ function markdownToHtml(markdown, title) {
 
 module.exports = {
   copyNoteAssetsForMarkdown,
+  hasNoteAssetImage,
   inlineNoteAssetsForHtml,
   markdownToHtml,
+  selectNoteExportContent,
 };

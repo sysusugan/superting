@@ -974,9 +974,11 @@ export default function NoteEditor({
   const handleImageUpload = useCallback(
     async (file: File) => {
       const data = await file.arrayBuffer();
+      const mimeType =
+        file.type || (file.name.toLowerCase().endsWith(".svg") ? "image/svg+xml" : "");
       const result = await window.electronAPI?.saveNoteImageAsset?.(note.id, {
         name: file.name,
-        mimeType: file.type,
+        mimeType,
         data,
       });
       if (!result?.success || !result.asset?.url) {
