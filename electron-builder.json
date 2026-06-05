@@ -10,7 +10,7 @@
     "output": "dist"
   },
   "npmRebuild": true,
-  "buildDependenciesFromSource": false,
+  "buildDependenciesFromSource": true,
   "files": [
     "main.js",
     "preload.js",
