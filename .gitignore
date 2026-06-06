@@ -176,6 +176,7 @@ public
 # Temporary folders
 tmp/
 temp/
+.playwright-mcp/
 
 # Electron specific
 out/
