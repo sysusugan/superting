@@ -1,12 +1,19 @@
-const test = require("node:test");
+const { before, test } = require("node:test");
 const assert = require("node:assert/strict");
 
-const {
-  normalizeDictationResult,
-  resolveStreamingDictationText,
-  settleStreamingStop,
-  pickDictationWarning,
-} = require("../../src/helpers/dictationFlowResult");
+let normalizeDictationResult;
+let resolveStreamingDictationText;
+let settleStreamingStop;
+let pickDictationWarning;
+
+before(async () => {
+  ({
+    normalizeDictationResult,
+    resolveStreamingDictationText,
+    settleStreamingStop,
+    pickDictationWarning,
+  } = await import("../../src/helpers/dictationFlowResult.js"));
+});
 
 test("normalizes a successful dictation result with raw and refined text", () => {
   const result = normalizeDictationResult(

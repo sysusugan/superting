@@ -5,7 +5,7 @@ function normalizeDurationMs(metadata = {}) {
   return null;
 }
 
-function normalizeDictationResult(result = {}, metadata = {}) {
+export function normalizeDictationResult(result = {}, metadata = {}) {
   const success = result.success !== false;
   const rawText = typeof result.rawText === "string" ? result.rawText.trim() : "";
   const refinedText = typeof result.text === "string" ? result.text.trim() : "";
@@ -35,7 +35,7 @@ function cleanText(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function resolveStreamingDictationText({ finalText, stopText, partialText } = {}) {
+export function resolveStreamingDictationText({ finalText, stopText, partialText } = {}) {
   const committedFinal = cleanText(finalText);
   if (committedFinal) {
     return {
@@ -78,7 +78,7 @@ function resolveStreamingDictationText({ finalText, stopText, partialText } = {}
   };
 }
 
-async function settleStreamingStop(stopProvider, { timeoutMs = 2500 } = {}) {
+export async function settleStreamingStop(stopProvider, { timeoutMs = 2500 } = {}) {
   let timeoutId;
   try {
     const result = await Promise.race([
@@ -116,15 +116,8 @@ async function settleStreamingStop(stopProvider, { timeoutMs = 2500 } = {}) {
   }
 }
 
-function pickDictationWarning(...warnings) {
+export function pickDictationWarning(...warnings) {
   const priority = ["cleanup_failed", "partial_result", "streaming_stop_timeout", "streaming_stop_failed"];
   const present = warnings.filter(Boolean);
   return priority.find((warning) => present.includes(warning)) || present[0] || null;
 }
-
-module.exports = {
-  normalizeDictationResult,
-  resolveStreamingDictationText,
-  settleStreamingStop,
-  pickDictationWarning,
-};
