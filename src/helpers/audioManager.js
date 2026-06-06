@@ -1504,12 +1504,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const isGroqEndpoint = provider === "groq" || endpoint.includes("api.groq.com");
       const MAX_PROMPT_CHARS = isGroqEndpoint ? 890 : 900;
       let dictionaryPrompt = this.getCustomDictionaryPrompt();
+      let dictionaryWarning = null;
       if (dictionaryPrompt) {
         if (dictionaryPrompt.length > MAX_PROMPT_CHARS) {
           const originalLength = dictionaryPrompt.length;
           const truncated = dictionaryPrompt.slice(0, MAX_PROMPT_CHARS);
           const lastComma = truncated.lastIndexOf(",");
           dictionaryPrompt = lastComma > 0 ? truncated.slice(0, lastComma) : truncated;
+          dictionaryWarning = "dictionary_prompt_truncated";
           logger.debug(
             "Custom dictionary prompt truncated",
             {
@@ -1563,7 +1565,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           timings.reasoningProcessingDurationMs = Math.round(performance.now() - reasoningStart);
 
           const source = (await this.isReasoningAvailable()) ? "mistral-reasoned" : "mistral";
-          return { success: true, text, rawText, source, timings, warning: this.lastProcessingWarning };
+          return {
+            success: true,
+            text,
+            rawText,
+            source,
+            timings,
+            warning: pickDictationWarning(this.lastProcessingWarning, dictionaryWarning),
+          };
         }
 
         throw new Error("No text transcribed - Mistral response was empty");
@@ -1715,7 +1724,14 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           },
           "transcription"
         );
-        return { success: true, text, rawText, source, timings, warning: this.lastProcessingWarning };
+        return {
+          success: true,
+          text,
+          rawText,
+          source,
+          timings,
+          warning: pickDictationWarning(this.lastProcessingWarning, dictionaryWarning),
+        };
       } else {
         // Log at info level so it shows without debug mode
         logger.info(

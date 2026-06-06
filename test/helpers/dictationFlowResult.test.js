@@ -1,6 +1,11 @@
 const { before, test } = require("node:test");
 const assert = require("node:assert/strict");
 
+const {
+  normalizeTranscriptionResult,
+  normalizeMeetingSegment,
+} = require("../../src/helpers/dictationFlowResultCore.cjs");
+
 let normalizeDictationResult;
 let resolveStreamingDictationText;
 let settleStreamingStop;
@@ -174,4 +179,88 @@ test("keeps the most user-visible dictation warning", () => {
   assert.equal(pickDictationWarning("partial_result", "streaming_stop_timeout"), "partial_result");
   assert.equal(pickDictationWarning(null, "streaming_stop_timeout"), "streaming_stop_timeout");
   assert.equal(pickDictationWarning("cleanup_failed", "partial_result"), "cleanup_failed");
+  assert.equal(pickDictationWarning(null, "dictionary_prompt_truncated"), "dictionary_prompt_truncated");
+  assert.equal(
+    pickDictationWarning("dictionary_prompt_truncated", "cleanup_failed"),
+    "cleanup_failed"
+  );
+});
+
+test("normalizes upload transcription results with raw display metadata", () => {
+  const result = normalizeTranscriptionResult(
+    {
+      success: true,
+      text: "Uploaded transcript",
+      provider: "openwhispr",
+      model: "cloud",
+      partial: true,
+      chunksTotal: 3,
+      chunksSucceeded: 2,
+      chunksFailed: 1,
+      warning: "upload_partial",
+    },
+    {
+      mode: "upload",
+      language: "en",
+      timings: { transcriptionProcessingDurationMs: 1200 },
+    }
+  );
+
+  assert.equal(result.mode, "upload");
+  assert.equal(result.stage, "complete");
+  assert.equal(result.rawText, "Uploaded transcript");
+  assert.equal(result.refinedText, "");
+  assert.equal(result.displayText, "Uploaded transcript");
+  assert.equal(result.text, "Uploaded transcript");
+  assert.equal(result.provider, "openwhispr");
+  assert.equal(result.model, "cloud");
+  assert.equal(result.language, "en");
+  assert.equal(result.partial, true);
+  assert.equal(result.warning, "upload_partial");
+  assert.equal(result.chunksTotal, 3);
+  assert.equal(result.chunksSucceeded, 2);
+  assert.equal(result.chunksFailed, 1);
+  assert.deepEqual(result.timings, { transcriptionProcessingDurationMs: 1200 });
+});
+
+test("normalizes retry results with refined text fallback semantics", () => {
+  const result = normalizeTranscriptionResult(
+    {
+      success: true,
+      rawText: "raw retry text",
+      text: "Clean retry text",
+      source: "groq",
+      model: "whisper-large-v3",
+    },
+    { mode: "retry", audioDurationMs: 4567 }
+  );
+
+  assert.equal(result.mode, "retry");
+  assert.equal(result.rawText, "raw retry text");
+  assert.equal(result.refinedText, "Clean retry text");
+  assert.equal(result.displayText, "Clean retry text");
+  assert.equal(result.provider, "groq");
+  assert.equal(result.model, "whisper-large-v3");
+  assert.equal(result.audioDurationMs, 4567);
+});
+
+test("normalizes meeting transcription segments without treating partials as errors", () => {
+  const partial = normalizeMeetingSegment(
+    { text: "hello", source: "mic", type: "partial", timestamp: 123 },
+    { provider: "deepgram-realtime", model: "nova-3", language: "en" }
+  );
+
+  assert.equal(partial.mode, "meeting");
+  assert.equal(partial.stage, "partial");
+  assert.equal(partial.rawText, "hello");
+  assert.equal(partial.displayText, "hello");
+  assert.equal(partial.partial, true);
+  assert.equal(partial.warning, null);
+  assert.equal(partial.provider, "deepgram-realtime");
+  assert.equal(partial.model, "nova-3");
+  assert.equal(partial.language, "en");
+
+  const retracted = normalizeMeetingSegment({ text: "stale", source: "mic", type: "retract" });
+  assert.equal(retracted.stage, "retract");
+  assert.equal(retracted.partial, false);
 });

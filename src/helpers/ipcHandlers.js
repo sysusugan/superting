@@ -47,6 +47,10 @@ const {
   combineAbortSignals,
   transcribeLocalUploadFileInChunks,
 } = require("./uploadLocalTranscriptionJob");
+const {
+  normalizeMeetingSegment,
+  normalizeTranscriptionResult,
+} = require("./dictationFlowResultCore.cjs");
 
 const STREAMING_CLIENT_BY_PROVIDER = {
   "openai-realtime": OpenAIRealtimeStreaming,
@@ -1939,7 +1943,12 @@ class IPCHandlers {
                 }
               ),
           });
-          return result;
+          return normalizeTranscriptionResult(result, {
+            mode: "upload",
+            provider,
+            model,
+            language,
+          });
         });
       } catch (error) {
         debugLogger.error("Audio file transcription error", { error: error.message });
@@ -4224,15 +4233,46 @@ class IPCHandlers {
           return { success: false, error: "No transcription engine available" };
         }
 
-        this.databaseManager.updateTranscriptionText(id, result.text, result.text);
+        const retryProvider =
+          result.source ||
+          result.provider ||
+          (settings?.useLocalWhisper
+            ? settings.localTranscriptionProvider === "nvidia"
+              ? "nvidia"
+              : "whisper"
+            : settings?.cloudTranscriptionMode === "openwhispr"
+              ? "openwhispr"
+              : settings?.cloudTranscriptionProvider || "openai");
+        const retryModel =
+          result.model ||
+          (settings?.useLocalWhisper
+            ? settings.localTranscriptionProvider === "nvidia"
+              ? settings.parakeetModel || process.env.PARAKEET_MODEL || "parakeet-tdt-0.6b-v3"
+              : settings.whisperModel
+            : settings?.cloudTranscriptionMode === "openwhispr"
+              ? "cloud"
+              : this._resolveByokModel(
+                  settings?.cloudTranscriptionProvider || "openai",
+                  settings?.cloudTranscriptionModel
+                ));
+        const normalizedResult = normalizeTranscriptionResult(result, {
+          mode: "retry",
+          provider: retryProvider,
+          model: retryModel,
+          language,
+        });
+
+        this.databaseManager.updateTranscriptionText(
+          id,
+          normalizedResult.displayText,
+          normalizedResult.rawText
+        );
         this.databaseManager.updateTranscriptionStatus(id, "completed");
-        const providerName = result.source || "local";
-        const modelName = result.model || null;
         this.databaseManager.updateTranscriptionAudio(id, {
           hasAudio: 1,
-          audioDurationMs: null,
-          provider: providerName,
-          model: modelName,
+          audioDurationMs: normalizedResult.audioDurationMs,
+          provider: normalizedResult.provider,
+          model: normalizedResult.model,
         });
         const updated = this.databaseManager.getTranscriptionById(id);
         if (updated) {
@@ -4377,6 +4417,15 @@ class IPCHandlers {
       });
     };
 
+    const getMeetingSegmentMetadata = () => ({
+      provider: meetingLocalMode ? meetingLocalProvider : meetingRealtimeProvider,
+      model: meetingLocalMode ? meetingLocalModel : meetingRealtimeModel,
+      language: meetingLocalMode ? meetingLocalLanguage : meetingRealtimeLanguage,
+    });
+
+    const buildMeetingSegment = (segment) =>
+      normalizeMeetingSegment(segment, getMeetingSegmentMetadata());
+
     const sendMeetingFinalSegment = ({
       text,
       source,
@@ -4392,12 +4441,15 @@ class IPCHandlers {
       storeMeetingDiarizationSegment(text, source, timestamp, micSuppression);
 
       if (send) {
-        send("meeting-transcription-segment", {
-          text,
-          source,
-          type: "final",
-          timestamp,
-        });
+        send(
+          "meeting-transcription-segment",
+          buildMeetingSegment({
+            text,
+            source,
+            type: "final",
+            timestamp,
+          })
+        );
       }
     };
 
@@ -4601,11 +4653,17 @@ class IPCHandlers {
 
       streaming.onPartialTranscript = (text) => {
         if (source === "mic" && meetingEchoLeakDetector.isMicProbablyRenderBleed()) {
-          send("meeting-transcription-segment", { text: "", source, type: "partial" });
+          send(
+            "meeting-transcription-segment",
+            buildMeetingSegment({ text: "", source, type: "partial" })
+          );
           return;
         }
 
-        send("meeting-transcription-segment", { text, source, type: "partial" });
+        send(
+          "meeting-transcription-segment",
+          buildMeetingSegment({ text, source, type: "partial" })
+        );
       };
       streaming.onFinalTranscript = (text, timestamp) => {
         const segments = streaming.completedSegments;
@@ -4620,7 +4678,10 @@ class IPCHandlers {
               averageResidual: micSuppression.averageResidual?.toFixed(3),
               text: latestSegment.slice(0, 80),
             });
-            send("meeting-transcription-segment", { text: "", source, type: "partial" });
+            send(
+              "meeting-transcription-segment",
+              buildMeetingSegment({ text: "", source, type: "partial" })
+            );
             return;
           }
 
@@ -4630,7 +4691,10 @@ class IPCHandlers {
               averageCorrelation: micSuppression.averageCorrelation?.toFixed(3),
               averageResidual: micSuppression.averageResidual?.toFixed(3),
             });
-            send("meeting-transcription-segment", { text: "", source, type: "partial" });
+            send(
+              "meeting-transcription-segment",
+              buildMeetingSegment({ text: "", source, type: "partial" })
+            );
             return;
           }
         }
@@ -4646,12 +4710,15 @@ class IPCHandlers {
 
           const retracted = removeRacingMicEntriesFor(latestSegment, timestamp);
           for (const stale of retracted) {
-            send("meeting-transcription-segment", {
-              text: stale.text,
-              source: "mic",
-              type: "retract",
-              timestamp: stale.timestamp,
-            });
+            send(
+              "meeting-transcription-segment",
+              buildMeetingSegment({
+                text: stale.text,
+                source: "mic",
+                type: "retract",
+                timestamp: stale.timestamp,
+              })
+            );
           }
         }
 
@@ -4672,7 +4739,10 @@ class IPCHandlers {
             reason: micSuppression?.reason,
             hasBleedEvidence: micSuppression?.hasBleedEvidence,
           });
-          send("meeting-transcription-segment", { text: "", source, type: "partial" });
+          send(
+            "meeting-transcription-segment",
+            buildMeetingSegment({ text: "", source, type: "partial" })
+          );
           queuePendingMicFinal({
             text: latestSegment,
             timestamp,
@@ -4856,6 +4926,9 @@ class IPCHandlers {
         language: options.language,
         preconfigured: options.mode !== "byok",
       };
+      meetingRealtimeProvider = options.provider || "openai-realtime";
+      meetingRealtimeModel = options.model || null;
+      meetingRealtimeLanguage = options.language || null;
       const { mode: systemAudioMode } = await getMeetingSystemAudioPlan();
       let pairs;
       if (systemAudioMode !== "unsupported") {
@@ -4934,6 +5007,9 @@ class IPCHandlers {
     let meetingLocalProvider = null;
     let meetingLocalModel = null;
     let meetingLocalLanguage = null;
+    let meetingRealtimeProvider = null;
+    let meetingRealtimeModel = null;
+    let meetingRealtimeLanguage = null;
     let meetingLocalTranscribing = false;
     let meetingPendingMicChunks = [];
     let meetingPendingMicFinals = [];
@@ -5407,12 +5483,15 @@ class IPCHandlers {
             const retracted = removeRacingMicEntriesFor(text, segTimestamp);
             for (const stale of retracted) {
               if (meetingLocalWin && !meetingLocalWin.isDestroyed()) {
-                meetingLocalWin.webContents.send("meeting-transcription-segment", {
-                  text: stale.text,
-                  source: "mic",
-                  type: "retract",
-                  timestamp: stale.timestamp,
-                });
+                meetingLocalWin.webContents.send(
+                  "meeting-transcription-segment",
+                  buildMeetingSegment({
+                    text: stale.text,
+                    source: "mic",
+                    type: "retract",
+                    timestamp: stale.timestamp,
+                  })
+                );
               }
             }
           }
@@ -5516,6 +5595,9 @@ class IPCHandlers {
       meetingLocalProvider = null;
       meetingLocalModel = null;
       meetingLocalLanguage = null;
+      meetingRealtimeProvider = null;
+      meetingRealtimeModel = null;
+      meetingRealtimeLanguage = null;
       meetingLocalTranscribing = false;
       meetingPendingMicChunks = [];
       resetPendingMicFinals();
@@ -6817,7 +6899,10 @@ class IPCHandlers {
               jobId,
               onProgress: (payload) => event.sender.send("upload-transcription-progress", payload),
             });
-            return { success: true, text, ...(warning ? { warning } : {}) };
+            return normalizeTranscriptionResult(
+              { success: true, text, ...(warning ? { warning, partial: true } : {}) },
+              { mode: "upload", provider: "openwhispr", model: "cloud" }
+            );
           }
 
           throwIfAborted(signal);
@@ -6836,7 +6921,20 @@ class IPCHandlers {
           const data = await postMultipart(url, body, boundary, authHeader, { signal });
           const result = interpretTranscribeResponse(data);
 
-          return { success: true, text: result.text };
+          return normalizeTranscriptionResult(
+            {
+              success: true,
+              text: result.text,
+              provider: result.sttProvider,
+              model: result.sttModel,
+              audioDurationMs: result.audioDurationMs,
+            },
+            {
+              mode: "upload",
+              provider: result.sttProvider || "openwhispr",
+              model: result.sttModel || "cloud",
+            }
+          );
         });
       } catch (error) {
         debugLogger.error("Cloud audio file transcription error", { error: error.message });
@@ -6902,7 +7000,10 @@ class IPCHandlers {
               );
             }
 
-            return { success: true, text: data.data.text };
+            return normalizeTranscriptionResult(
+              { success: true, text: data.data.text },
+              { mode: "upload", provider: "byok", model: model || "whisper-1" }
+            );
           });
         } catch (error) {
           debugLogger.error("BYOK audio file transcription error", { error: error.message });
