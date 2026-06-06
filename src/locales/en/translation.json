@@ -166,7 +166,11 @@
     "unknownError": "An unknown error occurred",
     "copy": "Copy",
     "copied": "Copied",
-    "done": "Done"
+    "done": "Done",
+    "confirm": "Confirm",
+    "ok": "OK",
+    "copyError": "Copy error",
+    "copyCommand": "Copy command"
   },
   "onboarding": {
     "steps": {
@@ -2865,5 +2869,13 @@
       "you": "You",
       "others": "Others"
     }
+  },
+  "meetingNotification": {
+    "detectedTitle": "Meeting Detected",
+    "detectedBody": "It sounds like you're in a meeting. Want to take notes?",
+    "upcomingTitle": "Upcoming Meeting",
+    "upcomingBody": "Your meeting is starting. Want to take notes?",
+    "startRecording": "Start Recording",
+    "newNoteTitle": "New note"
   }
 }

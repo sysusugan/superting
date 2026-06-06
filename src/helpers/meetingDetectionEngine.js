@@ -1,5 +1,6 @@
 const { BrowserWindow } = require("electron");
 const debugLogger = require("./debugLogger");
+const { i18nMain } = require("./i18nMain");
 
 const IMMINENT_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -105,17 +106,15 @@ class MeetingDetectionEngine {
   }
 
   _showPrompt(detectionId, source, key, data, imminentEvent) {
-    let title, body;
+    const title = imminentEvent?.summary || undefined;
+    const titleKey = imminentEvent
+      ? "meetingNotification.upcomingTitle"
+      : "meetingNotification.detectedTitle";
+    const bodyKey = imminentEvent
+      ? "meetingNotification.upcomingBody"
+      : "meetingNotification.detectedBody";
 
-    if (imminentEvent) {
-      title = imminentEvent.summary || "Upcoming Meeting";
-      body = "Your meeting is starting. Want to take notes?";
-    } else {
-      title = "Meeting Detected";
-      body = "It sounds like you're in a meeting. Want to take notes?";
-    }
-
-    debugLogger.info("Showing notification", { detectionId, title }, "meeting");
+    debugLogger.info("Showing notification", { detectionId, title: title || titleKey }, "meeting");
 
     let event;
     if (imminentEvent) {
@@ -124,7 +123,7 @@ class MeetingDetectionEngine {
       event = {
         id: `detected-${Date.now()}`,
         calendar_id: "__detected__",
-        summary: "New note",
+        summary: this._defaultMeetingNoteTitle(),
         start_time: new Date().toISOString(),
         end_time: new Date(Date.now() + 3600000).toISOString(),
         is_all_day: 0,
@@ -148,7 +147,8 @@ class MeetingDetectionEngine {
         source,
         key,
         title,
-        body,
+        titleKey,
+        bodyKey,
         event,
       });
     } else {
@@ -169,7 +169,7 @@ class MeetingDetectionEngine {
       const detection = this.activeDetections.get(detectionId);
 
       if (action === "start" && detection) {
-        const eventSummary = detection.event?.summary || "New note";
+        const eventSummary = detection.event?.summary || this._defaultMeetingNoteTitle();
 
         const noteResult = this.databaseManager.saveNote(eventSummary, "", "meeting");
         const meetingsFolder = this.databaseManager.getMeetingsFolder();
@@ -246,7 +246,7 @@ class MeetingDetectionEngine {
     const event = {
       id: `manual-${Date.now()}`,
       calendar_id: "__manual__",
-      summary: "New note",
+      summary: this._defaultMeetingNoteTitle(),
       start_time: new Date().toISOString(),
       end_time: new Date(Date.now() + 3600000).toISOString(),
       is_all_day: 0,
@@ -291,7 +291,11 @@ class MeetingDetectionEngine {
       return;
     }
 
-    const noteResult = this.databaseManager.saveNote(calEvent.summary || "New note", "", "meeting");
+    const noteResult = this.databaseManager.saveNote(
+      calEvent.summary || this._defaultMeetingNoteTitle(),
+      "",
+      "meeting"
+    );
     const meetingsFolder = this.databaseManager.getMeetingsFolder();
 
     if (!noteResult?.note?.id || !meetingsFolder?.id) {
@@ -444,6 +448,10 @@ class MeetingDetectionEngine {
         win.webContents.send(channel, data);
       }
     });
+  }
+
+  _defaultMeetingNoteTitle() {
+    return i18nMain.t("meetingNotification.newNoteTitle");
   }
 }
 

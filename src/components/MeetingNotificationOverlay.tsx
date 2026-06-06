@@ -1,16 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 
 interface NotificationData {
   detectionId: string;
   source: string;
   key: string;
-  title: string;
-  body: string;
+  title?: string;
+  titleKey?: string;
+  bodyKey?: string;
   event: any;
 }
 
 export default function MeetingNotificationOverlay() {
+  const { t } = useTranslation();
   const [data, setData] = useState<NotificationData | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -77,6 +80,7 @@ export default function MeetingNotificationOverlay() {
       >
         <button
           onClick={() => respond("dismiss")}
+          aria-label={t("common.close")}
           className={[
             "absolute -left-2.5 -top-2.5 z-10 size-6 rounded-full",
             "flex items-center justify-center",
@@ -102,10 +106,10 @@ export default function MeetingNotificationOverlay() {
 
           <div className="flex-1 min-w-0">
             <p className="text-[12px] font-semibold text-foreground leading-tight truncate">
-              {data?.title ?? "Meeting Detected"}
+              {data?.title ?? t(data?.titleKey ?? "meetingNotification.detectedTitle")}
             </p>
             <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
-              {data?.body ?? "Want to take notes?"}
+              {t(data?.bodyKey ?? "meetingNotification.detectedBody")}
             </p>
           </div>
 
@@ -113,7 +117,7 @@ export default function MeetingNotificationOverlay() {
             onClick={() => respond("start")}
             className="shrink-0 border border-border/70 bg-background text-foreground hover:bg-foreground/[0.04] text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors"
           >
-            Start Recording
+            {t("meetingNotification.startRecording")}
           </button>
         </div>
       </div>

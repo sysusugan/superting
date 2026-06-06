@@ -166,7 +166,11 @@
     "unknownError": "Ein unbekannter Fehler ist aufgetreten",
     "copy": "Kopieren",
     "copied": "Kopiert",
-    "done": "Fertig"
+    "done": "Fertig",
+    "confirm": "Bestätigen",
+    "ok": "OK",
+    "copyError": "Fehler kopieren",
+    "copyCommand": "Befehl kopieren"
   },
   "onboarding": {
     "steps": {
@@ -2865,5 +2869,13 @@
       "successDescription": "Willkommen bei {{name}}.",
       "errorTitle": "Einladung konnte nicht angenommen werden"
     }
+  },
+  "meetingNotification": {
+    "detectedTitle": "Meeting erkannt",
+    "detectedBody": "Es klingt, als wären Sie in einem Meeting. Möchten Sie Notizen machen?",
+    "upcomingTitle": "Bevorstehendes Meeting",
+    "upcomingBody": "Ihr Meeting beginnt. Möchten Sie Notizen machen?",
+    "startRecording": "Aufnahme starten",
+    "newNoteTitle": "Neue Notiz"
   }
 }

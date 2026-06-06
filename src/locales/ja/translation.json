@@ -166,7 +166,11 @@
     "unknownError": "Ocurrió un error desconocido",
     "copy": "Copiar",
     "copied": "Copiado",
-    "done": "Listo"
+    "done": "Listo",
+    "confirm": "確認",
+    "ok": "OK",
+    "copyError": "エラーをコピー",
+    "copyCommand": "コマンドをコピー"
   },
   "onboarding": {
     "steps": {
@@ -2865,5 +2869,13 @@
       "successDescription": "Bienvenido a {{name}}.",
       "errorTitle": "No se pudo aceptar la invitación"
     }
+  },
+  "meetingNotification": {
+    "detectedTitle": "会議を検出しました",
+    "detectedBody": "会議中のようです。メモを取りますか？",
+    "upcomingTitle": "まもなく会議",
+    "upcomingBody": "会議が開始されます。メモを取りますか？",
+    "startRecording": "録音を開始",
+    "newNoteTitle": "新しいノート"
   }
 }

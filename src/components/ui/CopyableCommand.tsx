@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Copy, Check } from "lucide-react";
 
 interface CopyableCommandProps {
@@ -8,6 +9,7 @@ interface CopyableCommandProps {
 }
 
 export function CopyableCommand({ command, label, className = "" }: CopyableCommandProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
@@ -28,7 +30,7 @@ export function CopyableCommand({ command, label, className = "" }: CopyableComm
         <button
           type="button"
           onClick={handleCopy}
-          aria-label={copied ? "Copied" : "Copy command"}
+          aria-label={copied ? t("common.copied") : t("common.copyCommand")}
           className="absolute top-2 right-2 h-6 w-6 flex items-center justify-center rounded text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/50 active:scale-95 transition-all"
         >
           {copied ? (

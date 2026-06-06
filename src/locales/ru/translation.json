@@ -166,7 +166,11 @@
     "unknownError": "Ein unbekannter Fehler ist aufgetreten",
     "copy": "Kopieren",
     "copied": "Kopiert",
-    "done": "Fertig"
+    "done": "Fertig",
+    "confirm": "Подтвердить",
+    "ok": "OK",
+    "copyError": "Скопировать ошибку",
+    "copyCommand": "Скопировать команду"
   },
   "onboarding": {
     "steps": {
@@ -2867,5 +2871,13 @@
       "successDescription": "Willkommen bei {{name}}.",
       "errorTitle": "Einladung konnte nicht angenommen werden"
     }
+  },
+  "meetingNotification": {
+    "detectedTitle": "Обнаружена встреча",
+    "detectedBody": "Похоже, вы на встрече. Хотите вести заметки?",
+    "upcomingTitle": "Предстоящая встреча",
+    "upcomingBody": "Ваша встреча начинается. Хотите вести заметки?",
+    "startRecording": "Начать запись",
+    "newNoteTitle": "Новая заметка"
   }
 }

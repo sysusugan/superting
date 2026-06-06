@@ -166,7 +166,11 @@
     "unknownError": "發生未知錯誤",
     "copy": "複製",
     "copied": "已複製",
-    "done": "完成"
+    "done": "完成",
+    "confirm": "確認",
+    "ok": "確定",
+    "copyError": "複製錯誤",
+    "copyCommand": "複製命令"
   },
   "onboarding": {
     "steps": {
@@ -1073,12 +1077,7 @@
           "annualEquivalent": "$16.67",
           "includesPrefix": "所有 Pro 功能 +",
           "badge": "最熱門",
-          "features": [
-            "無限會議錄製",
-            "代理模式",
-            "與您的資料對話",
-            "優先支援"
-          ],
+          "features": ["無限會議錄製", "代理模式", "與您的資料對話", "優先支援"],
           "cta": "開始使用",
           "switchToAnnual": "切換為年付"
         },
@@ -2865,5 +2864,13 @@
       "successDescription": "Bienvenido a {{name}}.",
       "errorTitle": "No se pudo aceptar la invitación"
     }
+  },
+  "meetingNotification": {
+    "detectedTitle": "偵測到會議",
+    "detectedBody": "聽起來你正在開會。要記錄筆記嗎？",
+    "upcomingTitle": "會議即將開始",
+    "upcomingBody": "你的會議即將開始。要記錄筆記嗎？",
+    "startRecording": "開始錄音",
+    "newNoteTitle": "新筆記"
   }
 }

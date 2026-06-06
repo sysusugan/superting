@@ -166,7 +166,11 @@
     "unknownError": "Ocurrió un error desconocido",
     "copy": "Copiar",
     "copied": "Copiado",
-    "done": "Listo"
+    "done": "Listo",
+    "confirm": "Confirmar",
+    "ok": "Aceptar",
+    "copyError": "Copiar error",
+    "copyCommand": "Copiar comando"
   },
   "onboarding": {
     "steps": {
@@ -2865,5 +2869,13 @@
       "successDescription": "Bienvenido a {{name}}.",
       "errorTitle": "No se pudo aceptar la invitación"
     }
+  },
+  "meetingNotification": {
+    "detectedTitle": "Reunión detectada",
+    "detectedBody": "Parece que estás en una reunión. ¿Quieres tomar notas?",
+    "upcomingTitle": "Próxima reunión",
+    "upcomingBody": "Tu reunión está empezando. ¿Quieres tomar notas?",
+    "startRecording": "Iniciar grabación",
+    "newNoteTitle": "Nueva nota"
   }
 }

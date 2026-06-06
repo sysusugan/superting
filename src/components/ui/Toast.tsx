@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { X, Copy, Check } from "lucide-react";
 import { cn } from "../lib/utils";
 import { ToastContext, type ToastProps } from "./useToast";
@@ -173,6 +174,7 @@ const Toast: React.FC<
   onPauseTimer,
   onResumeTimer,
 }) => {
+  const { t } = useTranslation();
   const config = variantConfig[variant];
   const pausedAtRef = React.useRef<number | null>(null);
   const [copied, setCopied] = React.useState(false);
@@ -243,7 +245,7 @@ const Toast: React.FC<
                       "hover:bg-white/6",
                       "transition-colors duration-150"
                     )}
-                    aria-label="Copy error"
+                    aria-label={t("common.copyError")}
                   >
                     {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
                   </button>
@@ -271,7 +273,7 @@ const Toast: React.FC<
           )}
         >
           <X className="size-3" />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">{t("common.close")}</span>
         </button>
       )}
 
