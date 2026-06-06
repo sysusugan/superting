@@ -573,10 +573,28 @@ export default function ControlPanel() {
                 });
                 const finalText = corrected.text;
                 if (finalText && finalText !== rawText) {
+                  const processingMetadata = {
+                    voiceFlow: {
+                      mode: "retry",
+                      provider: result.transcription.provider,
+                      model: result.transcription.model,
+                      language: result.transcription.language,
+                      rawText,
+                      refinedText: reasonedText || rawText,
+                      displayText: finalText,
+                      warning: corrected.replacements.length ? "dictionary_corrected" : null,
+                      dictionaryCorrections: corrected.replacements,
+                    },
+                  };
                   const updated = await window.electronAPI.updateTranscriptionText(
                     id,
                     finalText,
-                    rawText
+                    rawText,
+                    {
+                      warning: corrected.replacements.length ? "dictionary_corrected" : null,
+                      partial: false,
+                      processingMetadata,
+                    }
                   );
                   if (updated.success && updated.transcription) {
                     finalTranscription = updated.transcription;

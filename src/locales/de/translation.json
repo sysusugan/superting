@@ -317,7 +317,9 @@
       "retryError": "Erneute Transkription fehlgeschlagen",
       "audioNotFound": "Audiodatei nicht gefunden oder abgelaufen",
       "noAiProcessing": "Auf diese Transkription wurde keine KI-Verarbeitung angewendet",
-      "rawTranscript": "Rohtranskript"
+      "rawTranscript": "Rohtranskript",
+      "dictionaryCorrections": "Dictionary corrections",
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
     },
     "cloudMigration": {
       "title": "Willkommen bei OpenWhispr Cloud",

@@ -317,7 +317,9 @@
       "retryError": "Не удалось повторить расшифровку",
       "audioNotFound": "Аудиофайл не найден или истёк срок хранения",
       "noAiProcessing": "К этой расшифровке не применялась обработка ИИ",
-      "rawTranscript": "Исходная расшифровка"
+      "rawTranscript": "Исходная расшифровка",
+      "dictionaryCorrections": "Dictionary corrections",
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
     },
     "cloudMigration": {
       "title": "Добро пожаловать в OpenWhispr Cloud",

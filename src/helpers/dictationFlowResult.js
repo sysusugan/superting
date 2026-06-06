@@ -41,7 +41,15 @@ function correctResultText(rawText, refinedText, displayText, metadata = {}) {
   const display =
     displayText && displayText !== refinedText && displayText !== rawText
       ? applyDictionaryCorrections(displayText, options)
-      : { text: displayText === refinedText ? refined.text : displayText, replacements: [] };
+      : {
+          text:
+            displayText === refinedText
+              ? refined.text
+              : displayText === rawText
+                ? raw.text
+                : displayText,
+          replacements: [],
+        };
   corrections.push(...display.replacements);
 
   return {
@@ -49,6 +57,35 @@ function correctResultText(rawText, refinedText, displayText, metadata = {}) {
     refinedText: refined.text,
     displayText: display.text || refined.text || raw.text,
     corrections: uniqueCorrections(corrections),
+  };
+}
+
+function normalizeProcessingMetadata(result, normalized, corrections, metadata = {}) {
+  const existing =
+    metadata.processingMetadata && typeof metadata.processingMetadata === "object"
+      ? metadata.processingMetadata
+      : result.processingMetadata && typeof result.processingMetadata === "object"
+        ? result.processingMetadata
+        : {};
+
+  return {
+    ...existing,
+    voiceFlow: {
+      ...(existing.voiceFlow && typeof existing.voiceFlow === "object" ? existing.voiceFlow : {}),
+      mode: normalized.mode,
+      provider: normalized.provider,
+      model: normalized.model,
+      language: normalized.language,
+      rawText: normalized.rawText,
+      refinedText: normalized.refinedText,
+      displayText: normalized.displayText,
+      warning: normalized.warning,
+      dictionaryCorrections: corrections,
+      timings: normalized.timings,
+      chunksTotal: normalized.chunksTotal,
+      chunksSucceeded: normalized.chunksSucceeded,
+      chunksFailed: normalized.chunksFailed,
+    },
   };
 }
 
@@ -60,7 +97,7 @@ export function normalizeTranscriptionResult(result = {}, metadata = {}) {
   const corrected = correctResultText(rawText, refinedText, displayText, metadata);
   const hasDictionaryCorrections = corrected.corrections.length > 0;
 
-  return {
+  const normalized = {
     ...result,
     success,
     mode: metadata.mode ?? result.mode ?? "transcription",
@@ -84,6 +121,16 @@ export function normalizeTranscriptionResult(result = {}, metadata = {}) {
     chunksTotal: result.chunksTotal ?? metadata.chunksTotal,
     chunksSucceeded: result.chunksSucceeded ?? metadata.chunksSucceeded,
     chunksFailed: result.chunksFailed ?? metadata.chunksFailed,
+  };
+
+  return {
+    ...normalized,
+    processingMetadata: normalizeProcessingMetadata(
+      result,
+      normalized,
+      hasDictionaryCorrections ? corrected.corrections : [],
+      metadata
+    ),
   };
 }
 

@@ -77,6 +77,16 @@ function buildRuntimeDictionaryPrompt(words) {
   return normalized.length ? normalized.join(", ") : null;
 }
 
+function safeParseJson(value) {
+  if (!value) return null;
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
 function parseAttendees(raw) {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
@@ -817,6 +827,26 @@ class IPCHandlers {
     ipcMain.handle("db-save-transcription", async (event, text, rawText, options) => {
       const result = this.databaseManager.saveTranscription(text, rawText, options);
       if (result?.success && result?.transcription) {
+        const voiceFlow = result.transcription.processing_metadata
+          ? safeParseJson(result.transcription.processing_metadata)?.voiceFlow
+          : null;
+        if (voiceFlow) {
+          debugLogger.debug(
+            "Voice flow transcription saved",
+            {
+              id: result.transcription.id,
+              mode: voiceFlow.mode,
+              provider: voiceFlow.provider,
+              model: voiceFlow.model,
+              rawText: voiceFlow.rawText,
+              refinedText: voiceFlow.refinedText,
+              displayText: voiceFlow.displayText,
+              warning: voiceFlow.warning,
+              dictionaryCorrections: voiceFlow.dictionaryCorrections,
+            },
+            "voice-flow"
+          );
+        }
         setImmediate(() => {
           this.broadcastToWindows("transcription-added", result.transcription);
         });
@@ -4305,11 +4335,13 @@ class IPCHandlers {
           customDictionaryAliases: settings?.customDictionaryAliases,
         });
 
-        this.databaseManager.updateTranscriptionText(
-          id,
-          normalizedResult.displayText,
-          normalizedResult.rawText
-        );
+        this.databaseManager.updateTranscriptionResult(id, {
+          text: normalizedResult.displayText,
+          rawText: normalizedResult.rawText,
+          warning: normalizedResult.warning,
+          partial: normalizedResult.partial,
+          processingMetadata: normalizedResult.processingMetadata,
+        });
         this.databaseManager.updateTranscriptionStatus(id, "completed");
         this.databaseManager.updateTranscriptionAudio(id, {
           hasAudio: 1,
@@ -4317,6 +4349,20 @@ class IPCHandlers {
           provider: normalizedResult.provider,
           model: normalizedResult.model,
         });
+        debugLogger.debug(
+          "Voice flow retry result updated",
+          {
+            id,
+            provider: normalizedResult.provider,
+            model: normalizedResult.model,
+            rawText: normalizedResult.rawText,
+            refinedText: normalizedResult.refinedText,
+            displayText: normalizedResult.displayText,
+            warning: normalizedResult.warning,
+            dictionaryCorrections: normalizedResult.dictionaryCorrections || [],
+          },
+          "voice-flow"
+        );
         const updated = this.databaseManager.getTranscriptionById(id);
         if (updated) {
           setImmediate(() => {
@@ -6383,9 +6429,19 @@ class IPCHandlers {
       return { success: true };
     });
 
-    ipcMain.handle("update-transcription-text", async (_event, id, text, rawText) => {
+    ipcMain.handle("update-transcription-text", async (_event, id, text, rawText, options = {}) => {
       try {
-        this.databaseManager.updateTranscriptionText(id, text, rawText);
+        if (options && Object.prototype.hasOwnProperty.call(options, "processingMetadata")) {
+          this.databaseManager.updateTranscriptionResult(id, {
+            text,
+            rawText,
+            warning: options.warning ?? null,
+            partial: Boolean(options.partial),
+            processingMetadata: options.processingMetadata ?? null,
+          });
+        } else {
+          this.databaseManager.updateTranscriptionText(id, text, rawText);
+        }
         const updated = this.databaseManager.getTranscriptionById(id);
         return { success: true, transcription: updated };
       } catch (error) {

@@ -317,7 +317,9 @@
       "retryError": "Échec de la retranscription",
       "audioNotFound": "Fichier audio introuvable ou expiré",
       "noAiProcessing": "Aucun traitement IA n'a été appliqué à cette transcription",
-      "rawTranscript": "Transcription brute"
+      "rawTranscript": "Transcription brute",
+      "dictionaryCorrections": "Dictionary corrections",
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
     },
     "cloudMigration": {
       "title": "Bienvenue sur OpenWhispr Cloud",

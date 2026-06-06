@@ -2,13 +2,25 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./button";
 import { Tooltip } from "./tooltip";
-import { Copy, Trash2, FileText, FolderOpen, RotateCcw, Loader2, AlertCircle } from "lucide-react";
+import {
+  Copy,
+  Trash2,
+  FileText,
+  FolderOpen,
+  RotateCcw,
+  Loader2,
+  AlertCircle,
+  ArrowRight,
+  Plus,
+} from "lucide-react";
 import type {
   TranscriptionItem as TranscriptionItemType,
   TranscriptionErrorCode,
 } from "../../types/electron";
 import { cn } from "../lib/utils";
 import { getCachedPlatform } from "../../utils/platform";
+import { getDictionaryCorrections } from "../../utils/voiceFlowMetadata";
+import { getSettings, useSettingsStore } from "../../stores/settingsStore";
 
 const platform = getCachedPlatform();
 
@@ -39,6 +51,8 @@ export default function TranscriptionItem({
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const corrections = getDictionaryCorrections(item);
+  const customDictionaryAliases = useSettingsStore((state) => state.customDictionaryAliases);
 
   const timestampSource = item.timestamp.endsWith("Z") ? item.timestamp : `${item.timestamp}Z`;
   const timestampDate = new Date(timestampSource);
@@ -71,6 +85,31 @@ export default function TranscriptionItem({
     errorCode === "MODEL_NOT_AVAILABLE";
   const isLimitError = errorCode === "LIMIT_REACHED";
   const isOfflineError = errorCode === "OFFLINE";
+
+  const addAliasFromCorrection = (from: string, to: string) => {
+    const { customDictionary } = getSettings();
+    const settingsStore = useSettingsStore.getState();
+    const normalizedFrom = from.trim();
+    const normalizedTo = to.trim();
+    if (!normalizedFrom || !normalizedTo || normalizedFrom.toLowerCase() === normalizedTo.toLowerCase()) {
+      return;
+    }
+    const aliasExists = customDictionaryAliases.some(
+      (alias) => alias.from.toLowerCase() === normalizedFrom.toLowerCase()
+    );
+    if (!aliasExists) {
+      settingsStore.setCustomDictionaryAliases([
+        ...customDictionaryAliases,
+        { from: normalizedFrom, to: normalizedTo },
+      ]);
+    }
+    const dictionaryExists = customDictionary.some(
+      (word) => word.toLowerCase() === normalizedTo.toLowerCase()
+    );
+    if (!dictionaryExists) {
+      settingsStore.setCustomDictionary([...customDictionary, normalizedTo]);
+    }
+  };
 
   return (
     <div
@@ -251,6 +290,47 @@ export default function TranscriptionItem({
               <p className="text-[10px] text-muted-foreground/50 italic mt-1">
                 {t("controlPanel.history.noAiProcessing")}
               </p>
+            )}
+            {corrections.length > 0 && (
+              <div className="mt-3">
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("controlPanel.history.dictionaryCorrections")}
+                </span>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {corrections.map((correction) => {
+                    const aliasExists = customDictionaryAliases.some(
+                      (alias) => alias.from.toLowerCase() === correction.from.toLowerCase()
+                    );
+                    return (
+                      <span
+                        key={`${correction.from}->${correction.to}->${correction.kind || ""}`}
+                        className="inline-flex items-center gap-1 rounded-[5px] border border-border/70 bg-muted/30 px-2 py-1 text-[11px] text-muted-foreground"
+                      >
+                        <span>{correction.from}</span>
+                        <ArrowRight size={10} className="text-muted-foreground/60" />
+                        <span className="text-foreground">{correction.to}</span>
+                        {correction.kind && (
+                          <span className="rounded bg-background/70 px-1 text-[10px] text-muted-foreground/80">
+                            {correction.kind}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          disabled={aliasExists}
+                          onClick={() => addAliasFromCorrection(correction.from, correction.to)}
+                          className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-sm text-muted-foreground hover:bg-background hover:text-foreground disabled:cursor-default disabled:opacity-35"
+                          aria-label={t("controlPanel.history.addCorrectionAlias", {
+                            from: correction.from,
+                            to: correction.to,
+                          })}
+                        >
+                          <Plus size={10} />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         </div>

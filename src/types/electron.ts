@@ -601,7 +601,12 @@ declare global {
       updateTranscriptionText: (
         id: number,
         text: string,
-        rawText: string
+        rawText: string,
+        options?: {
+          warning?: string | null;
+          partial?: boolean;
+          processingMetadata?: Record<string, unknown> | string | null;
+        }
       ) => Promise<{ success: boolean; transcription?: TranscriptionItem; error?: string }>;
 
       // Dictionary operations

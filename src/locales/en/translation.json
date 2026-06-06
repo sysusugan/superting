@@ -317,7 +317,9 @@
       "clearAllDescription": "All transcriptions and audio files will be permanently removed.",
       "clearAllSuccess": "History cleared",
       "clearAllErrorTitle": "Couldn't clear history",
-      "clearAllErrorDescription": "Something went wrong. Please try again."
+      "clearAllErrorDescription": "Something went wrong. Please try again.",
+      "dictionaryCorrections": "Dictionary corrections",
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
     },
     "cloudMigration": {
       "title": "Welcome to OpenWhispr Cloud",

@@ -863,6 +863,20 @@ class DatabaseManager {
     }
   }
 
+  updateTranscriptionResult(id, { text, rawText, warning = null, partial = false, processingMetadata = null }) {
+    try {
+      if (!this.db) throw new Error("Database not initialized");
+      const stmt = this.db.prepare(
+        "UPDATE transcriptions SET text = ?, raw_text = ?, warning = ?, partial = ?, processing_metadata = ? WHERE id = ?"
+      );
+      stmt.run(text, rawText, warning, partial ? 1 : 0, serializeJsonColumn(processingMetadata), id);
+      return { success: true };
+    } catch (error) {
+      debugLogger.error("Error updating transcription result", { error: error.message }, "database");
+      throw error;
+    }
+  }
+
   updateTranscriptionStatus(id, status, errorMessage = null, errorCode = null) {
     try {
       if (!this.db) throw new Error("Database not initialized");

@@ -317,7 +317,9 @@
       "retryError": "Ritrascrizione non riuscita",
       "audioNotFound": "File audio non trovato o scaduto",
       "noAiProcessing": "Nessuna elaborazione IA applicata a questa trascrizione",
-      "rawTranscript": "Trascrizione grezza"
+      "rawTranscript": "Trascrizione grezza",
+      "dictionaryCorrections": "Dictionary corrections",
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
     },
     "cloudMigration": {
       "title": "Benvenuto in OpenWhispr Cloud",

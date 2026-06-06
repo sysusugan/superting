@@ -317,7 +317,9 @@
       "retryError": "重新转录失败",
       "audioNotFound": "音频文件未找到或已过期",
       "noAiProcessing": "此转录未应用 AI 处理",
-      "rawTranscript": "原始转录"
+      "rawTranscript": "原始转录",
+      "dictionaryCorrections": "词典纠错",
+      "addCorrectionAlias": "添加常见误识别规则：{{from}} -> {{to}}"
     },
     "cloudMigration": {
       "title": "欢迎使用 OpenWhispr 云端",

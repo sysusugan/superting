@@ -33,3 +33,26 @@ test("mergeWithTranscript caps diarization speakers before exposing transcript s
     "speaker_7",
   ]);
 });
+
+test("mergeWithTranscript filters empty fragments and merges adjacent same-speaker segments", () => {
+  const manager = new DiarizationManager();
+  const merged = manager.mergeWithTranscript(
+    [
+      { text: " first ", source: "system", timestamp: 0, endTime: 1 },
+      { text: "piece", source: "system", timestamp: 1.4, endTime: 2 },
+      { text: " ", source: "system", timestamp: 2.2, endTime: 2.3 },
+      { text: "x", source: "system", timestamp: 3, endTime: 3.1 },
+      { text: "second speaker", source: "system", timestamp: 5, endTime: 6 },
+    ],
+    [
+      { start: 0, end: 3, speaker: "speaker_0" },
+      { start: 4.5, end: 6.5, speaker: "speaker_1" },
+    ]
+  );
+
+  assert.equal(merged.length, 2);
+  assert.equal(merged[0].text, "first piece");
+  assert.equal(merged[0].speaker, "speaker_0");
+  assert.equal(merged[1].text, "second speaker");
+  assert.equal(merged[1].speaker, "speaker_1");
+});

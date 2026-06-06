@@ -317,7 +317,9 @@
       "retryError": "再文字起こしに失敗しました",
       "audioNotFound": "音声ファイルが見つからないか有効期限切れです",
       "noAiProcessing": "この文字起こしにはAI処理が適用されていません",
-      "rawTranscript": "生の文字起こし"
+      "rawTranscript": "生の文字起こし",
+      "dictionaryCorrections": "Dictionary corrections",
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
     },
     "cloudMigration": {
       "title": "OpenWhispr Cloud へようこそ",

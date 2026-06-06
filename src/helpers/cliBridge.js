@@ -338,6 +338,12 @@ class CliBridge {
       exact("GET", "/v1/folders/list", () => {
         return { data: db.getFolders(), has_more: false, next_cursor: null };
       }),
+      exact("GET", "/v1/dictionary", () => {
+        return { data: db.getDictionary() };
+      }),
+      exact("GET", "/v1/dictionary/aliases", () => {
+        return { data: db.getDictionaryAliases() };
+      }),
       exact(
         "POST",
         "/v1/folders/create",

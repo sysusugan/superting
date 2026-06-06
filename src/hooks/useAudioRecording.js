@@ -169,7 +169,7 @@ export const useAudioRecording = (toast, options = {}) => {
             audioDurationMs: result.audioDurationMs,
             warning: result.warning,
             partial: result.partial,
-            processingMetadata: result.timings,
+            processingMetadata: result.processingMetadata ?? result.timings,
           });
 
           if (result.source === "openai" && getSettings().useLocalWhisper) {

@@ -48,8 +48,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   compressAllAudio: () => ipcRenderer.invoke("compress-all-audio"),
   deleteAllAudio: () => ipcRenderer.invoke("delete-all-audio"),
   retryTranscription: (id, settings) => ipcRenderer.invoke("retry-transcription", id, settings),
-  updateTranscriptionText: (id, text, rawText) =>
-    ipcRenderer.invoke("update-transcription-text", id, text, rawText),
+  updateTranscriptionText: (id, text, rawText, options) =>
+    ipcRenderer.invoke("update-transcription-text", id, text, rawText, options),
   getTranscriptionById: (id) => ipcRenderer.invoke("get-transcription-by-id", id),
 
   // Dictionary functions

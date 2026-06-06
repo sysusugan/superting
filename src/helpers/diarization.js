@@ -434,11 +434,57 @@ class DiarizationManager {
     return segments.map((s) => (keep.has(s.speaker) ? s : { ...s, speaker: primary }));
   }
 
+  sanitizeTranscriptSegments(segments, { mergeGapSeconds = 1.2 } = {}) {
+    if (!Array.isArray(segments) || segments.length === 0) return [];
+    const cleaned = [];
+
+    for (const segment of segments) {
+      const text = typeof segment.text === "string" ? segment.text.trim() : "";
+      if (!text) continue;
+
+      const duration =
+        Number.isFinite(segment.endTime) && Number.isFinite(segment.timestamp)
+          ? segment.endTime - segment.timestamp
+          : null;
+      if (!segment.speakerLocked && duration != null && duration < 0.35 && text.length <= 1) {
+        continue;
+      }
+
+      const current = { ...segment, text };
+      const previous = cleaned[cleaned.length - 1];
+      const gap =
+        previous &&
+        Number.isFinite(previous.endTime) &&
+        Number.isFinite(current.timestamp)
+          ? current.timestamp - previous.endTime
+          : null;
+
+      if (
+        previous &&
+        previous.source === current.source &&
+        previous.speaker === current.speaker &&
+        !previous.speakerLocked &&
+        !current.speakerLocked &&
+        gap != null &&
+        gap >= 0 &&
+        gap <= mergeGapSeconds
+      ) {
+        previous.text = `${previous.text} ${current.text}`.trim();
+        previous.endTime = current.endTime ?? previous.endTime;
+        continue;
+      }
+
+      cleaned.push(current);
+    }
+
+    return cleaned;
+  }
+
   mergeWithTranscript(transcriptSegments, diarizationSegments) {
     if (!transcriptSegments || transcriptSegments.length === 0) return [];
     const deduped = dedupeMicAgainstSystem(transcriptSegments);
     if (!diarizationSegments || diarizationSegments.length === 0) {
-      return deduped.map((seg) => ({ ...seg }));
+      return this.sanitizeTranscriptSegments(deduped.map((seg) => ({ ...seg })));
     }
 
     const cappedDiarizationSegments = this.capSpeakerClusters(
@@ -467,7 +513,7 @@ class DiarizationManager {
 
     let fallbackSpeakerIndex = speakerSet.size;
 
-    return deduped.map((seg, index) => {
+    const merged = deduped.map((seg, index) => {
       const enriched = { ...seg };
 
       if (seg.source === "mic") {
@@ -522,6 +568,8 @@ class DiarizationManager {
 
       return enriched;
     });
+
+    return this.sanitizeTranscriptSegments(merged);
   }
 
   async convertRawPcmToWav(rawPcmPath, inputSampleRate) {
