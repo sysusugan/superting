@@ -9,6 +9,7 @@ const {
   _buildConcatEncodeArgs,
   compressToOpusWebm,
   mergeToOpusWebm,
+  validateCompressedAudio,
   clearCache,
 } = require("../../src/helpers/ffmpegUtils");
 
@@ -22,6 +23,41 @@ function writeWav(filePath, { sampleRate = 24000, channels = 1, durationSec = 0.
   const bytesPerSample = 2;
   const numSamples = Math.floor(sampleRate * durationSec);
   const pcm = Buffer.alloc(numSamples * channels * bytesPerSample);
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + pcm.length, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * channels * bytesPerSample, 28);
+  header.writeUInt16LE(channels * bytesPerSample, 32);
+  header.writeUInt16LE(16, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(pcm.length, 40);
+  fs.writeFileSync(filePath, Buffer.concat([header, pcm]));
+}
+
+function writeToneWav(
+  filePath,
+  { sampleRate = 24000, channels = 1, durationSec = 0.5, frequency = 440 } = {}
+) {
+  const bytesPerSample = 2;
+  const numSamples = Math.floor(sampleRate * durationSec);
+  const pcm = Buffer.alloc(numSamples * channels * bytesPerSample);
+  for (let i = 0; i < numSamples; i += 1) {
+    const value = Math.round(Math.sin((2 * Math.PI * frequency * i) / sampleRate) * 12000);
+    for (let channel = 0; channel < channels; channel += 1) {
+      pcm.writeInt16LE(value, (i * channels + channel) * bytesPerSample);
+    }
+  }
+  writeWavWithPcm(filePath, pcm, { sampleRate, channels });
+}
+
+function writeWavWithPcm(filePath, pcm, { sampleRate = 24000, channels = 1 } = {}) {
+  const bytesPerSample = 2;
   const header = Buffer.alloc(44);
   header.write("RIFF", 0);
   header.writeUInt32LE(36 + pcm.length, 4);
@@ -161,7 +197,7 @@ test("compressToOpusWebm writes a smaller valid Opus-in-WebM file and cleans up 
   const dir = makeTempDir(t);
   const input = path.join(dir, "in.wav");
   const output = path.join(dir, "out.webm");
-  writeWav(input, { durationSec: 2 });
+  writeToneWav(input, { durationSec: 2 });
   const inputSize = fs.statSync(input).size;
 
   await compressToOpusWebm(input, output);
@@ -175,6 +211,70 @@ test("compressToOpusWebm writes a smaller valid Opus-in-WebM file and cleans up 
   assert.equal(out[3], 0xa3);
   // Opus @ 24kbps compresses 2s of 24kHz mono 16-bit PCM (~96KB) by a lot.
   assert.ok(out.length < inputSize / 5, `expected ${out.length} << ${inputSize}`);
+});
+
+test("compressToOpusWebm preserves audible WAV content", async (t) => {
+  const dir = makeTempDir(t);
+  const input = path.join(dir, "tone.wav");
+  const output = path.join(dir, "tone.webm");
+  writeToneWav(input, { durationSec: 1 });
+
+  const validation = await compressToOpusWebm(input, output);
+
+  assert.equal(fs.existsSync(output), true);
+  assert.ok(validation.input.maxVolumeDb > -20, `input max ${validation.input.maxVolumeDb}`);
+  assert.ok(validation.output.maxVolumeDb > -25, `output max ${validation.output.maxVolumeDb}`);
+});
+
+test("validateCompressedAudio rejects audible input compressed to silence", async (t) => {
+  const dir = makeTempDir(t);
+  const input = path.join(dir, "tone.wav");
+  const output = path.join(dir, "silent.wav");
+  writeToneWav(input, { durationSec: 1 });
+  writeWav(output, { durationSec: 1 });
+
+  await assert.rejects(
+    () => validateCompressedAudio(input, output),
+    /compressed audio is silent/
+  );
+});
+
+test("compressToOpusWebm removes temp output when validation fails", async (t) => {
+  const dir = makeTempDir(t);
+  const input = path.join(dir, "tone.wav");
+  const output = path.join(dir, "tone.webm");
+  writeToneWav(input, { durationSec: 1 });
+  const tempFilesBefore = fs
+    .readdirSync(os.tmpdir())
+    .filter((f) => f.includes("openwhispr-opus-compress"));
+
+  await assert.rejects(
+    () =>
+      compressToOpusWebm(input, output, {
+        audibleThresholdDb: -90,
+        silentOutputThresholdDb: 0,
+      }),
+    /compressed audio is silent/
+  );
+
+  const tempFilesAfter = fs
+    .readdirSync(os.tmpdir())
+    .filter((f) => f.includes("openwhispr-opus-compress"));
+  assert.deepEqual(tempFilesAfter, tempFilesBefore);
+  assert.equal(fs.existsSync(output), false);
+});
+
+test("validateCompressedAudio rejects large duration drift", async (t) => {
+  const dir = makeTempDir(t);
+  const input = path.join(dir, "long.wav");
+  const output = path.join(dir, "short.wav");
+  writeToneWav(input, { durationSec: 2 });
+  writeToneWav(output, { durationSec: 0.25 });
+
+  await assert.rejects(
+    () => validateCompressedAudio(input, output),
+    /duration differs/
+  );
 });
 
 test("compressToOpusWebm overwrites an existing output file atomically", async (t) => {

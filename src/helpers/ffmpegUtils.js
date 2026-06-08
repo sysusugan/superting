@@ -555,6 +555,85 @@ function _runFFmpeg(args, { signal, onStart } = {}) {
   });
 }
 
+function parseFFmpegDuration(stderr) {
+  const match = String(stderr || "").match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const seconds = Number(match[3]);
+  if (![hours, minutes, seconds].every(Number.isFinite)) return null;
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function parseFFmpegVolume(value) {
+  if (value === "-inf") return -Infinity;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseVolumedetect(stderr) {
+  const text = String(stderr || "");
+  const meanMatch = text.match(/mean_volume:\s*(-?inf|-?\d+(?:\.\d+)?)\s*dB/);
+  const maxMatch = text.match(/max_volume:\s*(-?inf|-?\d+(?:\.\d+)?)\s*dB/);
+  return {
+    durationSeconds: parseFFmpegDuration(text),
+    meanVolumeDb: meanMatch ? parseFFmpegVolume(meanMatch[1]) : null,
+    maxVolumeDb: maxMatch ? parseFFmpegVolume(maxMatch[1]) : null,
+  };
+}
+
+async function analyzeAudioFile(filePath, options = {}) {
+  const { signal } = options;
+  const result = await _runFFmpeg(
+    ["-hide_banner", "-i", filePath, "-af", "volumedetect", "-f", "null", "-"],
+    { signal }
+  );
+  return parseVolumedetect(result.stderr);
+}
+
+async function validateCompressedAudio(inputPath, outputPath, options = {}) {
+  const {
+    signal,
+    audibleThresholdDb = -60,
+    silentOutputThresholdDb = -75,
+    maxDurationDriftRatio = 0.1,
+    minDurationDriftSeconds = 1,
+  } = options;
+
+  const [input, output] = await Promise.all([
+    analyzeAudioFile(inputPath, { signal }),
+    analyzeAudioFile(outputPath, { signal }),
+  ]);
+
+  if (!Number.isFinite(input.durationSeconds) || input.durationSeconds <= 0) {
+    throw new Error("Unable to determine input audio duration");
+  }
+  if (!Number.isFinite(output.durationSeconds) || output.durationSeconds <= 0) {
+    throw new Error("Unable to determine compressed audio duration");
+  }
+
+  const maxAllowedDrift = Math.max(
+    minDurationDriftSeconds,
+    input.durationSeconds * maxDurationDriftRatio
+  );
+  const durationDrift = Math.abs(input.durationSeconds - output.durationSeconds);
+  if (durationDrift > maxAllowedDrift) {
+    throw new Error(
+      `Compressed audio duration differs from input by ${durationDrift.toFixed(2)}s`
+    );
+  }
+
+  const inputIsAudible =
+    Number.isFinite(input.maxVolumeDb) && input.maxVolumeDb > audibleThresholdDb;
+  const outputIsSilent =
+    output.maxVolumeDb == null || output.maxVolumeDb < silentOutputThresholdDb;
+  if (inputIsAudible && outputIsSilent) {
+    throw new Error("compressed audio is silent while input audio is audible");
+  }
+
+  return { input, output };
+}
+
 function compressToOpusWebm(inputPath, outputPath, options = {}) {
   const { signal, ...encodeOpts } = options;
   const tempPath = makeTempPath("opus-compress");
@@ -563,7 +642,7 @@ function compressToOpusWebm(inputPath, outputPath, options = {}) {
     _buildOpusEncodeArgs({ input: inputPath, output: tempPath, ...encodeOpts }),
     { signal }
   ).then(
-    () => {
+    async () => {
       if (!fs.existsSync(tempPath)) {
         throw new Error("FFmpeg Opus compression produced no output file");
       }
@@ -576,23 +655,33 @@ function compressToOpusWebm(inputPath, outputPath, options = {}) {
         }
         throw new Error("FFmpeg Opus compression produced empty output file");
       }
+      let validation;
       try {
-        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-        fs.renameSync(tempPath, outputPath);
-      } catch (renameErr) {
+        validation = await validateCompressedAudio(inputPath, tempPath, { signal, ...encodeOpts });
+      } catch (error) {
         try {
           fs.unlinkSync(tempPath);
         } catch {
           // ignore
         }
-        throw new Error(
-          `Failed to move compressed audio into place: ${renameErr.message}`
-        );
+        throw error;
+      }
+      try {
+        fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+        fs.renameSync(tempPath, outputPath);
+      } catch (error) {
+        try {
+          fs.unlinkSync(tempPath);
+        } catch {
+          // ignore
+        }
+        throw new Error(`Failed to move compressed audio into place: ${error.message}`);
       }
       debugLogger.debug("FFmpeg Opus compression complete", {
         outputPath,
         outputSize: stats.size,
       });
+      return validation;
     },
     (err) => {
       try {
@@ -693,6 +782,7 @@ module.exports = {
   computeFloat32RMS,
   createAbortError,
   throwIfAborted,
+  validateCompressedAudio,
   compressToOpusWebm,
   mergeToOpusWebm,
   _buildOpusEncodeArgs,

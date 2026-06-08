@@ -1916,7 +1916,6 @@ class IPCHandlers {
             audioFile.duration_seconds,
             { recordedAt: audioFile.recorded_at || audioFile.created_at || undefined }
           );
-          this.audioStorageManager.deleteRetainedAudioFiles([audioFile.filename]);
         }
 
         const updatedNote = this.databaseManager.getNote(noteId);

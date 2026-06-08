@@ -25,7 +25,20 @@ function buildTestWav(pcmBytes, { sampleRate = 24000, channels = 1 } = {}) {
   return Buffer.concat([header, pcmBytes]);
 }
 
-test("saveMeetingPcmAudio writes retained meeting Opus WebM and reports storage usage", async (t) => {
+function buildTonePcm({ sampleRate = 24000, channels = 1, durationSec = 1 } = {}) {
+  const bytesPerSample = 2;
+  const numSamples = Math.floor(sampleRate * durationSec);
+  const pcm = Buffer.alloc(numSamples * channels * bytesPerSample);
+  for (let i = 0; i < numSamples; i += 1) {
+    const value = Math.round(Math.sin((2 * Math.PI * 440 * i) / sampleRate) * 12000);
+    for (let channel = 0; channel < channels; channel += 1) {
+      pcm.writeInt16LE(value, (i * channels + channel) * bytesPerSample);
+    }
+  }
+  return pcm;
+}
+
+test("saveMeetingPcmAudio writes retained meeting WAV by default and reports storage usage", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
@@ -40,24 +53,23 @@ test("saveMeetingPcmAudio writes retained meeting Opus WebM and reports storage 
   });
 
   assert.equal(result.success, true);
-  assert.equal(result.filename, "OpenWhispr-meeting-2026-05-28-06-07-08-12.webm");
+  assert.equal(result.filename, "OpenWhispr-meeting-2026-05-28-06-07-08-12.wav");
   assert.equal(result.durationSeconds, 1);
+  assert.equal(result.compressed, false);
 
-  const webm = fs.readFileSync(result.path);
-  assert.equal(webm[0], 0x1a);
-  assert.equal(webm[1], 0x45);
-  assert.equal(webm[2], 0xdf);
-  assert.equal(webm[3], 0xa3);
-  assert.ok(webm.length < pcmBytes.length, `expected ${webm.length} < ${pcmBytes.length}`);
+  const wav = fs.readFileSync(result.path);
+  assert.equal(wav.subarray(0, 4).toString("ascii"), "RIFF");
+  assert.equal(wav.subarray(8, 12).toString("ascii"), "WAVE");
+  assert.equal(wav.readUInt32LE(40), pcmBytes.length);
 
   assert.deepEqual(storage.getStorageUsage(), {
     fileCount: 1,
-    totalBytes: webm.length,
-    uncompressedCount: 0,
+    totalBytes: wav.length,
+    uncompressedCount: 1,
   });
 });
 
-test("saveMeetingPcmAudio falls back to retained WAV when Opus compression fails", async (t) => {
+test("saveMeetingPcmAudio does not invoke Opus compression for default retained audio", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
@@ -65,10 +77,12 @@ test("saveMeetingPcmAudio falls back to retained WAV when Opus compression fails
   const pcmBytes = Buffer.alloc(48000);
   fs.writeFileSync(pcmPath, pcmBytes);
 
+  let compressionCalls = 0;
   const storage = new AudioStorageManager({
     audioDir: path.join(root, "audio"),
     compressToOpusWebm: async () => {
-      throw new Error("forced compression failure");
+      compressionCalls += 1;
+      throw new Error("compression should not run");
     },
   });
   const result = await storage.saveMeetingPcmAudio(12, pcmPath, new Date(2026, 4, 28, 6, 7, 8), {
@@ -77,6 +91,7 @@ test("saveMeetingPcmAudio falls back to retained WAV when Opus compression fails
   });
 
   assert.equal(result.success, true);
+  assert.equal(compressionCalls, 0);
   assert.equal(result.filename, "OpenWhispr-meeting-2026-05-28-06-07-08-12.wav");
   assert.equal(result.compressed, false);
 
@@ -120,15 +135,43 @@ test("compressRetainedAudioToOpusWebm converts retained WAV to same basename Web
   const audioDir = path.join(root, "audio");
   const storage = new AudioStorageManager({ audioDir });
   const wavName = "OpenWhispr-meeting-2026-05-28-06-00-00-12.wav";
-  fs.writeFileSync(path.join(audioDir, wavName), buildTestWav(Buffer.alloc(24000)));
+  fs.writeFileSync(path.join(audioDir, wavName), buildTestWav(buildTonePcm()));
 
   const result = await storage.compressRetainedAudioToOpusWebm(wavName);
 
   assert.equal(result.success, true);
   assert.equal(result.filename, "OpenWhispr-meeting-2026-05-28-06-00-00-12.webm");
+  assert.equal(fs.existsSync(path.join(audioDir, wavName)), false);
+  assert.equal(
+    fs.existsSync(path.join(audioDir, ".pending-delete", wavName)),
+    true
+  );
   const compressed = fs.readFileSync(result.path);
   assert.equal(compressed[0], 0x1a);
   assert.equal(compressed[1], 0x45);
+});
+
+test("compressRetainedAudioToOpusWebm leaves original WAV in place when compression fails", async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const audioDir = path.join(root, "audio");
+  const storage = new AudioStorageManager({
+    audioDir,
+    compressToOpusWebm: async () => {
+      throw new Error("forced compression failure");
+    },
+  });
+  const wavName = "OpenWhispr-meeting-2026-05-28-06-00-00-12.wav";
+  fs.writeFileSync(path.join(audioDir, wavName), buildTestWav(buildTonePcm()));
+
+  const result = await storage.compressRetainedAudioToOpusWebm(wavName);
+
+  assert.equal(result.success, false);
+  assert.match(result.error, /forced compression failure/);
+  assert.equal(fs.existsSync(path.join(audioDir, wavName)), true);
+  assert.equal(fs.existsSync(path.join(audioDir, ".pending-delete", wavName)), false);
+  assert.equal(fs.existsSync(path.join(audioDir, "OpenWhispr-meeting-2026-05-28-06-00-00-12.webm")), false);
 });
 
 test("compressRetainedAudioToOpusWebm returns existing WebM without rewriting", async (t) => {
@@ -157,7 +200,7 @@ test("compressAllRetainedAudioToOpusWebm compresses only uncompressed retained a
   const storage = new AudioStorageManager({ audioDir });
   const wavName = "OpenWhispr-meeting-2026-05-28-06-00-00-12.wav";
   const webmName = "OpenWhispr-meeting-2026-05-28-06-10-00-12.webm";
-  fs.writeFileSync(path.join(audioDir, wavName), buildTestWav(Buffer.alloc(24000)));
+  fs.writeFileSync(path.join(audioDir, wavName), buildTestWav(buildTonePcm()));
   fs.writeFileSync(path.join(audioDir, webmName), Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
 
   const replacements = [];
@@ -176,6 +219,7 @@ test("compressAllRetainedAudioToOpusWebm compresses only uncompressed retained a
     [wavName, "OpenWhispr-meeting-2026-05-28-06-00-00-12.webm"],
   ]);
   assert.equal(fs.existsSync(path.join(audioDir, wavName)), false);
+  assert.equal(fs.existsSync(path.join(audioDir, ".pending-delete", wavName)), true);
   assert.equal(fs.existsSync(path.join(audioDir, webmName)), true);
 });
 

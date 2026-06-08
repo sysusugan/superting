@@ -8,12 +8,13 @@ const { compressToOpusWebm, mergeToOpusWebm } = require("./ffmpegUtils");
 const {
   buildMergedMeetingAudioFilename,
   buildDictationAudioFilename,
-  buildMeetingAudioFilename,
   buildMeetingWavFallbackFilename,
   isDictationAudioFile,
   isRetainedAudioFile,
   resolveRetainedAudioPath,
 } = require("./audioStorageFiles");
+
+const PENDING_DELETE_DIR = ".pending-delete";
 
 class AudioStorageManager {
   constructor(options = {}) {
@@ -67,6 +68,43 @@ class AudioStorageManager {
     );
   }
 
+  _ensurePendingDeleteDir() {
+    const dir = path.join(this.audioDir, PENDING_DELETE_DIR);
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+  }
+
+  moveRetainedAudioToPendingDelete(filename) {
+    const sourcePath = resolveRetainedAudioPath(this.audioDir, filename);
+    if (!sourcePath) {
+      return { success: false, error: "Invalid audio filename" };
+    }
+    if (!fs.existsSync(sourcePath)) {
+      return { success: false, error: "Audio file unavailable" };
+    }
+
+    try {
+      const pendingDir = this._ensurePendingDeleteDir();
+      let pendingFilename = filename;
+      let pendingPath = path.join(pendingDir, pendingFilename);
+      if (fs.existsSync(pendingPath)) {
+        const ext = path.extname(filename);
+        const base = path.basename(filename, ext);
+        pendingFilename = `${base}-${Date.now()}${ext}`;
+        pendingPath = path.join(pendingDir, pendingFilename);
+      }
+      fs.renameSync(sourcePath, pendingPath);
+      return { success: true, path: pendingPath, filename: pendingFilename };
+    } catch (error) {
+      debugLogger.error(
+        "Failed to move retained audio to pending delete",
+        { filename, error: error.message },
+        "audio-storage"
+      );
+      return { success: false, error: error.message };
+    }
+  }
+
   _writePcmAsWav(inputPcmPath, outputWavPath, stats, { sampleRate, channels }) {
     const bytesPerSample = 2;
     const header = Buffer.alloc(44);
@@ -106,60 +144,24 @@ class AudioStorageManager {
     const sampleRate = options.sampleRate || 24000;
     const channels = options.channels || 1;
     const bytesPerSample = 2;
-    let tempWavPath = null;
-
     try {
       const stats = fs.statSync(pcmPath);
       if (stats.size <= 0) {
         return { success: false, error: "No meeting audio captured" };
       }
 
-      const filename = buildMeetingAudioFilename(noteId, timestamp);
+      const filename = buildMeetingWavFallbackFilename(noteId, timestamp);
       const filePath = path.join(this.audioDir, filename);
-      tempWavPath = this._makeTempAudioPath("meeting-wav", ".wav");
-      this._writePcmAsWav(pcmPath, tempWavPath, stats, { sampleRate, channels });
+      this._writePcmAsWav(pcmPath, filePath, stats, { sampleRate, channels });
       const durationSeconds = stats.size / (sampleRate * channels * bytesPerSample);
 
-      try {
-        await this.compressToOpusWebm(tempWavPath, filePath, {
-          sampleRate,
-          channels,
-          bitrate: options.bitrate || "24k",
-          application: "voip",
-        });
-        fs.unlinkSync(tempWavPath);
-        tempWavPath = null;
-        debugLogger.debug(
-          "Meeting audio saved",
-          { noteId, filename, size: stats.size, durationSeconds, compressed: true },
-          "audio-storage"
-        );
-        return { success: true, path: filePath, filename, durationSeconds, compressed: true };
-      } catch (compressionError) {
-        const fallbackFilename = buildMeetingWavFallbackFilename(noteId, timestamp);
-        const fallbackPath = path.join(this.audioDir, fallbackFilename);
-        fs.renameSync(tempWavPath, fallbackPath);
-        tempWavPath = null;
-        debugLogger.warn(
-          "Meeting audio Opus compression failed; saved WAV fallback",
-          { noteId, error: compressionError.message, filename: fallbackFilename },
-          "audio-storage"
-        );
-        return {
-          success: true,
-          path: fallbackPath,
-          filename: fallbackFilename,
-          durationSeconds,
-          compressed: false,
-          error: compressionError.message,
-        };
-      }
+      debugLogger.debug(
+        "Meeting audio saved",
+        { noteId, filename, size: stats.size, durationSeconds, compressed: false },
+        "audio-storage"
+      );
+      return { success: true, path: filePath, filename, durationSeconds, compressed: false };
     } catch (error) {
-      if (tempWavPath) {
-        try {
-          fs.unlinkSync(tempWavPath);
-        } catch {}
-      }
       debugLogger.error(
         "Failed to save meeting audio",
         { noteId, error: error.message },
@@ -222,19 +224,34 @@ class AudioStorageManager {
 
       const outputFilename = `${path.basename(filename, ext)}.webm`;
       const outputPath = path.join(this.audioDir, outputFilename);
-      await this.compressToOpusWebm(inputPath, outputPath, {
+      const validation = await this.compressToOpusWebm(inputPath, outputPath, {
         sampleRate: options.sampleRate || 24000,
         channels: options.channels || 1,
         bitrate: options.bitrate || "24k",
         application: "voip",
       });
+      const pendingDelete = this.moveRetainedAudioToPendingDelete(filename);
+      if (!pendingDelete.success) {
+        try {
+          fs.unlinkSync(outputPath);
+        } catch {
+          // ignore cleanup errors
+        }
+        return { success: false, error: pendingDelete.error || "Failed to preserve original WAV" };
+      }
 
       debugLogger.debug(
         "Retained audio compressed",
-        { filename, outputFilename },
+        { filename, outputFilename, pendingDeleteFilename: pendingDelete.filename },
         "audio-storage"
       );
-      return { success: true, path: outputPath, filename: outputFilename };
+      return {
+        success: true,
+        path: outputPath,
+        filename: outputFilename,
+        pendingDelete,
+        validation,
+      };
     } catch (error) {
       debugLogger.error(
         "Failed to compress retained audio",
@@ -276,7 +293,6 @@ class AudioStorageManager {
           if (typeof options.onCompressed === "function") {
             await options.onCompressed(filename, compressed);
           }
-          this.deleteRetainedAudioFiles([filename]);
           result.compressed += 1;
           result.files.push({ sourceFilename: filename, filename: compressed.filename });
         } catch (error) {
