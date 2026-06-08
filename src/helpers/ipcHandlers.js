@@ -16,6 +16,7 @@ const AudioStorageManager = require("./audioStorage");
 const { buildAudioDownloadFilename } = require("./audioStorageFiles");
 const liveSpeakerIdentifier = require("./liveSpeakerIdentifier");
 const MeetingEchoLeakDetector = require("./meetingEchoLeakDetector");
+const MeetingRetainedAudioWriter = require("./meetingRetainedAudioWriter");
 const {
   transcriptsOverlap,
   transcriptsLooselyOverlap,
@@ -4694,53 +4695,110 @@ class IPCHandlers {
       return { diarizationPcmPath, diarizationSegments, diarizationStartedAt };
     };
 
-    const persistMeetingAudioForNote = async (noteId, rawPcmPath, audioStartedAt) => {
-      if (!meetingShouldRetainAudio || !noteId || !rawPcmPath) {
-        return null;
+    const captureMeetingRetainedAudioState = async (options = {}) => {
+      const writer = meetingRetainedAudioWriter;
+      meetingRetainedAudioWriter = null;
+      if (!writer) {
+        return { success: false, error: "No meeting retained audio captured" };
       }
-
-      const result = await this.audioStorageManager.saveMeetingPcmAudio(
-        noteId,
-        rawPcmPath,
-        audioStartedAt,
-        {
-          sampleRate: 24000,
-          channels: 1,
-        }
-      );
-      if (!result.success) {
-        debugLogger.warn("Meeting audio retention skipped", {
-          noteId,
-          error: result.error,
-        });
-        return null;
-      }
-
       try {
-        const audioResult = this.databaseManager.addNoteAudioFile(
+        const result = await writer.finalize(options);
+        return {
+          ...result,
+          cleanup: () => writer.cleanup(),
+        };
+      } catch (error) {
+        await writer.cleanup();
+        return { success: false, error: error.message };
+      }
+    };
+
+    const persistMeetingAudioForNote = async (noteId, retainedAudio) => {
+      if (!meetingShouldRetainAudio || !noteId || !retainedAudio?.pcmPath) {
+        if (retainedAudio?.error) {
+          debugLogger.warn("Meeting audio retention skipped", {
+            noteId,
+            error: retainedAudio.error,
+            stats: retainedAudio.stats,
+          });
+        }
+        await retainedAudio?.cleanup?.();
+        return null;
+      }
+
+      let result = null;
+      try {
+        result = await this.audioStorageManager.saveMeetingPcmAudio(
           noteId,
-          result.filename,
-          result.durationSeconds,
+          retainedAudio.pcmPath,
+          retainedAudio.startedAt,
           {
-            recordedAt: audioStartedAt ? new Date(audioStartedAt).toISOString() : undefined,
-            updateLatest: true,
+            sampleRate: 24000,
+            channels: 1,
           }
         );
-        if (audioResult?.success) {
-          const updatedNote = this.databaseManager.getNote(noteId);
-          if (updatedNote) {
-            setImmediate(() => this.broadcastToWindows("note-updated", updatedNote));
-            this._asyncMirrorWrite(updatedNote);
-          }
+        if (!result.success) {
+          debugLogger.warn("Meeting audio retention skipped", {
+            noteId,
+            error: result.error,
+            sourceMix: retainedAudio.sourceMix,
+            stats: retainedAudio.stats,
+          });
+          return null;
         }
+
+        try {
+          const audioResult = this.databaseManager.addNoteAudioFile(
+            noteId,
+            result.filename,
+            result.durationSeconds,
+            {
+              recordedAt: retainedAudio.startedAt
+                ? new Date(retainedAudio.startedAt).toISOString()
+                : undefined,
+              updateLatest: true,
+            }
+          );
+          if (audioResult?.success) {
+            const updatedNote = this.databaseManager.getNote(noteId);
+            if (updatedNote) {
+              setImmediate(() => this.broadcastToWindows("note-updated", updatedNote));
+              this._asyncMirrorWrite(updatedNote);
+            }
+          }
+        } catch (error) {
+          debugLogger.warn("Failed to update meeting note audio metadata", {
+            noteId,
+            error: error.message,
+            sourceMix: retainedAudio.sourceMix,
+          });
+        }
+        debugLogger.info("Meeting retained audio saved", {
+          noteId,
+          filename: result.filename,
+          sourceMix: retainedAudio.sourceMix,
+          stats: retainedAudio.stats,
+        });
+
+        return {
+          ...result,
+          sourceMix: retainedAudio.sourceMix,
+        };
       } catch (error) {
-        debugLogger.warn("Failed to update meeting note audio metadata", {
+        debugLogger.warn("Meeting audio retention skipped", {
           noteId,
           error: error.message,
+          sourceMix: retainedAudio.sourceMix,
         });
+        return result
+          ? {
+              ...result,
+              sourceMix: retainedAudio.sourceMix,
+            }
+          : null;
+      } finally {
+        await retainedAudio.cleanup?.();
       }
-
-      return result;
     };
 
     const attachMeetingStreamingHandlers = (streaming, win, source) => {
@@ -5084,6 +5142,7 @@ class IPCHandlers {
     let meetingDiarizationPath = null;
     let meetingDiarizationStartedAt = null;
     let meetingDiarizationSegments = [];
+    let meetingRetainedAudioWriter = null;
     let meetingLiveSpeakerActive = false;
     let meetingLiveSpeakerState = null;
     let meetingLiveSpeakerStartedAt = null;
@@ -5124,6 +5183,24 @@ class IPCHandlers {
     let meetingOneOnOneProfileBound = false;
     let meetingNoteId = null;
     let meetingShouldRetainAudio = true;
+
+    const ensureMeetingRetainedAudioWriter = () => {
+      if (!meetingShouldRetainAudio) return null;
+      if (!meetingRetainedAudioWriter) {
+        meetingRetainedAudioWriter = new MeetingRetainedAudioWriter({
+          sampleRate: 24000,
+          channels: 1,
+          debugLogger,
+        });
+      }
+      return meetingRetainedAudioWriter;
+    };
+
+    const retainMeetingAudioChunk = (source, buffer) => {
+      const writer = ensureMeetingRetainedAudioWriter();
+      if (!writer) return;
+      writer.writeChunk(source, buffer, Date.now());
+    };
 
     const getLiveSpeakerProfiles = () => {
       const attendees = this._getNoteNonSelfParticipants(meetingNoteId);
@@ -5189,6 +5266,7 @@ class IPCHandlers {
 
     const dispatchMeetingAudioBuffer = (buffer, source) => {
       if (meetingLocalMode) {
+        retainMeetingAudioChunk(source, buffer);
         meetingLocalBuffers[source].push(buffer);
         return;
       }
@@ -5239,6 +5317,7 @@ class IPCHandlers {
         }
       }
 
+      retainMeetingAudioChunk(source, outbound);
       const sent = streaming.sendAudio(outbound);
       meetingSendCounts[source]++;
       if (meetingSendCounts[source] <= 5 || meetingSendCounts[source] % 100 === 0) {
@@ -5693,6 +5772,10 @@ class IPCHandlers {
         fs.unlink(meetingDiarizationPath, () => {});
         meetingDiarizationPath = null;
       }
+      if (meetingRetainedAudioWriter) {
+        void meetingRetainedAudioWriter.cleanup();
+        meetingRetainedAudioWriter = null;
+      }
       meetingDiarizationStartedAt = null;
       meetingDiarizationSegments = [];
       meetingLocalWin = null;
@@ -6131,16 +6214,15 @@ class IPCHandlers {
           flushPendingMicFinals(true);
           const { diarizationPcmPath, diarizationSegments, diarizationStartedAt } =
             await captureMeetingDiarizationState();
-          const savedAudio = await persistMeetingAudioForNote(
-            meetingNoteId,
-            diarizationPcmPath,
-            diarizationStartedAt
-          );
           const transcript =
             diarizationSegments
               .map((segment) => segment.text)
               .join(" ")
               .trim() || meetingLocalTranscript;
+          const retainedAudio = await captureMeetingRetainedAudioState({
+            requireAudible: Boolean(transcript.trim()),
+          });
+          const savedAudio = await persistMeetingAudioForNote(meetingNoteId, retainedAudio);
           const sessionSpeakerConfigSnapshot = this.activeMeetingSpeakerConfig;
           const noteIdSnapshot = meetingNoteId;
           this.activeMeetingSpeakerConfig = null;
@@ -6164,16 +6246,15 @@ class IPCHandlers {
         const results = await disconnectMeetingStreaming({ flushPending: true });
         const { diarizationPcmPath, diarizationSegments, diarizationStartedAt } =
           await captureMeetingDiarizationState();
-        const savedAudio = await persistMeetingAudioForNote(
-          meetingNoteId,
-          diarizationPcmPath,
-          diarizationStartedAt
-        );
         const transcript =
           diarizationSegments
             .map((segment) => segment.text)
             .join(" ")
             .trim() || [results[0]?.text, results[1]?.text].filter(Boolean).join(" ");
+        const retainedAudio = await captureMeetingRetainedAudioState({
+          requireAudible: Boolean(transcript.trim()),
+        });
+        const savedAudio = await persistMeetingAudioForNote(meetingNoteId, retainedAudio);
 
         const sessionSpeakerConfigSnapshot = this.activeMeetingSpeakerConfig;
         const noteIdSnapshot = meetingNoteId;
