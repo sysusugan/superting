@@ -124,6 +124,8 @@ const getMeetingTranscriptionOptions = () => {
       language,
       dataRetentionEnabled: state.dataRetentionEnabled,
       audioRetentionDays: state.audioRetentionDays,
+      customDictionary: state.customDictionary,
+      customDictionaryAliases: state.customDictionaryAliases,
     };
   }
 
@@ -144,6 +146,8 @@ const getMeetingTranscriptionOptions = () => {
       mode,
       dataRetentionEnabled: state.dataRetentionEnabled,
       audioRetentionDays: state.audioRetentionDays,
+      customDictionary: state.customDictionary,
+      customDictionaryAliases: state.customDictionaryAliases,
     };
   }
   const model =
@@ -156,6 +160,8 @@ const getMeetingTranscriptionOptions = () => {
     mode,
     dataRetentionEnabled: state.dataRetentionEnabled,
     audioRetentionDays: state.audioRetentionDays,
+    customDictionary: state.customDictionary,
+    customDictionaryAliases: state.customDictionaryAliases,
   };
 };
 

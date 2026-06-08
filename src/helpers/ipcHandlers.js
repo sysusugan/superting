@@ -49,6 +49,7 @@ const {
 } = require("./uploadLocalTranscriptionJob");
 const {
   normalizeMeetingSegment,
+  normalizeMeetingTranscript,
   normalizeTranscriptionResult,
 } = require("./dictationFlowResultCore.cjs");
 
@@ -4527,6 +4528,8 @@ class IPCHandlers {
       provider: meetingLocalMode ? meetingLocalProvider : meetingRealtimeProvider,
       model: meetingLocalMode ? meetingLocalModel : meetingRealtimeModel,
       language: meetingLocalMode ? meetingLocalLanguage : meetingRealtimeLanguage,
+      customDictionary: meetingCustomDictionary,
+      customDictionaryAliases: meetingCustomDictionaryAliases,
     });
 
     const buildMeetingSegment = (segment) =>
@@ -4540,22 +4543,36 @@ class IPCHandlers {
       send = null,
       includeInLocalTranscript = false,
     }) => {
+      const segment = buildMeetingSegment({
+        text,
+        source,
+        type: "final",
+        timestamp,
+      });
+      const finalText = segment.displayText || segment.text || text;
+
       if (includeInLocalTranscript) {
-        appendMeetingLocalTranscript(text);
+        appendMeetingLocalTranscript(finalText);
       }
 
-      storeMeetingDiarizationSegment(text, source, timestamp, micSuppression);
+      storeMeetingDiarizationSegment(finalText, source, timestamp, micSuppression);
+
+      if (segment.dictionaryCorrections?.length) {
+        debugLogger.debug(
+          "Meeting voice flow final segment corrected",
+          {
+            source,
+            timestamp,
+            rawText: segment.rawText,
+            displayText: segment.displayText,
+            dictionaryCorrections: segment.dictionaryCorrections,
+          },
+          "voice-flow"
+        );
+      }
 
       if (send) {
-        send(
-          "meeting-transcription-segment",
-          buildMeetingSegment({
-            text,
-            source,
-            type: "final",
-            timestamp,
-          })
-        );
+        send("meeting-transcription-segment", segment);
       }
     };
 
@@ -5174,6 +5191,8 @@ class IPCHandlers {
     let meetingRealtimeProvider = null;
     let meetingRealtimeModel = null;
     let meetingRealtimeLanguage = null;
+    let meetingCustomDictionary = [];
+    let meetingCustomDictionaryAliases = [];
     let meetingLocalTranscribing = false;
     let meetingPendingMicChunks = [];
     let meetingPendingMicFinals = [];
@@ -5786,6 +5805,8 @@ class IPCHandlers {
       meetingRealtimeProvider = null;
       meetingRealtimeModel = null;
       meetingRealtimeLanguage = null;
+      meetingCustomDictionary = [];
+      meetingCustomDictionaryAliases = [];
       meetingLocalTranscribing = false;
       meetingPendingMicChunks = [];
       resetPendingMicFinals();
@@ -5936,6 +5957,12 @@ class IPCHandlers {
 
       meetingTranscriptionStartInProgress = true;
       meetingStartedAt = Date.now();
+      meetingCustomDictionary = Array.isArray(options.customDictionary)
+        ? options.customDictionary.slice()
+        : [];
+      meetingCustomDictionaryAliases = Array.isArray(options.customDictionaryAliases)
+        ? options.customDictionaryAliases.map((alias) => ({ ...alias }))
+        : [];
       this.meetingDetectionEngine?.setUserRecording(true);
       try {
         const systemAudioPlan = await getMeetingSystemAudioPlan();
@@ -6183,6 +6210,49 @@ class IPCHandlers {
       sendMeetingAudio(audioBuffer, source);
     });
 
+    const buildMeetingStopResult = ({
+      transcript,
+      diarizationSessionId,
+      audioPath,
+      provider,
+      model,
+      language,
+      customDictionary = meetingCustomDictionary,
+      customDictionaryAliases = meetingCustomDictionaryAliases,
+    }) => {
+      const normalized = normalizeMeetingTranscript(transcript, {
+        provider,
+        model,
+        language,
+        customDictionary,
+        customDictionaryAliases,
+      });
+
+      if (normalized.dictionaryCorrections?.length) {
+        debugLogger.debug(
+          "Meeting voice flow transcript corrected",
+          {
+            diarizationSessionId,
+            rawText: normalized.rawText,
+            displayText: normalized.displayText,
+            dictionaryCorrections: normalized.dictionaryCorrections,
+          },
+          "voice-flow"
+        );
+      }
+
+      return {
+        success: true,
+        transcript: normalized.displayText,
+        rawTranscript: normalized.rawText,
+        warning: normalized.warning,
+        dictionaryCorrections: normalized.dictionaryCorrections,
+        processingMetadata: normalized.processingMetadata,
+        diarizationSessionId,
+        audioPath,
+      };
+    };
+
     ipcMain.handle("meeting-transcription-stop", async () => {
       this.meetingDetectionEngine?.setUserRecording(false);
       try {
@@ -6225,6 +6295,13 @@ class IPCHandlers {
           const savedAudio = await persistMeetingAudioForNote(meetingNoteId, retainedAudio);
           const sessionSpeakerConfigSnapshot = this.activeMeetingSpeakerConfig;
           const noteIdSnapshot = meetingNoteId;
+          const stopMetadataSnapshot = {
+            provider: meetingLocalProvider,
+            model: meetingLocalModel,
+            language: meetingLocalLanguage,
+            customDictionary: meetingCustomDictionary,
+            customDictionaryAliases: meetingCustomDictionaryAliases,
+          };
           this.activeMeetingSpeakerConfig = null;
           resetMeetingLocalState();
 
@@ -6240,7 +6317,12 @@ class IPCHandlers {
             noteIdSnapshot
           );
 
-          return { success: true, transcript, diarizationSessionId, audioPath: savedAudio?.path };
+          return buildMeetingStopResult({
+            transcript,
+            diarizationSessionId,
+            audioPath: savedAudio?.path,
+            ...stopMetadataSnapshot,
+          });
         }
 
         const results = await disconnectMeetingStreaming({ flushPending: true });
@@ -6258,6 +6340,13 @@ class IPCHandlers {
 
         const sessionSpeakerConfigSnapshot = this.activeMeetingSpeakerConfig;
         const noteIdSnapshot = meetingNoteId;
+        const stopMetadataSnapshot = {
+          provider: meetingRealtimeProvider,
+          model: meetingRealtimeModel,
+          language: meetingRealtimeLanguage,
+          customDictionary: meetingCustomDictionary,
+          customDictionaryAliases: meetingCustomDictionaryAliases,
+        };
         this.activeMeetingSpeakerConfig = null;
 
         // Fire-and-forget background diarization (or notify skip)
@@ -6272,7 +6361,12 @@ class IPCHandlers {
           noteIdSnapshot
         );
 
-        return { success: true, transcript, diarizationSessionId, audioPath: savedAudio?.path };
+        return buildMeetingStopResult({
+          transcript,
+          diarizationSessionId,
+          audioPath: savedAudio?.path,
+          ...stopMetadataSnapshot,
+        });
       } catch (error) {
         debugLogger.error("Meeting transcription stop error", { error: error.message });
         return { success: false, error: error.message };

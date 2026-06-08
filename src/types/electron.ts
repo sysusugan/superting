@@ -1346,6 +1346,8 @@ declare global {
         language?: string;
         dataRetentionEnabled?: boolean;
         audioRetentionDays?: number;
+        customDictionary?: string[];
+        customDictionaryAliases?: Array<{ from: string; to: string }>;
       }) => Promise<{ success: boolean; alreadyPrepared?: boolean; error?: string }>;
       meetingTranscriptionStart?: (options: {
         provider?: string;
@@ -1354,6 +1356,8 @@ declare global {
         noteId?: number | null;
         dataRetentionEnabled?: boolean;
         audioRetentionDays?: number;
+        customDictionary?: string[];
+        customDictionaryAliases?: Array<{ from: string; to: string }>;
       }) => Promise<{
         success: boolean;
         error?: string;
@@ -1366,6 +1370,10 @@ declare global {
       meetingTranscriptionStop?: () => Promise<{
         success: boolean;
         transcript?: string;
+        rawTranscript?: string;
+        warning?: string | null;
+        dictionaryCorrections?: Array<{ from: string; to: string; kind?: string }>;
+        processingMetadata?: Record<string, unknown>;
         diarizationSessionId?: string;
         audioPath?: string;
         error?: string;

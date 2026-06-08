@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const {
   normalizeTranscriptionResult,
   normalizeMeetingSegment,
+  normalizeMeetingTranscript,
 } = require("../../src/helpers/dictationFlowResultCore.cjs");
 
 let normalizeDictationResult;
@@ -287,4 +288,58 @@ test("normalizes meeting transcription segments without treating partials as err
   const retracted = normalizeMeetingSegment({ text: "stale", source: "mic", type: "retract" });
   assert.equal(retracted.stage, "retract");
   assert.equal(retracted.partial, false);
+});
+
+test("normalizes meeting final segments with dictionary corrections", () => {
+  const final = normalizeMeetingSegment(
+    { text: "Antibus uses openwhispr.", source: "system", type: "final", timestamp: 456 },
+    {
+      provider: "openai-realtime",
+      model: "gpt-4o-mini-transcribe",
+      customDictionary: ["EntVerse", "OpenWhispr"],
+      customDictionaryAliases: [{ from: "Antibus", to: "EntVerse" }],
+    }
+  );
+
+  assert.equal(final.rawText, "Antibus uses openwhispr.");
+  assert.equal(final.text, "EntVerse uses OpenWhispr.");
+  assert.equal(final.displayText, "EntVerse uses OpenWhispr.");
+  assert.equal(final.warning, "dictionary_corrected");
+  assert.deepEqual(final.dictionaryCorrections, [
+    { from: "Antibus", to: "EntVerse", kind: "alias" },
+    { from: "openwhispr", to: "OpenWhispr", kind: "case" },
+  ]);
+});
+
+test("does not rewrite meeting partial segments", () => {
+  const partial = normalizeMeetingSegment(
+    { text: "Antibus openwhispr", source: "system", type: "partial", timestamp: 789 },
+    {
+      customDictionary: ["EntVerse", "OpenWhispr"],
+      customDictionaryAliases: [{ from: "Antibus", to: "EntVerse" }],
+    }
+  );
+
+  assert.equal(partial.text, "Antibus openwhispr");
+  assert.equal(partial.displayText, "Antibus openwhispr");
+  assert.equal(partial.warning, null);
+  assert.equal(partial.dictionaryCorrections, undefined);
+});
+
+test("normalizes full meeting transcripts with voice flow metadata", () => {
+  const result = normalizeMeetingTranscript("Antibus discusses openwhispr.", {
+    provider: "openai-realtime",
+    model: "gpt-4o-mini-transcribe",
+    customDictionary: ["EntVerse", "OpenWhispr"],
+    customDictionaryAliases: [{ from: "Antibus", to: "EntVerse" }],
+  });
+
+  assert.equal(result.mode, "meeting");
+  assert.equal(result.rawText, "EntVerse discusses OpenWhispr.");
+  assert.equal(result.displayText, "EntVerse discusses OpenWhispr.");
+  assert.equal(result.warning, "dictionary_corrected");
+  assert.deepEqual(result.processingMetadata.voiceFlow.dictionaryCorrections, [
+    { from: "Antibus", to: "EntVerse", kind: "alias" },
+    { from: "openwhispr", to: "OpenWhispr", kind: "case" },
+  ]);
 });

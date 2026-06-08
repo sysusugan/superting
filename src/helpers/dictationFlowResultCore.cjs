@@ -239,30 +239,57 @@ function normalizeMeetingSegment(segment = {}, metadata = {}) {
   const type = segment.type || "final";
   const text = cleanText(segment.text);
   const partial = type === "partial";
+  const corrected =
+    partial || type === "retract"
+      ? { text, replacements: [] }
+      : applyDictionaryCorrections(text, {
+          dictionary: metadata.customDictionary,
+          aliases: metadata.customDictionaryAliases,
+        });
+  const hasDictionaryCorrections = corrected.replacements.length > 0;
 
   return {
     ...segment,
     mode: "meeting",
     stage: type,
-    text,
+    text: corrected.text,
     rawText: text,
     refinedText: "",
-    displayText: text,
+    displayText: corrected.text,
     source: segment.source ?? metadata.source ?? null,
     type,
     timestamp: segment.timestamp ?? metadata.timestamp ?? null,
     provider: metadata.provider ?? segment.provider ?? null,
     model: metadata.model ?? segment.model ?? null,
     language: metadata.language ?? segment.language ?? null,
-    warning: segment.warning ?? metadata.warning ?? null,
+    warning: pickDictationWarning(
+      segment.warning ?? metadata.warning ?? null,
+      hasDictionaryCorrections ? "dictionary_corrected" : null
+    ),
     partial,
+    dictionaryCorrections: hasDictionaryCorrections ? corrected.replacements : undefined,
   };
+}
+
+function normalizeMeetingTranscript(text, metadata = {}) {
+  return normalizeTranscriptionResult(
+    {
+      success: true,
+      text,
+      rawText: text,
+      provider: metadata.provider,
+      model: metadata.model,
+      language: metadata.language,
+    },
+    { ...metadata, mode: "meeting" }
+  );
 }
 
 module.exports = {
   normalizeDictationResult,
   normalizeTranscriptionResult,
   normalizeMeetingSegment,
+  normalizeMeetingTranscript,
   resolveStreamingDictationText,
   settleStreamingStop,
   pickDictationWarning,

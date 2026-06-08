@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { normalizeTranscriptionResult } = require("../../src/helpers/dictationFlowResultCore.cjs");
+const {
+  normalizeMeetingTranscript,
+  normalizeTranscriptionResult,
+} = require("../../src/helpers/dictationFlowResultCore.cjs");
 
 const dictionary = ["EntVerse", "OpenWhispr", "EnlightAI"];
 const aliases = [{ from: "Antibus", to: "EntVerse" }];
@@ -26,15 +29,21 @@ test("voice flow fixtures correct realtime short dictation brand terms", () => {
 });
 
 test("voice flow fixtures keep retry and upload on the same correction path", () => {
-  for (const mode of ["retry", "upload"]) {
-    const result = normalizeTranscriptionResult(
-      {
-        success: true,
-        text: "Antibus integrates with EnlightAI.",
-        source: "openai",
-      },
-      { mode, customDictionary: dictionary, customDictionaryAliases: aliases }
-    );
+  for (const mode of ["retry", "upload", "meeting"]) {
+    const result =
+      mode === "meeting"
+        ? normalizeMeetingTranscript("Antibus integrates with EnlightAI.", {
+            customDictionary: dictionary,
+            customDictionaryAliases: aliases,
+          })
+        : normalizeTranscriptionResult(
+            {
+              success: true,
+              text: "Antibus integrates with EnlightAI.",
+              source: "openai",
+            },
+            { mode, customDictionary: dictionary, customDictionaryAliases: aliases }
+          );
 
     assert.equal(result.mode, mode);
     assert.equal(result.displayText, "EntVerse integrates with EnlightAI.");
