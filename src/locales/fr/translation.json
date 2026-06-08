@@ -1755,6 +1755,9 @@
       "comingSoon": "Bientôt disponible",
       "back": "Retour"
     },
+    "recording": {
+      "errorTitle": "Impossible de démarrer l'enregistrement"
+    },
     "meetingPill": {
       "returnToNote": "Revenir à l'enregistrement"
     },

@@ -257,6 +257,7 @@ export default function PersonalNotesView({
   const sessionExpectedCount = useMeetingRecordingStore((s) => s.sessionExpectedCount);
   const userTouchedStepper = useMeetingRecordingStore((s) => s.userTouchedStepper);
   const recordingNoteId = useMeetingRecordingStore((s) => s.recordingNoteId);
+  const recordingError = useMeetingRecordingStore((s) => s.error);
 
   const {
     folders,
@@ -282,6 +283,16 @@ export default function PersonalNotesView({
   } = useFolderManagement(noteSortBy);
 
   const { confirmDialog, showConfirmDialog, hideConfirmDialog } = useDialogs();
+
+  useEffect(() => {
+    if (!recordingError) return;
+    toast({
+      title: t("notes.recording.errorTitle"),
+      description: recordingError,
+      variant: "destructive",
+    });
+    useMeetingRecordingStore.setState({ error: null });
+  }, [recordingError, toast, t]);
 
   const requestDeleteFolder = useCallback(
     (folder: { id: number; name: string }) => {

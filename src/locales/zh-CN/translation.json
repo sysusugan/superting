@@ -1722,6 +1722,9 @@
       "comingSoon": "即将推出",
       "back": "返回"
     },
+    "recording": {
+      "errorTitle": "无法开始录制"
+    },
     "meetingPill": {
       "returnToNote": "返回到录音"
     },

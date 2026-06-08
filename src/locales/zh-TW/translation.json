@@ -1718,6 +1718,9 @@
       "comingSoon": "即將推出",
       "back": "返回"
     },
+    "recording": {
+      "errorTitle": "無法開始錄製"
+    },
     "meetingPill": {
       "returnToNote": "返回到錄音"
     },

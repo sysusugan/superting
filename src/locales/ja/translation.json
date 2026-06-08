@@ -1779,6 +1779,9 @@
       "comingSoon": "近日公開",
       "back": "戻る"
     },
+    "recording": {
+      "errorTitle": "録音を開始できません"
+    },
     "meetingPill": {
       "returnToNote": "録音に戻る"
     },

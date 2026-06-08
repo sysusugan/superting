@@ -1719,6 +1719,9 @@
       "comingSoon": "Demnächst verfügbar",
       "back": "Zurück"
     },
+    "recording": {
+      "errorTitle": "Aufnahme konnte nicht gestartet werden"
+    },
     "meetingPill": {
       "returnToNote": "Zurück zur Aufnahme"
     },

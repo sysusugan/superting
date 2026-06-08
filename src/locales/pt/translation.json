@@ -1718,6 +1718,9 @@
       "comingSoon": "Em breve",
       "back": "Voltar"
     },
+    "recording": {
+      "errorTitle": "Não foi possível iniciar a gravação"
+    },
     "meetingPill": {
       "returnToNote": "Voltar à gravação"
     },
