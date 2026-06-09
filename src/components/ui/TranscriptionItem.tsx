@@ -19,7 +19,7 @@ import type {
 } from "../../types/electron";
 import { cn } from "../lib/utils";
 import { getCachedPlatform } from "../../utils/platform";
-import { getDictionaryCorrections } from "../../utils/voiceFlowMetadata";
+import { getDictionaryCorrections, getVoiceFlowMetadata } from "../../utils/voiceFlowMetadata";
 import { getSettings, useSettingsStore } from "../../stores/settingsStore";
 
 const platform = getCachedPlatform();
@@ -52,6 +52,7 @@ export default function TranscriptionItem({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const corrections = getDictionaryCorrections(item);
+  const voiceFlow = getVoiceFlowMetadata(item);
   const customDictionaryAliases = useSettingsStore((state) => state.customDictionaryAliases);
 
   const timestampSource = item.timestamp.endsWith("Z") ? item.timestamp : `${item.timestamp}Z`;
@@ -286,7 +287,12 @@ export default function TranscriptionItem({
               {t("controlPanel.history.rawTranscript")}
             </span>
             <p className="text-xs text-muted-foreground/80 leading-relaxed mt-1">{item.raw_text}</p>
-            {item.raw_text === item.text && (
+            {voiceFlow?.warning === "cleanup_failed" && (
+              <p className="text-[10px] text-muted-foreground/50 italic mt-1">
+                {t("controlPanel.history.cleanupFailed")}
+              </p>
+            )}
+            {voiceFlow?.warning !== "cleanup_failed" && item.raw_text === item.text && (
               <p className="text-[10px] text-muted-foreground/50 italic mt-1">
                 {t("controlPanel.history.noAiProcessing")}
               </p>

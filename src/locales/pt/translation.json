@@ -280,10 +280,11 @@
       "retrySuccess": "Transcrição atualizada",
       "retryError": "Falha ao retranscrever",
       "audioNotFound": "Arquivo de áudio não encontrado ou expirado",
-      "noAiProcessing": "Nenhum processamento de IA foi aplicado a esta transcrição",
+      "noAiProcessing": "O processamento de IA não alterou esta transcrição",
       "rawTranscript": "Transcrição bruta",
       "dictionaryCorrections": "Dictionary corrections",
-      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
+      "cleanupFailed": "A limpeza por IA falhou; a transcrição original foi mantida"
     },
     "cloudMigration": {
       "viewSettings": "Ver configurações"

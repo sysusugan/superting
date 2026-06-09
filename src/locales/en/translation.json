@@ -280,7 +280,7 @@
       "retrySuccess": "Transcription updated",
       "retryError": "Failed to re-transcribe",
       "audioNotFound": "Audio file not found or expired",
-      "noAiProcessing": "No AI processing was applied to this transcription",
+      "noAiProcessing": "AI processing made no changes to this transcription",
       "transcriptionFailed": "Transcription failed",
       "failedCtaSettings": "Set up your transcription provider",
       "failedCtaAndRetry": "then click retry",
@@ -295,7 +295,8 @@
       "clearAllErrorTitle": "Couldn't clear history",
       "clearAllErrorDescription": "Something went wrong. Please try again.",
       "dictionaryCorrections": "Dictionary corrections",
-      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
+      "cleanupFailed": "AI cleanup failed; the raw transcription was kept"
     },
     "cloudMigration": {
       "viewSettings": "View Settings"

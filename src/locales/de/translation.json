@@ -293,10 +293,11 @@
       "retrySuccess": "Transkription aktualisiert",
       "retryError": "Erneute Transkription fehlgeschlagen",
       "audioNotFound": "Audiodatei nicht gefunden oder abgelaufen",
-      "noAiProcessing": "Auf diese Transkription wurde keine KI-Verarbeitung angewendet",
+      "noAiProcessing": "Die KI-Verarbeitung hat diese Transkription nicht verändert",
       "rawTranscript": "Rohtranskript",
       "dictionaryCorrections": "Dictionary corrections",
-      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
+      "cleanupFailed": "KI-Bereinigung fehlgeschlagen; die Rohtranskription wurde beibehalten"
     },
     "cloudMigration": {
       "viewSettings": "Einstellungen anzeigen"

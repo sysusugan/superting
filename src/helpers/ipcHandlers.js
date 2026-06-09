@@ -909,6 +909,240 @@ class IPCHandlers {
       return buffer ? buffer.buffer : null;
     });
 
+    ipcMain.handle("retry-transcription", async (event, id, settings = {}) => {
+      const buffer = this.audioStorageManager.getAudioBuffer(id);
+      if (!buffer) return { success: false, error: "Audio file not found" };
+
+      try {
+        let result;
+        const preferredLanguage = settings?.preferredLanguage;
+        const language =
+          preferredLanguage && preferredLanguage !== "auto"
+            ? preferredLanguage.split("-")[0]
+            : undefined;
+        const dictionaryPrompt = buildRuntimeDictionaryPrompt(settings?.customDictionary);
+
+        if (settings?.useLocalWhisper) {
+          if (settings.localTranscriptionProvider === "nvidia") {
+            const model =
+              settings.parakeetModel || process.env.PARAKEET_MODEL || "parakeet-tdt-0.6b-v3";
+            result = await this._runLocalSttTask(
+              {
+                kind: "history-retry",
+                priority: LOCAL_STT_PRIORITY.HISTORY,
+                interruptible: true,
+              },
+              async ({ signal }) =>
+                this.parakeetManager.transcribeLocalParakeet(buffer, { model, signal })
+            );
+          } else if (this.whisperManager?.serverManager?.isAvailable?.()) {
+            const vadOptions = this._resolveWhisperVadOptions("noteRecording");
+            result = await this._runLocalSttTask(
+              {
+                kind: "history-retry",
+                priority: LOCAL_STT_PRIORITY.HISTORY,
+                interruptible: true,
+              },
+              async ({ signal }) =>
+                this.whisperManager.transcribeLocalWhisper(buffer, {
+                  model: settings.whisperModel,
+                  language,
+                  initialPrompt: dictionaryPrompt,
+                  ...vadOptions,
+                  signal,
+                })
+            );
+          }
+        } else if (settings?.cloudTranscriptionMode === "openwhispr") {
+          const win = BrowserWindow.fromWebContents(event.sender);
+          const authHeader = win ? await getAuthHeaderFromWindow(win) : {};
+          const apiUrl = getApiUrl();
+          if (!apiUrl) {
+            throw new Error("Self-hosted API URL not configured");
+          }
+          if (!Object.keys(authHeader).length) {
+            throw new Error("Not authenticated");
+          }
+
+          const multipartFields = {
+            language,
+            clientType: "desktop",
+            appVersion: app.getVersion(),
+            sessionId: this.sessionId,
+          };
+          if (dictionaryPrompt) multipartFields.prompt = dictionaryPrompt;
+
+          if (buffer.length > CLOUD_INLINE_LIMIT) {
+            const { text } = await chunkedCloudTranscribe({
+              buffer,
+              apiUrl,
+              authHeader,
+              multipartFields,
+            });
+            result = { text, source: "openwhispr", model: "cloud" };
+          } else {
+            const { body, boundary } = buildMultipartBody(
+              buffer,
+              "audio.webm",
+              "audio/webm",
+              multipartFields
+            );
+            const data = await postMultipart(
+              new URL(`${apiUrl}/api/transcribe`),
+              body,
+              boundary,
+              authHeader
+            );
+            const responseData = interpretTranscribeResponse(data);
+            result = {
+              text: responseData.text,
+              source: "openwhispr",
+              model: "cloud",
+            };
+          }
+        } else {
+          const provider = settings?.cloudTranscriptionProvider || "openai";
+          const model = this._resolveByokModel(provider, settings?.cloudTranscriptionModel);
+
+          let apiKey;
+          let endpoint;
+          if (provider === "groq") {
+            apiKey = this.environmentManager.getGroqKey();
+            endpoint = "https://api.groq.com/openai/v1/audio/transcriptions";
+          } else if (provider === "mistral") {
+            apiKey = this.environmentManager.getMistralKey();
+            endpoint = MISTRAL_TRANSCRIPTION_URL;
+          } else if (provider === "custom") {
+            apiKey = this.environmentManager.getCustomTranscriptionKey();
+            const base = (settings?.cloudTranscriptionBaseUrl || "").trim();
+            endpoint = base
+              ? /\/audio\/(transcriptions|translations)$/i.test(base)
+                ? base
+                : `${base.replace(/\/+$/, "")}/audio/transcriptions`
+              : "https://api.openai.com/v1/audio/transcriptions";
+          } else {
+            apiKey = this.environmentManager.getOpenAIKey();
+            endpoint = "https://api.openai.com/v1/audio/transcriptions";
+          }
+          if (!apiKey && provider !== "custom") {
+            throw new Error(`${provider} API key not configured`);
+          }
+
+          const multipartFields = { model };
+          if (language) multipartFields.language = language;
+          if (dictionaryPrompt) multipartFields.prompt = dictionaryPrompt;
+          const { body, boundary } = buildMultipartBody(
+            buffer,
+            "audio.webm",
+            "audio/webm",
+            multipartFields
+          );
+          const headers = {};
+          if (provider === "mistral") {
+            headers["x-api-key"] = apiKey;
+          } else if (apiKey) {
+            headers.Authorization = `Bearer ${apiKey}`;
+          }
+
+          const data = await postMultipart(new URL(endpoint), body, boundary, headers);
+          if (data.statusCode === 401) {
+            throw new Error("Invalid API key. Check your key in Settings.");
+          }
+          if (data.statusCode === 429) {
+            throw new Error("Rate limit exceeded. Please try again later.");
+          }
+          if (data.statusCode !== 200) {
+            throw new Error(
+              data.data?.error?.message || data.data?.error || `API error: ${data.statusCode}`
+            );
+          }
+          if (data.data?.text) {
+            result = { text: data.data.text, source: provider, model };
+          }
+        }
+
+        if (!result?.text) {
+          return { success: false, error: "No transcription engine available" };
+        }
+
+        const retryProvider =
+          result.source ||
+          result.provider ||
+          (settings?.useLocalWhisper
+            ? settings.localTranscriptionProvider === "nvidia"
+              ? "nvidia"
+              : "whisper"
+            : settings?.cloudTranscriptionMode === "openwhispr"
+              ? "openwhispr"
+              : settings?.cloudTranscriptionProvider || "openai");
+        const retryModel =
+          result.model ||
+          (settings?.useLocalWhisper
+            ? settings.localTranscriptionProvider === "nvidia"
+              ? settings.parakeetModel || process.env.PARAKEET_MODEL || "parakeet-tdt-0.6b-v3"
+              : settings.whisperModel
+            : settings?.cloudTranscriptionMode === "openwhispr"
+              ? "cloud"
+              : this._resolveByokModel(
+                  settings?.cloudTranscriptionProvider || "openai",
+                  settings?.cloudTranscriptionModel
+                ));
+        const normalizedResult = normalizeTranscriptionResult(result, {
+          mode: "retry",
+          provider: retryProvider,
+          model: retryModel,
+          language,
+          customDictionary: settings?.customDictionary,
+          customDictionaryAliases: settings?.customDictionaryAliases,
+        });
+
+        this.databaseManager.updateTranscriptionResult(id, {
+          text: normalizedResult.displayText,
+          rawText: normalizedResult.rawText,
+          warning: normalizedResult.warning,
+          partial: normalizedResult.partial,
+          processingMetadata: normalizedResult.processingMetadata,
+        });
+        this.databaseManager.updateTranscriptionStatus(id, "completed");
+        this.databaseManager.updateTranscriptionAudio(id, {
+          hasAudio: 1,
+          audioDurationMs: normalizedResult.audioDurationMs,
+          provider: normalizedResult.provider,
+          model: normalizedResult.model,
+        });
+
+        debugLogger.debug(
+          "Voice flow retry result updated",
+          {
+            id,
+            provider: normalizedResult.provider,
+            model: normalizedResult.model,
+            rawText: normalizedResult.rawText,
+            refinedText: normalizedResult.refinedText,
+            displayText: normalizedResult.displayText,
+            warning: normalizedResult.warning,
+            dictionaryCorrections: normalizedResult.dictionaryCorrections || [],
+          },
+          "voice-flow"
+        );
+
+        const updated = this.databaseManager.getTranscriptionById(id);
+        if (updated) {
+          setImmediate(() => {
+            this.broadcastToWindows("transcription-updated", updated);
+          });
+        }
+        return { success: true, transcription: updated };
+      } catch (error) {
+        debugLogger.error(
+          "Retry transcription failed",
+          { id, error: error.message, code: error.code },
+          "audio-storage"
+        );
+        return { success: false, error: error.message, code: error.code };
+      }
+    });
+
     ipcMain.handle("delete-transcription-audio", async (event, id) => {
       const result = this.audioStorageManager.deleteAudio(id);
       if (result.success) {

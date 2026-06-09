@@ -293,10 +293,11 @@
       "retrySuccess": "Transcripción actualizada",
       "retryError": "Error al volver a transcribir",
       "audioNotFound": "Archivo de audio no encontrado o expirado",
-      "noAiProcessing": "No se aplicó procesamiento de IA a esta transcripción",
+      "noAiProcessing": "El procesamiento de IA no cambió esta transcripción",
       "rawTranscript": "Transcripción sin procesar",
       "dictionaryCorrections": "Dictionary corrections",
-      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
+      "cleanupFailed": "La limpieza con IA falló; se conservó la transcripción original"
     },
     "cloudMigration": {
       "viewSettings": "Ver ajustes"

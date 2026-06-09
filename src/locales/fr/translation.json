@@ -293,10 +293,11 @@
       "retrySuccess": "Transcription mise à jour",
       "retryError": "Échec de la retranscription",
       "audioNotFound": "Fichier audio introuvable ou expiré",
-      "noAiProcessing": "Aucun traitement IA n'a été appliqué à cette transcription",
+      "noAiProcessing": "Le traitement IA n'a pas modifié cette transcription",
       "rawTranscript": "Transcription brute",
       "dictionaryCorrections": "Dictionary corrections",
-      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
+      "cleanupFailed": "Le nettoyage IA a échoué ; la transcription brute a été conservée"
     },
     "cloudMigration": {
       "viewSettings": "Voir les paramètres"

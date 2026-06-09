@@ -293,10 +293,11 @@
       "retrySuccess": "转录已更新",
       "retryError": "重新转录失败",
       "audioNotFound": "音频文件未找到或已过期",
-      "noAiProcessing": "此转录未应用 AI 处理",
+      "noAiProcessing": "AI 处理后文本无变化",
       "rawTranscript": "原始转录",
       "dictionaryCorrections": "词典纠错",
-      "addCorrectionAlias": "添加常见误识别规则：{{from}} -> {{to}}"
+      "addCorrectionAlias": "添加常见误识别规则：{{from}} -> {{to}}",
+      "cleanupFailed": "AI 润色失败，已保留原始转录"
     },
     "cloudMigration": {
       "title": "欢迎使用 OpenWhispr 云端",

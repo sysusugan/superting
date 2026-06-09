@@ -293,10 +293,11 @@
       "retrySuccess": "Расшифровка обновлена",
       "retryError": "Не удалось повторить расшифровку",
       "audioNotFound": "Аудиофайл не найден или истёк срок хранения",
-      "noAiProcessing": "К этой расшифровке не применялась обработка ИИ",
+      "noAiProcessing": "Обработка ИИ не изменила эту расшифровку",
       "rawTranscript": "Исходная расшифровка",
       "dictionaryCorrections": "Dictionary corrections",
-      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
+      "cleanupFailed": "Очистка ИИ не удалась; сохранена исходная расшифровка"
     },
     "cloudMigration": {
       "viewSettings": "Открыть настройки"

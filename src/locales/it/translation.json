@@ -293,10 +293,11 @@
       "retrySuccess": "Trascrizione aggiornata",
       "retryError": "Ritrascrizione non riuscita",
       "audioNotFound": "File audio non trovato o scaduto",
-      "noAiProcessing": "Nessuna elaborazione IA applicata a questa trascrizione",
+      "noAiProcessing": "L'elaborazione IA non ha modificato questa trascrizione",
       "rawTranscript": "Trascrizione grezza",
       "dictionaryCorrections": "Dictionary corrections",
-      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}"
+      "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
+      "cleanupFailed": "La pulizia IA non è riuscita; è stata mantenuta la trascrizione originale"
     },
     "cloudMigration": {
       "viewSettings": "Apri impostazioni"

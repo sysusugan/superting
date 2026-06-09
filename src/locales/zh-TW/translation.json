@@ -293,10 +293,11 @@
       "retrySuccess": "轉錄已更新",
       "retryError": "重新轉錄失敗",
       "audioNotFound": "找不到音訊檔案或檔案已過期",
-      "noAiProcessing": "此轉錄未套用 AI 處理",
+      "noAiProcessing": "AI 處理後文字無變化",
       "rawTranscript": "原始轉錄",
       "dictionaryCorrections": "詞典糾錯",
-      "addCorrectionAlias": "新增常見誤識別規則：{{from}} -> {{to}}"
+      "addCorrectionAlias": "新增常見誤識別規則：{{from}} -> {{to}}",
+      "cleanupFailed": "AI 潤飾失敗，已保留原始轉錄"
     },
     "cloudMigration": {
       "viewSettings": "查看設定"
