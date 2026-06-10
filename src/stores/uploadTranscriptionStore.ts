@@ -63,6 +63,11 @@ export interface RunUploadTranscriptionOptions {
     folderId: number | null,
     transcript?: string | null
   ) => Promise<{ success: boolean; note?: { id: number }; error?: string }>;
+  afterNoteCreated?: (payload: {
+    noteId: number;
+    file: UploadTranscriptionFile;
+    response: UploadTranscriptionResult;
+  }) => Promise<void>;
   noSpeechMessage: string;
   transcriptionFailedMessage: string;
   errorOccurredMessage: string;
@@ -233,6 +238,15 @@ export const useUploadTranscriptionStore = create<UploadTranscriptionStoreState>
             activeTaskId: null,
           });
           return;
+        }
+
+        if (options.afterNoteCreated) {
+          await options.afterNoteCreated({
+            noteId: noteResponse.note.id,
+            file,
+            response,
+          });
+          if (get().activeTaskId !== taskId) return;
         }
 
         set({

@@ -5,6 +5,7 @@ const {
   buildAudioDownloadFilename,
   buildMergedMeetingAudioFilename,
   buildMeetingAudioFilename,
+  buildUploadAudioFilename,
   isRetainedAudioFile,
   parseMeetingAudioFilename,
   resolveRetainedAudioPath,
@@ -20,6 +21,14 @@ test("buildMergedMeetingAudioFilename namespaces merged meeting audio as WebM", 
   const filename = buildMergedMeetingAudioFilename(42, new Date(2026, 4, 28, 6, 7, 8));
 
   assert.match(filename, /^OpenWhispr-meeting-merged-2026-05-28-06-07-08-42\.webm$/);
+});
+
+test("buildUploadAudioFilename namespaces uploaded note audio", () => {
+  const wav = buildUploadAudioFilename(42, new Date(2026, 4, 28, 6, 7, 8), ".mp3");
+  const webm = buildUploadAudioFilename(42, new Date(2026, 4, 28, 6, 7, 8), ".webm");
+
+  assert.match(wav, /^OpenWhispr-upload-2026-05-28-06-07-08-42\.wav$/);
+  assert.match(webm, /^OpenWhispr-upload-2026-05-28-06-07-08-42\.webm$/);
 });
 
 test("parseMeetingAudioFilename extracts note id and recording time", () => {
@@ -49,10 +58,7 @@ test("isRetainedAudioFile includes dictation webm and meeting audio files", () =
   assert.equal(isRetainedAudioFile("OpenWhispr-2026-05-28-06-07-08-1.webm"), true);
   assert.equal(isRetainedAudioFile("OpenWhispr-meeting-2026-05-28-06-07-08-42.wav"), true);
   assert.equal(isRetainedAudioFile("OpenWhispr-meeting-2026-05-28-06-07-08-42.webm"), true);
-  assert.equal(
-    isRetainedAudioFile("OpenWhispr-meeting-merged-2026-05-28-06-07-08-42.webm"),
-    true
-  );
+  assert.equal(isRetainedAudioFile("OpenWhispr-meeting-merged-2026-05-28-06-07-08-42.webm"), true);
   assert.equal(isRetainedAudioFile("notes.txt"), false);
 });
 

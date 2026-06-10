@@ -30,6 +30,11 @@ function buildMergedMeetingAudioFilename(noteId, timestamp) {
   return `OpenWhispr-meeting-merged-${formatTimestamp(timestamp)}-${noteId}.webm`;
 }
 
+function buildUploadAudioFilename(noteId, timestamp, extension = ".wav") {
+  const ext = String(extension || ".wav").toLowerCase() === ".webm" ? ".webm" : ".wav";
+  return `OpenWhispr-upload-${formatTimestamp(timestamp)}-${noteId}${ext}`;
+}
+
 function parseMeetingAudioFilename(filename) {
   const match = String(filename || "").match(
     /^OpenWhispr-meeting-(merged-)?(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d+)\.(wav|webm)$/i
@@ -94,6 +99,7 @@ module.exports = {
   buildDictationAudioFilename,
   buildMeetingAudioFilename,
   buildMeetingWavFallbackFilename,
+  buildUploadAudioFilename,
   isDictationAudioFile,
   isRetainedAudioFile,
   parseMeetingAudioFilename,

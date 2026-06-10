@@ -1649,7 +1649,10 @@
       "executingAudioAction": "正在执行...",
       "compressingAudio": "正在压缩音频...",
       "mergeAndCompressAudio": "合并并压缩",
-      "audioMergedAndCompressed": "音频已合并并压缩"
+      "audioMergedAndCompressed": "音频已合并并压缩",
+      "rediarizeAudio": "重新识别说话人",
+      "audioRediarizeFailed": "重新识别说话人失败",
+      "audioRediarized": "说话人已重新识别"
     },
     "bulkExport": {
       "select": "选择",
@@ -1849,7 +1852,7 @@
         "notLabeled": "发言者未标记",
         "finalizing": "正在完成发言者识别…",
         "justYou": "只有你",
-        "defaultingHint": "默认 1 位其他人",
+        "defaultingHint": "自动识别发言人，可调整锁定",
         "toggleAria": "切换本次录音的发言者识别",
         "incAria": "增加预计发言人数",
         "decAria": "减少预计发言人数",

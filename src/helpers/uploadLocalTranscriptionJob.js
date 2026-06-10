@@ -225,6 +225,7 @@ async function transcribeLocalUploadFileInChunks({
 
     const chunksTotal = chunkPaths.length;
     const parts = new Array(chunksTotal).fill(null);
+    const segments = [];
     let chunksSucceeded = 0;
     let chunksFailed = 0;
     let noSpeechChunks = 0;
@@ -265,6 +266,14 @@ async function transcribeLocalUploadFileInChunks({
 
       if (chunkResult.ok) {
         parts[index] = chunkResult.text;
+        segments.push({
+          id: `upload-${index}`,
+          text: chunkResult.text,
+          source: "system",
+          timestamp: index * segmentDuration,
+          speaker: "speaker_0",
+          speakerIsPlaceholder: true,
+        });
         chunksSucceeded++;
       } else {
         if (chunkResult.noSpeech) noSpeechChunks++;
@@ -296,6 +305,7 @@ async function transcribeLocalUploadFileInChunks({
     return {
       success: true,
       text,
+      segments,
       partial: chunksFailed > 0,
       chunksTotal,
       chunksSucceeded,

@@ -52,6 +52,24 @@ test("local upload chunk transcription retries failed chunks and returns partial
   assert.equal(result.chunksTotal, 3);
   assert.equal(result.chunksSucceeded, 2);
   assert.equal(result.chunksFailed, 1);
+  assert.deepEqual(result.segments, [
+    {
+      id: "upload-0",
+      text: "hello",
+      source: "system",
+      timestamp: 0,
+      speaker: "speaker_0",
+      speakerIsPlaceholder: true,
+    },
+    {
+      id: "upload-2",
+      text: "world",
+      source: "system",
+      timestamp: LOCAL_UPLOAD_CHUNK_SEGMENT_SECONDS * 2,
+      speaker: "speaker_0",
+      speakerIsPlaceholder: true,
+    },
+  ]);
   assert.equal(attemptsByChunk.get("/tmp/chunk-001.mp3"), 2);
   assert.deepEqual(
     progress

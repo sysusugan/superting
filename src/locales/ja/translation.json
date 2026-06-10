@@ -1617,7 +1617,10 @@
       "executingAudioAction": "実行中...",
       "compressingAudio": "音声を圧縮中...",
       "mergeAndCompressAudio": "音声を結合して圧縮",
-      "audioMergedAndCompressed": "音声を結合して圧縮しました"
+      "audioMergedAndCompressed": "音声を結合して圧縮しました",
+      "rediarizeAudio": "話者を再識別",
+      "audioRediarizeFailed": "話者を再識別できませんでした",
+      "audioRediarized": "話者を再識別しました"
     },
     "bulkExport": {
       "select": "Select",
@@ -1839,7 +1842,7 @@
         "notLabeled": "話者ラベルなし",
         "finalizing": "話者を確定中…",
         "justYou": "あなたのみ",
-        "defaultingHint": "他の参加者を1人と想定 — 違う場合は変更してください",
+        "defaultingHint": "話者を自動検出中 — 調整すると固定されます",
         "toggleAria": "この録音の話者識別を切り替える",
         "incAria": "想定する話者数を増やす",
         "decAria": "想定する話者数を減らす",

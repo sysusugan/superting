@@ -1645,7 +1645,10 @@
       "executingAudioAction": "正在執行...",
       "compressingAudio": "正在壓縮音訊...",
       "mergeAndCompressAudio": "合併並壓縮",
-      "audioMergedAndCompressed": "音訊已合併並壓縮"
+      "audioMergedAndCompressed": "音訊已合併並壓縮",
+      "rediarizeAudio": "重新識別說話人",
+      "audioRediarizeFailed": "重新識別說話人失敗",
+      "audioRediarized": "說話人已重新識別"
     },
     "bulkExport": {
       "select": "選擇",
@@ -1845,7 +1848,7 @@
         "notLabeled": "發言者未標記",
         "finalizing": "正在完成發言者辨識…",
         "justYou": "只有你",
-        "defaultingHint": "預設 1 位其他人",
+        "defaultingHint": "自動識別發言人，可調整鎖定",
         "toggleAria": "切換此錄音的發言者辨識",
         "incAria": "增加預期發言人數",
         "decAria": "減少預期發言人數",

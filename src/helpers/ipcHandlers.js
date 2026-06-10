@@ -13,7 +13,7 @@ const { i18nMain, changeLanguage } = require("./i18nMain");
 const DeepgramStreaming = require("./deepgramStreaming");
 const OpenAIRealtimeStreaming = require("./openaiRealtimeStreaming");
 const AudioStorageManager = require("./audioStorage");
-const { buildAudioDownloadFilename } = require("./audioStorageFiles");
+const { buildAudioDownloadFilename, buildUploadAudioFilename } = require("./audioStorageFiles");
 const liveSpeakerIdentifier = require("./liveSpeakerIdentifier");
 const MeetingEchoLeakDetector = require("./meetingEchoLeakDetector");
 const MeetingRetainedAudioWriter = require("./meetingRetainedAudioWriter");
@@ -40,7 +40,7 @@ const {
   resolveContextSileroEnabled,
 } = require("./whisperVadConfig");
 const { analyzePreviewPcmSpeech } = require("./dictationPreviewGate");
-const { throwIfAborted } = require("./ffmpegUtils");
+const { convertToWav, throwIfAborted } = require("./ffmpegUtils");
 const { LOCAL_STT_PRIORITY, LocalSttScheduler } = require("./localSttScheduler");
 const {
   UploadTranscriptionCoordinator,
@@ -97,6 +97,38 @@ function parseAttendees(raw) {
   } catch {
     return [];
   }
+}
+
+function clampExpectedSpeakerCount(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return DEFAULT_EXPECTED_SPEAKER_COUNT;
+  return Math.max(1, Math.min(MAX_SPEAKER_COUNT, Math.floor(n)));
+}
+
+function resolveSpeakerExpectation({
+  sessionConfig,
+  attendees = [],
+  observedSpeakerIds = new Set(),
+}) {
+  const expectedCount = clampExpectedSpeakerCount(sessionConfig?.expectedCount);
+  if (sessionConfig?.expectedCountLocked === true) {
+    const numSpeakers = Math.max(1, expectedCount - 1);
+    return { numSpeakers, cap: numSpeakers, softTarget: null, locked: true };
+  }
+
+  const attendeeTarget =
+    Array.isArray(attendees) && attendees.length >= 2
+      ? Math.min(attendees.length, MAX_SPEAKER_COUNT)
+      : null;
+  const observedTarget =
+    observedSpeakerIds?.size >= 2 ? Math.min(observedSpeakerIds.size, MAX_SPEAKER_COUNT) : null;
+
+  return {
+    numSpeakers: -1,
+    cap: MAX_SPEAKER_COUNT,
+    softTarget: attendeeTarget ?? observedTarget ?? DEFAULT_EXPECTED_SPEAKER_COUNT,
+    locked: false,
+  };
 }
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
@@ -2064,6 +2096,52 @@ class IPCHandlers {
         return { success: false, error: error.message };
       }
     });
+
+    ipcMain.handle(
+      "attach-upload-audio-to-note",
+      async (_event, noteId, filePath, options = {}) => {
+        try {
+          const note = this.databaseManager.getNote(noteId);
+          if (!note) return { success: false, error: "Note not found" };
+
+          const attached = await this._attachUploadAudioToNote(noteId, filePath);
+          if (!attached.success) return attached;
+
+          if (options?.rediarize !== false) {
+            setImmediate(() => {
+              this._rediarizeNoteAudio(noteId, attached.audioFile.id, options).catch((error) => {
+                debugLogger.warn("Background upload diarization failed", {
+                  noteId,
+                  audioFileId: attached.audioFile.id,
+                  error: error.message,
+                });
+              });
+            });
+          }
+
+          return attached;
+        } catch (error) {
+          debugLogger.error("Error attaching uploaded audio", { error: error.message }, "notes");
+          return { success: false, error: error.message };
+        }
+      }
+    );
+
+    ipcMain.handle(
+      "rediarize-note-audio",
+      async (_event, noteId, audioFileId = null, options = {}) => {
+        try {
+          return await this._rediarizeNoteAudio(noteId, audioFileId, options);
+        } catch (error) {
+          debugLogger.error(
+            "Error re-identifying note speakers",
+            { error: error.message },
+            "notes"
+          );
+          return { success: false, error: error.message };
+        }
+      }
+    );
 
     ipcMain.handle("download-note-audio", async (_event, noteId, audioFileId = null) => {
       try {
@@ -5484,9 +5562,13 @@ class IPCHandlers {
       (this.activeMeetingSpeakerConfig?.enabled ?? this.speakerDiarizationEnabled) !== false;
 
     const resolveSessionMaxSpeakers = () => {
-      const count = this.activeMeetingSpeakerConfig?.expectedCount;
-      const total = count ? Math.min(count, MAX_SPEAKER_COUNT) : DEFAULT_EXPECTED_SPEAKER_COUNT;
-      return Math.max(1, total - 1);
+      if (this.activeMeetingSpeakerConfig?.expectedCountLocked === true) {
+        return Math.max(
+          1,
+          clampExpectedSpeakerCount(this.activeMeetingSpeakerConfig.expectedCount) - 1
+        );
+      }
+      return MAX_SPEAKER_COUNT;
     };
 
     const bindOneOnOneAttendeeToSpeaker = (speakerId) => {
@@ -7436,16 +7518,13 @@ class IPCHandlers {
     ipcMain.handle("meeting-set-session-speaker-config", async (_event, payload) => {
       try {
         const enabled = payload?.enabled !== false;
-        const expectedCount = Math.max(
-          1,
-          Math.min(
-            MAX_SPEAKER_COUNT,
-            Number(payload?.expectedCount) || DEFAULT_EXPECTED_SPEAKER_COUNT
-          )
-        );
-        this.activeMeetingSpeakerConfig = { enabled, expectedCount };
+        const expectedCount = clampExpectedSpeakerCount(payload?.expectedCount);
+        const expectedCountLocked = payload?.expectedCountLocked === true;
+        this.activeMeetingSpeakerConfig = { enabled, expectedCount, expectedCountLocked };
         liveSpeakerIdentifier.setEnabled(enabled);
-        liveSpeakerIdentifier.setMaxSpeakers(expectedCount);
+        liveSpeakerIdentifier.setMaxSpeakers(
+          expectedCountLocked ? Math.max(1, expectedCount - 1) : MAX_SPEAKER_COUNT
+        );
         return { success: true };
       } catch (error) {
         return { success: false, error: error.message };
@@ -7927,12 +8006,6 @@ class IPCHandlers {
   }
 
   _resolveSpeakerExpectation({ sessionConfig, noteId, observedSpeakerIds }) {
-    if (sessionConfig?.expectedCount) {
-      const total = Math.min(sessionConfig.expectedCount, MAX_SPEAKER_COUNT);
-      const numSpeakers = Math.max(1, total - 1);
-      return { numSpeakers, cap: numSpeakers };
-    }
-
     let attendees = [];
     if (noteId) {
       try {
@@ -7942,17 +8015,8 @@ class IPCHandlers {
         attendees = [];
       }
     }
-    if (attendees.length >= 2) {
-      const numSpeakers = Math.min(attendees.length, MAX_SPEAKER_COUNT);
-      return { numSpeakers, cap: numSpeakers };
-    }
 
-    if (observedSpeakerIds.size >= 2) {
-      const numSpeakers = Math.min(observedSpeakerIds.size, MAX_SPEAKER_COUNT);
-      return { numSpeakers, cap: numSpeakers };
-    }
-
-    return { numSpeakers: -1, cap: DEFAULT_EXPECTED_SPEAKER_COUNT };
+    return resolveSpeakerExpectation({ sessionConfig, attendees, observedSpeakerIds });
   }
 
   _startOrSkipDiarization(
@@ -8013,12 +8077,10 @@ class IPCHandlers {
           tmpWav,
           numSpeakers > 0 ? { numSpeakers } : {}
         );
-        if (cap != null) {
-          diarizationSegments = this.diarizationManager.capSpeakerClusters(
-            diarizationSegments,
-            cap
-          );
-        }
+        diarizationSegments = this.diarizationManager.stabilizeSpeakerClusters(
+          diarizationSegments,
+          { cap }
+        );
 
         const startMs =
           (Number.isFinite(audioStartedAt) && audioStartedAt) ||
@@ -8160,6 +8222,183 @@ class IPCHandlers {
     })();
   }
 
+  _parseNoteTranscriptSegments(note) {
+    const parsed = safeParseJson(note?.transcript);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((segment, index) => ({
+          ...segment,
+          id: segment?.id || `segment-${index}`,
+          text: String(segment?.text || "").trim(),
+          source: segment?.source === "mic" ? "mic" : "system",
+        }))
+        .filter((segment) => segment.text);
+    }
+
+    const text = String(note?.content || "").trim();
+    if (!text) return [];
+    return [
+      {
+        id: "segment-0",
+        text,
+        source: "system",
+        timestamp: 0,
+        speaker: "speaker_0",
+        speakerIsPlaceholder: true,
+      },
+    ];
+  }
+
+  async _prepareAudioForDiarization(audioPath) {
+    const stats = fs.statSync(audioPath);
+    if (!stats.isFile() || stats.size <= 0) {
+      throw new Error("Audio file is empty or unavailable");
+    }
+
+    const tmpWav = path.join(
+      os.tmpdir(),
+      `openwhispr-rediarize-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.wav`
+    );
+    await convertToWav(audioPath, tmpWav, { sampleRate: 16000, channels: 1 });
+    return tmpWav;
+  }
+
+  async _attachUploadAudioToNote(noteId, filePath) {
+    if (!filePath || !fs.existsSync(filePath)) {
+      return { success: false, error: "Uploaded audio file is unavailable" };
+    }
+
+    this.audioStorageManager.ensureAudioDir?.();
+    const inputExt = path.extname(String(filePath)).toLowerCase();
+    const retainedExt = inputExt === ".webm" ? ".webm" : ".wav";
+    let filename = buildUploadAudioFilename(noteId, new Date(), retainedExt);
+    let outputPath = path.join(this.audioStorageManager.audioDir, filename);
+    const filenameExt = path.extname(filename);
+    const filenameBase = path.basename(filename, filenameExt);
+    for (let suffix = 1; fs.existsSync(outputPath); suffix += 1) {
+      filename = `${filenameBase}-${suffix}${filenameExt}`;
+      outputPath = path.join(this.audioStorageManager.audioDir, filename);
+    }
+
+    if (retainedExt === ".webm") {
+      fs.copyFileSync(filePath, outputPath);
+    } else if (inputExt === ".wav") {
+      fs.copyFileSync(filePath, outputPath);
+    } else {
+      await convertToWav(filePath, outputPath, { sampleRate: 24000, channels: 1 });
+    }
+
+    const audioResult = this.databaseManager.addNoteAudioFile(noteId, filename, null, {
+      recordedAt: new Date().toISOString(),
+      updateLatest: true,
+    });
+    const updatedNote = this.databaseManager.getNote(noteId);
+    if (updatedNote) {
+      setImmediate(() => this.broadcastToWindows("note-updated", updatedNote));
+      this._asyncMirrorWrite(updatedNote);
+    }
+
+    return { success: true, audioFile: audioResult.audioFile, note: updatedNote };
+  }
+
+  async _rediarizeNoteAudio(noteId, audioFileId = null, options = {}) {
+    const note = this.databaseManager.getNote(noteId);
+    if (!note) return { success: false, error: "Note not found" };
+
+    if (note.diarization_enabled === 0 || options?.enabled === false) {
+      return { success: false, error: "Speaker diarization is disabled for this note" };
+    }
+    if (!this.diarizationManager?.isAvailable()) {
+      return { success: false, error: "Speaker diarization model is not available" };
+    }
+
+    const transcriptSegments = this._parseNoteTranscriptSegments(note);
+    if (transcriptSegments.length === 0) {
+      return { success: false, error: "Transcript is empty" };
+    }
+
+    let audioFile = null;
+    if (audioFileId != null) {
+      audioFile = this.databaseManager.getNoteAudioFile(noteId, audioFileId);
+    } else {
+      audioFile = this.databaseManager.getNoteAudioFiles(noteId)?.[0] || null;
+    }
+    if (!audioFile) return { success: false, error: "Audio file not found for this note" };
+
+    const audioPath = this.audioStorageManager.getRetainedAudioPath(audioFile.filename);
+    if (!audioPath) {
+      return { success: false, error: "Audio file has been removed or is unavailable" };
+    }
+
+    let tmpWav = null;
+    try {
+      tmpWav = await this._prepareAudioForDiarization(audioPath);
+      const observedSpeakerIds = new Set(
+        transcriptSegments
+          .filter((segment) => segment.source === "system" && segment.speaker)
+          .map((segment) => segment.speaker)
+      );
+      const { numSpeakers, cap } = this._resolveSpeakerExpectation({
+        sessionConfig: {
+          enabled: true,
+          expectedCount: options?.expectedCount ?? note.expected_speaker_count,
+          expectedCountLocked: options?.expectedCountLocked === true,
+        },
+        noteId,
+        observedSpeakerIds,
+      });
+
+      let diarizationSegments = await this.diarizationManager.diarize(
+        tmpWav,
+        numSpeakers > 0 ? { numSpeakers } : {}
+      );
+      diarizationSegments = this.diarizationManager.stabilizeSpeakerClusters(diarizationSegments, {
+        cap,
+      });
+
+      const startMs =
+        transcriptSegments.find((segment) => segment.source === "system")?.timestamp ||
+        transcriptSegments[0]?.timestamp ||
+        0;
+      const isEpochMs = startMs > 1e9;
+      const normalized = transcriptSegments.map((segment) => ({
+        ...segment,
+        timestamp:
+          segment.timestamp != null
+            ? isEpochMs
+              ? (segment.timestamp - startMs) / 1000
+              : segment.timestamp
+            : undefined,
+      }));
+      const enrichedSegments = this.diarizationManager.mergeWithTranscript(
+        normalized,
+        diarizationSegments
+      );
+
+      const result = this.databaseManager.updateNote(noteId, {
+        transcript: JSON.stringify(enrichedSegments),
+      });
+      if (result?.success && result?.note) {
+        setImmediate(() => this.broadcastToWindows("note-updated", result.note));
+        this._asyncVectorUpsert(result.note);
+        this._asyncMirrorWrite(result.note);
+      }
+
+      return {
+        success: true,
+        note: result?.note || this.databaseManager.getNote(noteId),
+        segments: enrichedSegments,
+        audioFile,
+      };
+    } finally {
+      if (tmpWav) {
+        try {
+          fs.unlinkSync(tmpWav);
+        } catch (_) {}
+      }
+    }
+  }
+
   deleteTranscriptionInternal(id) {
     this.audioStorageManager.deleteAudio(id);
     const result = this.databaseManager.deleteTranscription(id);
@@ -8208,3 +8447,4 @@ class IPCHandlers {
 }
 
 module.exports = IPCHandlers;
+module.exports.resolveSpeakerExpectation = resolveSpeakerExpectation;

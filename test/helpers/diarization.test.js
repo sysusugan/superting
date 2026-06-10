@@ -10,11 +10,11 @@ test("mergeWithTranscript caps diarization speakers before exposing transcript s
     id: `seg-${index}`,
     text: `text ${index}`,
     source: "system",
-    timestamp: index,
+    timestamp: index * 3,
   }));
   const diarizationSegments = Array.from({ length: 12 }, (_, index) => ({
-    start: index,
-    end: index + 0.8,
+    start: index * 3,
+    end: index * 3 + 2,
     speaker: `speaker_${index}`,
   }));
 
@@ -55,4 +55,34 @@ test("mergeWithTranscript filters empty fragments and merges adjacent same-speak
   assert.equal(merged[0].speaker, "speaker_0");
   assert.equal(merged[1].text, "second speaker");
   assert.equal(merged[1].speaker, "speaker_1");
+});
+
+test("stabilizeSpeakerClusters merges isolated short speakers into the nearest stable speaker", () => {
+  const manager = new DiarizationManager();
+  const stabilized = manager.stabilizeSpeakerClusters([
+    { start: 0, end: 4, speaker: "speaker_0" },
+    { start: 4.1, end: 4.6, speaker: "speaker_9" },
+    { start: 5, end: 9, speaker: "speaker_1" },
+  ]);
+
+  assert.deepEqual(stabilized, [
+    { start: 0, end: 4, speaker: "speaker_0" },
+    { start: 4.1, end: 4.6, speaker: "speaker_0" },
+    { start: 5, end: 9, speaker: "speaker_1" },
+  ]);
+});
+
+test("stabilizeSpeakerClusters applies a hard cap after noise merging", () => {
+  const manager = new DiarizationManager();
+  const stabilized = manager.stabilizeSpeakerClusters(
+    [
+      { start: 0, end: 4, speaker: "speaker_0" },
+      { start: 5, end: 9, speaker: "speaker_1" },
+      { start: 10, end: 14, speaker: "speaker_2" },
+    ],
+    { cap: 2 }
+  );
+  const speakers = new Set(stabilized.map((segment) => segment.speaker));
+
+  assert.equal(speakers.size, 2);
 });

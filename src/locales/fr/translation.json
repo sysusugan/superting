@@ -1682,7 +1682,10 @@
       "executingAudioAction": "Exécution...",
       "compressingAudio": "Compression de l’audio...",
       "mergeAndCompressAudio": "Fusionner et compresser l’audio",
-      "audioMergedAndCompressed": "Audio fusionné et compressé"
+      "audioMergedAndCompressed": "Audio fusionné et compressé",
+      "rediarizeAudio": "Réidentifier les intervenants",
+      "audioRediarizeFailed": "Impossible de réidentifier les intervenants",
+      "audioRediarized": "Intervenants réidentifiés"
     },
     "bulkExport": {
       "select": "Select",
@@ -1882,7 +1885,7 @@
         "notLabeled": "Intervenants non étiquetés",
         "finalizing": "Finalisation des intervenants…",
         "justYou": "juste vous",
-        "defaultingHint": "par défaut 1 autre",
+        "defaultingHint": "Détection automatique des intervenants — ajustez pour verrouiller",
         "toggleAria": "Activer l'identification des intervenants pour cet enregistrement",
         "incAria": "Augmenter le nombre d'intervenants attendus",
         "decAria": "Diminuer le nombre d'intervenants attendus",

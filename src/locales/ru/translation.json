@@ -1645,7 +1645,10 @@
       "executingAudioAction": "Выполняется...",
       "compressingAudio": "Сжатие аудио...",
       "mergeAndCompressAudio": "Объединить и сжать аудио",
-      "audioMergedAndCompressed": "Аудио объединено и сжато"
+      "audioMergedAndCompressed": "Аудио объединено и сжато",
+      "rediarizeAudio": "Повторно определить говорящих",
+      "audioRediarizeFailed": "Не удалось повторно определить говорящих",
+      "audioRediarized": "Говорящие повторно определены"
     },
     "bulkExport": {
       "select": "Select",
@@ -1845,7 +1848,7 @@
         "notLabeled": "Участники не подписаны",
         "finalizing": "Завершение определения участников…",
         "justYou": "только вы",
-        "defaultingHint": "по умолчанию 1 собеседник",
+        "defaultingHint": "Автоопределение говорящих — измените, чтобы закрепить",
         "toggleAria": "Переключить распознавание участников для этой записи",
         "incAria": "Увеличить ожидаемое число участников",
         "decAria": "Уменьшить ожидаемое число участников",

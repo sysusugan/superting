@@ -434,6 +434,77 @@ class DiarizationManager {
     return segments.map((s) => (keep.has(s.speaker) ? s : { ...s, speaker: primary }));
   }
 
+  stabilizeSpeakerClusters(
+    segments,
+    { cap = MAX_SPEAKER_COUNT, minNoiseDuration = 1.2, minNoiseSegments = 2 } = {}
+  ) {
+    if (!Array.isArray(segments) || segments.length === 0) return [];
+
+    const stats = new Map();
+    for (const segment of segments) {
+      const duration = Math.max(0, segment.end - segment.start);
+      const existing = stats.get(segment.speaker) || {
+        totalDuration: 0,
+        count: 0,
+        segments: [],
+      };
+      existing.totalDuration += duration;
+      existing.count += 1;
+      existing.segments.push(segment);
+      stats.set(segment.speaker, existing);
+    }
+
+    if (stats.size <= 1) return segments.map((segment) => ({ ...segment }));
+
+    const ranked = [...stats.entries()].sort((a, b) => b[1].totalDuration - a[1].totalDuration);
+    const primarySpeaker = ranked[0][0];
+    const stableSpeakers = new Set(
+      ranked
+        .filter(
+          ([speaker, stat]) =>
+            speaker === primarySpeaker ||
+            stat.totalDuration >= minNoiseDuration ||
+            stat.count >= minNoiseSegments
+        )
+        .map(([speaker]) => speaker)
+    );
+
+    const distanceBetween = (a, b) => {
+      if (a.end >= b.start && b.end >= a.start) return 0;
+      return a.end < b.start ? b.start - a.end : a.start - b.end;
+    };
+
+    const nearestStableSpeaker = (speaker) => {
+      let bestSpeaker = primarySpeaker;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      const sourceSegments = stats.get(speaker)?.segments || [];
+
+      for (const candidate of stableSpeakers) {
+        if (candidate === speaker) continue;
+        const candidateSegments = stats.get(candidate)?.segments || [];
+        for (const source of sourceSegments) {
+          for (const target of candidateSegments) {
+            const distance = distanceBetween(source, target);
+            if (distance < bestDistance) {
+              bestDistance = distance;
+              bestSpeaker = candidate;
+            }
+          }
+        }
+      }
+
+      return bestSpeaker;
+    };
+
+    const stabilized = segments.map((segment) =>
+      stableSpeakers.has(segment.speaker)
+        ? { ...segment }
+        : { ...segment, speaker: nearestStableSpeaker(segment.speaker) }
+    );
+
+    return this.capSpeakerClusters(stabilized, cap);
+  }
+
   sanitizeTranscriptSegments(segments, { mergeGapSeconds = 1.2 } = {}) {
     if (!Array.isArray(segments) || segments.length === 0) return [];
     const cleaned = [];
@@ -453,9 +524,7 @@ class DiarizationManager {
       const current = { ...segment, text };
       const previous = cleaned[cleaned.length - 1];
       const gap =
-        previous &&
-        Number.isFinite(previous.endTime) &&
-        Number.isFinite(current.timestamp)
+        previous && Number.isFinite(previous.endTime) && Number.isFinite(current.timestamp)
           ? current.timestamp - previous.endTime
           : null;
 
@@ -487,10 +556,7 @@ class DiarizationManager {
       return this.sanitizeTranscriptSegments(deduped.map((seg) => ({ ...seg })));
     }
 
-    const cappedDiarizationSegments = this.capSpeakerClusters(
-      diarizationSegments,
-      MAX_SPEAKER_COUNT
-    );
+    const cappedDiarizationSegments = this.stabilizeSpeakerClusters(diarizationSegments);
 
     // Build speaker renumbering map (e.g., speaker_00 → speaker_0)
     const speakerSet = new Set(cappedDiarizationSegments.map((d) => d.speaker));

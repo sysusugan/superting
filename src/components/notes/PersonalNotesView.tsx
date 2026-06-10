@@ -27,6 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
   GripVertical,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import {
@@ -807,6 +808,37 @@ export default function PersonalNotesView({
         await loadNoteAudioFiles(activeNoteId);
         toast({
           title: t("notes.editor.audioCompressed"),
+          variant: "success",
+          duration: 2000,
+        });
+      } finally {
+        setAudioActionKey(null);
+      }
+    },
+    [activeNoteId, loadNoteAudioFiles, t, toast]
+  );
+
+  const rediarizeAudioFile = useCallback(
+    async (audioFileId: number) => {
+      if (!activeNoteId) return;
+      const key = `rediarize-${audioFileId}`;
+      setAudioActionKey(key);
+      try {
+        const result = await window.electronAPI.rediarizeNoteAudio?.(activeNoteId, audioFileId);
+        if (!result?.success) {
+          toast({
+            title: t("notes.editor.audioRediarizeFailed"),
+            description: result?.error || t("notes.editor.audioUnavailableDescription"),
+            variant: "destructive",
+          });
+          return;
+        }
+        if (result.note) {
+          updateNoteInStore(result.note);
+        }
+        await loadNoteAudioFiles(activeNoteId);
+        toast({
+          title: t("notes.editor.audioRediarized"),
           variant: "success",
           duration: 2000,
         });
@@ -1892,6 +1924,7 @@ export default function PersonalNotesView({
               const size = formatFileSize(file.size_bytes);
               const details = [duration, size, file.extension?.toUpperCase()].filter(Boolean);
               const isCompressing = audioActionKey === `compress-${file.id}`;
+              const isRediarizing = audioActionKey === `rediarize-${file.id}`;
               const isWebm = file.extension?.toLowerCase() === "webm";
               return (
                 <div
@@ -1927,6 +1960,21 @@ export default function PersonalNotesView({
                       onClick={() => showAudioFileInFolder(file.id)}
                     >
                       <FolderOpen size={13} />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-sm"
+                      title={t("notes.editor.rediarizeAudio")}
+                      disabled={isRediarizing || audioActionKey !== null}
+                      onClick={() => rediarizeAudioFile(file.id)}
+                    >
+                      {isRediarizing ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <RefreshCw size={13} />
+                      )}
                     </Button>
                     <Button
                       type="button"

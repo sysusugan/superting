@@ -590,6 +590,27 @@ declare global {
       getNoteAudioFiles: (
         noteId: number
       ) => Promise<{ success: boolean; files?: NoteAudioFile[]; error?: string }>;
+      attachUploadAudioToNote?: (
+        noteId: number,
+        filePath: string,
+        options?: { rediarize?: boolean; expectedCountLocked?: boolean }
+      ) => Promise<{
+        success: boolean;
+        audioFile?: NoteAudioFile;
+        note?: NoteItem;
+        error?: string;
+      }>;
+      rediarizeNoteAudio?: (
+        noteId: number,
+        audioFileId?: number | null,
+        options?: { expectedCount?: number; expectedCountLocked?: boolean }
+      ) => Promise<{
+        success: boolean;
+        note?: NoteItem;
+        segments?: unknown[];
+        audioFile?: NoteAudioFile;
+        error?: string;
+      }>;
       downloadNoteAudio: (
         noteId: number,
         audioFileId?: number | null
@@ -1542,6 +1563,7 @@ declare global {
       setMeetingSessionSpeakerConfig?: (config: {
         enabled: boolean;
         expectedCount: number;
+        expectedCountLocked?: boolean;
       }) => Promise<{ success: boolean; error?: string }>;
       getWhisperVadConfig?: () => Promise<{
         success: boolean;

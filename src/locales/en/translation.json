@@ -1683,7 +1683,10 @@
       "executingAudioAction": "Executing...",
       "compressingAudio": "Compressing audio...",
       "mergeAndCompressAudio": "Merge and compress audio",
-      "audioMergedAndCompressed": "Audio merged and compressed"
+      "audioMergedAndCompressed": "Audio merged and compressed",
+      "rediarizeAudio": "Re-identify speakers",
+      "audioRediarizeFailed": "Could not re-identify speakers",
+      "audioRediarized": "Speakers re-identified"
     },
     "bulkExport": {
       "select": "Select",
@@ -1883,7 +1886,7 @@
         "notLabeled": "Speakers not labeled",
         "finalizing": "Finalizing speakers…",
         "justYou": "just you",
-        "defaultingHint": "defaulting to 1 other — change if more",
+        "defaultingHint": "Auto-detecting speakers — adjust to lock",
         "toggleAria": "Toggle speaker identification for this recording",
         "incAria": "Increase expected speaker count",
         "decAria": "Decrease expected speaker count",

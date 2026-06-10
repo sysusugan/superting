@@ -1646,7 +1646,10 @@
       "executingAudioAction": "Wird ausgeführt...",
       "compressingAudio": "Audio wird komprimiert...",
       "mergeAndCompressAudio": "Audio zusammenführen und komprimieren",
-      "audioMergedAndCompressed": "Audio zusammengeführt und komprimiert"
+      "audioMergedAndCompressed": "Audio zusammengeführt und komprimiert",
+      "rediarizeAudio": "Sprecher neu erkennen",
+      "audioRediarizeFailed": "Sprecher konnten nicht neu erkannt werden",
+      "audioRediarized": "Sprecher neu erkannt"
     },
     "bulkExport": {
       "select": "Select",
@@ -1846,7 +1849,7 @@
         "notLabeled": "Sprecher nicht beschriftet",
         "finalizing": "Sprecher werden finalisiert…",
         "justYou": "nur du",
-        "defaultingHint": "standardmäßig 1 weitere Person",
+        "defaultingHint": "Sprecher automatisch erkennen — zum Festlegen anpassen",
         "toggleAria": "Sprechererkennung für diese Aufnahme umschalten",
         "incAria": "Erwartete Sprecheranzahl erhöhen",
         "decAria": "Erwartete Sprecheranzahl verringern",

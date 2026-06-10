@@ -293,6 +293,14 @@ export default function UploadAudioView({ onNoteCreated, onOpenSettings }: Uploa
       },
       generateTitle,
       saveNote: window.electronAPI.saveNote,
+      afterNoteCreated: async ({ noteId, file }) => {
+        const result = await window.electronAPI.attachUploadAudioToNote?.(noteId, file.path, {
+          rediarize: true,
+        });
+        if (result && !result.success) {
+          console.warn("Failed to attach uploaded audio to note", result.error);
+        }
+      },
       noSpeechMessage: t("notes.upload.noSpeechDetected"),
       transcriptionFailedMessage: t("notes.upload.transcriptionFailed"),
       errorOccurredMessage: t("notes.upload.errorOccurred"),
@@ -371,158 +379,155 @@ export default function UploadAudioView({ onNoteCreated, onOpenSettings }: Uploa
   return (
     <div className="ow-workspace-page overflow-y-auto">
       <div className="ow-page-column max-w-3xl">
-      <div
-        className="w-full shrink-0"
-        style={{ animation: "float-up 0.4s ease-out" }}
-      >
-        {showSetup && (
-          <div className="mb-6" style={{ animation: "float-up 0.3s ease-out" }}>
-            <div className="flex flex-col items-center mb-5">
-              <div className="w-10 h-10 rounded-md bg-muted border border-border flex items-center justify-center mb-3">
-                <Upload size={17} strokeWidth={1.5} className="text-muted-foreground" />
+        <div className="w-full shrink-0" style={{ animation: "float-up 0.4s ease-out" }}>
+          {showSetup && (
+            <div className="mb-6" style={{ animation: "float-up 0.3s ease-out" }}>
+              <div className="flex flex-col items-center mb-5">
+                <div className="w-10 h-10 rounded-md bg-muted border border-border flex items-center justify-center mb-3">
+                  <Upload size={17} strokeWidth={1.5} className="text-muted-foreground" />
+                </div>
+                <h2 className="text-xs font-semibold text-foreground mb-1">
+                  {t("notes.upload.setupTitle")}
+                </h2>
+                <p className="text-xs text-muted-foreground text-center leading-relaxed max-w-[280px]">
+                  {t("notes.upload.setupDescription")}
+                </p>
               </div>
-              <h2 className="text-xs font-semibold text-foreground mb-1">
-                {t("notes.upload.setupTitle")}
-              </h2>
-              <p className="text-xs text-muted-foreground text-center leading-relaxed max-w-[280px]">
-                {t("notes.upload.setupDescription")}
-              </p>
+
+              {modeSelector}
+              {modelPicker}
+
+              <div className="flex justify-center mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={dismissSetup}
+                  className="h-8 text-xs px-6"
+                >
+                  {t("notes.upload.continue")}
+                </Button>
+              </div>
+
+              <div className="h-px bg-border my-5" />
             </div>
+          )}
 
-            {modeSelector}
-            {modelPicker}
+          <div className="mx-auto w-full max-w-2xl">
+            {state === "idle" && providerReady === false && (
+              <NoProviderView t={t} onOpenSettings={() => onOpenSettings?.("transcription")} />
+            )}
 
-            <div className="flex justify-center mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={dismissSetup}
-                className="h-8 text-xs px-6"
-              >
-                {t("notes.upload.continue")}
-              </Button>
-            </div>
+            {state === "idle" && providerReady !== false && (
+              <IdleView
+                t={t}
+                getActiveModelLabel={getActiveModelLabel}
+                handleDrop={handleDrop}
+                handleBrowse={handleBrowse}
+                isDragOver={isDragOver}
+                setIsDragOver={setIsDragOver}
+              />
+            )}
 
-            <div className="h-px bg-border my-5" />
+            {state === "selected" && file && (
+              <SelectedView
+                t={t}
+                file={file}
+                getActiveModelLabel={getActiveModelLabel}
+                reset={reset}
+                handleTranscribe={handleTranscribe}
+                fileTooLarge={fileTooLarge}
+                isLargeFile={isLargeFile}
+                byokTooLarge={byokTooLarge}
+              />
+            )}
+
+            {state === "transcribing" && (
+              <TranscribingView
+                t={t}
+                progress={progress}
+                getTranscribingLabel={getTranscribingLabel}
+                file={file}
+                chunkProgress={chunkProgress}
+                onCancel={cancelUploadTranscription}
+              />
+            )}
+
+            {state === "complete" && result && (
+              <CompleteView
+                t={t}
+                result={result}
+                folders={folders}
+                selectedFolderId={selectedFolderId}
+                handleFolderChange={handleFolderChange}
+                noteId={noteId}
+                onNoteCreated={onNoteCreated}
+                reset={reset}
+              />
+            )}
+
+            {state === "error" && error && (
+              <ErrorView t={t} error={error} reset={reset} handleTranscribe={handleTranscribe} />
+            )}
           </div>
-        )}
 
-        <div className="mx-auto w-full max-w-2xl">
-          {state === "idle" && providerReady === false && (
-            <NoProviderView t={t} onOpenSettings={() => onOpenSettings?.("transcription")} />
-          )}
+          {!showSetup && (state === "idle" || state === "selected") && (
+            <div className="mx-auto mt-5" style={{ maxWidth: advancedOpen ? "560px" : "320px" }}>
+              <button
+                onClick={() => setAdvancedOpen(!advancedOpen)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors mx-auto"
+              >
+                <ChevronRight
+                  size={10}
+                  className={cn("transition-transform duration-200", advancedOpen && "rotate-90")}
+                />
+                {t("notes.upload.transcriptionSettings")}
+              </button>
 
-          {state === "idle" && providerReady !== false && (
-            <IdleView
-              t={t}
-              getActiveModelLabel={getActiveModelLabel}
-              handleDrop={handleDrop}
-              handleBrowse={handleBrowse}
-              isDragOver={isDragOver}
-              setIsDragOver={setIsDragOver}
-            />
-          )}
-
-          {state === "selected" && file && (
-            <SelectedView
-              t={t}
-              file={file}
-              getActiveModelLabel={getActiveModelLabel}
-              reset={reset}
-              handleTranscribe={handleTranscribe}
-              fileTooLarge={fileTooLarge}
-              isLargeFile={isLargeFile}
-              byokTooLarge={byokTooLarge}
-            />
-          )}
-
-          {state === "transcribing" && (
-            <TranscribingView
-              t={t}
-              progress={progress}
-              getTranscribingLabel={getTranscribingLabel}
-              file={file}
-              chunkProgress={chunkProgress}
-              onCancel={cancelUploadTranscription}
-            />
-          )}
-
-          {state === "complete" && result && (
-            <CompleteView
-              t={t}
-              result={result}
-              folders={folders}
-              selectedFolderId={selectedFolderId}
-              handleFolderChange={handleFolderChange}
-              noteId={noteId}
-              onNoteCreated={onNoteCreated}
-              reset={reset}
-            />
-          )}
-
-          {state === "error" && error && (
-            <ErrorView t={t} error={error} reset={reset} handleTranscribe={handleTranscribe} />
+              {advancedOpen && (
+                <div className="mt-3" style={{ animation: "float-up 0.2s ease-out" }}>
+                  {modeSelector}
+                  {modelPicker}
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        {!showSetup && (state === "idle" || state === "selected") && (
-          <div className="mx-auto mt-5" style={{ maxWidth: advancedOpen ? "560px" : "320px" }}>
-            <button
-              onClick={() => setAdvancedOpen(!advancedOpen)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors mx-auto"
-            >
-              <ChevronRight
-                size={10}
-                className={cn("transition-transform duration-200", advancedOpen && "rotate-90")}
+        <Dialog open={showNewFolderDialog} onOpenChange={setShowNewFolderDialog}>
+          <DialogContent className="sm:max-w-95">
+            <DialogHeader>
+              <DialogTitle>{t("notes.upload.newFolder")}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground/50">
+                {t("notes.upload.folderName")}
+              </label>
+              <Input
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder={t("notes.folders.folderName")}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateFolder();
+                }}
               />
-              {t("notes.upload.transcriptionSettings")}
-            </button>
-
-            {advancedOpen && (
-              <div className="mt-3" style={{ animation: "float-up 0.2s ease-out" }}>
-                {modeSelector}
-                {modelPicker}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <Dialog open={showNewFolderDialog} onOpenChange={setShowNewFolderDialog}>
-        <DialogContent className="sm:max-w-95">
-          <DialogHeader>
-            <DialogTitle>{t("notes.upload.newFolder")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-foreground/50">
-              {t("notes.upload.folderName")}
-            </label>
-            <Input
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder={t("notes.folders.folderName")}
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleCreateFolder();
-              }}
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setShowNewFolderDialog(false);
-                setNewFolderName("");
-              }}
-            >
-              {t("notes.upload.cancel")}
-            </Button>
-            <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
-              {t("notes.upload.create")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowNewFolderDialog(false);
+                  setNewFolderName("");
+                }}
+              >
+                {t("notes.upload.cancel")}
+              </Button>
+              <Button onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
+                {t("notes.upload.create")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
@@ -540,11 +545,7 @@ function NoProviderView({ t, onOpenSettings }: NoProviderViewProps) {
       style={{ animation: "float-up 0.4s ease-out" }}
     >
       <div className="w-10 h-10 rounded-md bg-muted border border-border flex items-center justify-center">
-        <Settings
-          size={17}
-          strokeWidth={1.5}
-          className="text-muted-foreground"
-        />
+        <Settings size={17} strokeWidth={1.5} className="text-muted-foreground" />
       </div>
       <div className="text-center">
         <h2 className="text-xs font-semibold text-foreground mb-1">
@@ -601,11 +602,7 @@ function IdleView({
     <>
       <div className="mb-4 flex items-center gap-3">
         <div className="w-10 h-10 rounded-md bg-muted border border-border flex items-center justify-center">
-          <Upload
-            size={17}
-            strokeWidth={1.5}
-            className="text-muted-foreground"
-          />
+          <Upload size={17} strokeWidth={1.5} className="text-muted-foreground" />
         </div>
         <div className="min-w-0">
           <h2 className="text-sm font-semibold text-foreground">{t("notes.upload.title")}</h2>

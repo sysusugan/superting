@@ -1645,7 +1645,10 @@
       "executingAudioAction": "Ejecutando...",
       "compressingAudio": "Comprimiendo audio...",
       "mergeAndCompressAudio": "Unir y comprimir audio",
-      "audioMergedAndCompressed": "Audio unido y comprimido"
+      "audioMergedAndCompressed": "Audio unido y comprimido",
+      "rediarizeAudio": "Reidentificar hablantes",
+      "audioRediarizeFailed": "No se pudieron reidentificar los hablantes",
+      "audioRediarized": "Hablantes reidentificados"
     },
     "bulkExport": {
       "select": "Select",
@@ -1845,7 +1848,7 @@
         "notLabeled": "Participantes sin etiquetar",
         "finalizing": "Finalizando participantes…",
         "justYou": "solo tú",
-        "defaultingHint": "por defecto 1 otra persona",
+        "defaultingHint": "Detectando hablantes automáticamente — ajusta para fijar",
         "toggleAria": "Alternar identificación de participantes para esta grabación",
         "incAria": "Aumentar número de participantes esperados",
         "decAria": "Disminuir número de participantes esperados",
