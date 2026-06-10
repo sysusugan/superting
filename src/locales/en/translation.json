@@ -1897,7 +1897,8 @@
       "filter": "Filter speakers",
       "filterAll": "All speakers",
       "filterEmpty": "No content for the selected speakers",
-      "filterAria": "Filter transcript speakers"
+      "filterAria": "Filter transcript speakers",
+      "currentSessionSpeakers": "Current session"
     }
   },
   "dictionary": {

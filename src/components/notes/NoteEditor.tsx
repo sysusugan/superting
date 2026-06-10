@@ -134,7 +134,8 @@ type SpeakerOption = {
   id?: number;
   display_name: string;
   email: string | null;
-  source?: "profile" | "name" | "transcript";
+  source?: "profile" | "name" | "transcript" | "session";
+  speakerId?: string;
 };
 
 const FILTER_SWATCH_CLASSES = [
@@ -466,6 +467,19 @@ export default function NoteEditor({
   const knownSpeakers = useMemo<SpeakerOption[]>(() => {
     const seen = new Set<string>();
     const list: SpeakerOption[] = [];
+    for (const option of speakerFilterOptions) {
+      if (!option.key.startsWith("speaker:")) continue;
+      const speakerId = option.key.slice("speaker:".length);
+      const key = `session:${speakerId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      list.push({
+        display_name: option.label,
+        email: null,
+        source: "session",
+        speakerId,
+      });
+    }
     for (const p of speakerProfiles) {
       const key = p.display_name.toLowerCase();
       if (seen.has(key)) continue;
@@ -488,7 +502,7 @@ export default function NoteEditor({
       list.push({ display_name: name, email: null, source: "transcript" });
     }
     return list;
-  }, [displaySegments, speakerMappings, speakerNames, speakerProfiles]);
+  }, [displaySegments, speakerFilterOptions, speakerMappings, speakerNames, speakerProfiles]);
 
   useEffect(() => {
     setSelectedSpeakerFilterKeys(null);
@@ -742,8 +756,33 @@ export default function NoteEditor({
       speakerId: string,
       displayName: string,
       email?: string | null,
-      profileId?: number | null
+      profileId?: number | null,
+      targetSpeakerId?: string
     ) => {
+      if (targetSpeakerId && targetSpeakerId !== speakerId) {
+        const targetName =
+          speakerMappings[targetSpeakerId] ||
+          displaySegments.find((segment) => segment.speaker === targetSpeakerId)?.speakerName;
+        const nextSegments = displaySegments.map((segment) =>
+          segment.speaker === speakerId
+            ? applyTranscriptSpeakerPatch(segment, {
+                speaker: targetSpeakerId,
+                speakerName: targetName,
+                suggestedName: undefined,
+                suggestedProfileId: undefined,
+              })
+            : segment
+        );
+        setSpeakerMappings((prev) => {
+          const next = { ...prev };
+          delete next[speakerId];
+          return next;
+        });
+        await window.electronAPI?.removeSpeakerMapping?.(note.id, speakerId);
+        await persistDisplaySegments(nextSegments, !!diarizedSegments || !isRecording);
+        return;
+      }
+
       await rememberSpeakerName(displayName, email ?? null);
       setSpeakerMappings((prev) => ({ ...prev, [speakerId]: displayName }));
       await window.electronAPI?.setSpeakerMapping?.(
@@ -781,6 +820,7 @@ export default function NoteEditor({
       diarizedSegments,
       displaySegments,
       isRecording,
+      speakerMappings,
       rememberSpeakerName,
       note.id,
       onLiveSpeakerLock,
@@ -910,8 +950,33 @@ export default function NoteEditor({
       speakerId: string,
       displayName: string,
       email?: string | null,
-      profileId?: number | null
+      profileId?: number | null,
+      targetSpeakerId?: string
     ) => {
+      if (targetSpeakerId && targetSpeakerId !== speakerId) {
+        const targetName =
+          speakerMappings[targetSpeakerId] ||
+          displaySegments.find((segment) => segment.speaker === targetSpeakerId)?.speakerName;
+        const nextSegments = displaySegments.map((segment) =>
+          segment.speaker === speakerId
+            ? applyTranscriptSpeakerPatch(segment, {
+                speaker: targetSpeakerId,
+                speakerName: targetName,
+                suggestedName: undefined,
+                suggestedProfileId: undefined,
+              })
+            : segment
+        );
+        setSpeakerMappings((prev) => {
+          const next = { ...prev };
+          delete next[speakerId];
+          return next;
+        });
+        await window.electronAPI?.removeSpeakerMapping?.(note.id, speakerId);
+        await persistDisplaySegments(nextSegments);
+        return;
+      }
+
       await rememberSpeakerName(displayName, email ?? null);
       setSpeakerMappings((prev) => ({ ...prev, [speakerId]: displayName }));
       await window.electronAPI?.setSpeakerMapping?.(
@@ -938,6 +1003,7 @@ export default function NoteEditor({
       refreshSpeakerNames,
       refreshSpeakerProfiles,
       rememberSpeakerName,
+      speakerMappings,
     ]
   );
 

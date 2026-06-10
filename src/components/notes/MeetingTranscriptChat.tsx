@@ -213,13 +213,19 @@ interface SpeakerProfileLite {
   id?: number;
   display_name: string;
   email: string | null;
-  source?: "profile" | "name" | "transcript";
+  source?: "profile" | "name" | "transcript" | "session";
+  speakerId?: string;
 }
 
 interface SpeakerPickerProps {
   speakerProfiles?: SpeakerProfileLite[];
   participants?: Array<{ email: string; displayName: string | null }>;
-  onSelectName: (name: string, email?: string | null, profileId?: number) => void;
+  onSelectName: (
+    name: string,
+    email?: string | null,
+    profileId?: number,
+    targetSpeakerId?: string
+  ) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }
 
@@ -323,11 +329,15 @@ function SpeakerPicker({ speakerProfiles, participants, onSelectName, t }: Speak
       (p.displayName || "").toLowerCase().includes(lower) ||
       p.email.toLowerCase().includes(lower)
   );
+  const filteredSessionSpeakers = (speakerProfiles || []).filter(
+    (p) => p.source === "session" && (!search || p.display_name.toLowerCase().includes(lower))
+  );
   const filteredProfiles = (speakerProfiles || []).filter(
     (p) =>
-      !search ||
-      p.display_name.toLowerCase().includes(lower) ||
-      (p.email && p.email.toLowerCase().includes(lower))
+      p.source !== "session" &&
+      (!search ||
+        p.display_name.toLowerCase().includes(lower) ||
+        (p.email && p.email.toLowerCase().includes(lower)))
   );
 
   const hasExactMatch =
@@ -336,6 +346,7 @@ function SpeakerPicker({ speakerProfiles, participants, onSelectName, t }: Speak
         (p.displayName || "").toLowerCase() === trimmedLower ||
         p.email.toLowerCase() === trimmedLower
     ) ||
+    filteredSessionSpeakers.some((p) => p.display_name.toLowerCase() === trimmedLower) ||
     filteredProfiles.some(
       (p) =>
         p.display_name.toLowerCase() === trimmedLower ||
@@ -362,7 +373,11 @@ function SpeakerPicker({ speakerProfiles, participants, onSelectName, t }: Speak
     }
   };
 
-  const isEmpty = !filteredParticipants.length && !filteredProfiles.length && !canCreate;
+  const isEmpty =
+    !filteredSessionSpeakers.length &&
+    !filteredParticipants.length &&
+    !filteredProfiles.length &&
+    !canCreate;
 
   return (
     <>
@@ -377,6 +392,22 @@ function SpeakerPicker({ speakerProfiles, participants, onSelectName, t }: Speak
         />
       </div>
       <div className="max-h-52 overflow-y-auto">
+        {filteredSessionSpeakers.length > 0 && (
+          <div className="p-1 border-b border-border/30">
+            <div className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
+              {t("notes.speaker.currentSessionSpeakers")}
+            </div>
+            {filteredSessionSpeakers.slice(0, 12).map((p) => (
+              <button
+                key={`session-${p.speakerId ?? p.display_name}`}
+                onClick={() => onSelectName(p.display_name, null, undefined, p.speakerId)}
+                className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-xs text-foreground/70 hover:bg-foreground/5 transition-colors cursor-pointer"
+              >
+                <span className="truncate flex-1 text-left">{p.display_name}</span>
+              </button>
+            ))}
+          </div>
+        )}
         {filteredParticipants.length > 0 && (
           <div className="p-1 border-b border-border/30">
             <div className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
@@ -470,7 +501,13 @@ function SpeakerLabel({
   participants?: Array<{ email: string; displayName: string | null }>;
   colorIdx: number;
   isOriginallyYou: boolean;
-  onMap?: (speakerId: string, name: string, email?: string | null, profileId?: number) => void;
+  onMap?: (
+    speakerId: string,
+    name: string,
+    email?: string | null,
+    profileId?: number,
+    targetSpeakerId?: string
+  ) => void;
   onMapSegment?: (
     segmentId: string,
     name: string,
@@ -550,9 +587,9 @@ function SpeakerLabel({
         <SpeakerPicker
           speakerProfiles={speakerProfiles}
           participants={participants}
-          onSelectName={(name, email, profileId) => {
+          onSelectName={(name, email, profileId, targetSpeakerId) => {
             if (bulkEditSpeaker || !onMapSegment) {
-              onMap?.(speakerId, name, email, profileId);
+              onMap?.(speakerId, name, email, profileId, targetSpeakerId);
             } else {
               onMapSegment(segment.id, name, email, profileId);
             }

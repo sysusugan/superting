@@ -57,6 +57,40 @@ test("mergeWithTranscript filters empty fragments and merges adjacent same-speak
   assert.equal(merged[1].speaker, "speaker_1");
 });
 
+test("mergeWithTranscript keeps mic segments as self by default", () => {
+  const manager = new DiarizationManager();
+  const merged = manager.mergeWithTranscript(
+    [{ text: "mic speech", source: "mic", timestamp: 0, speaker: "you" }],
+    [{ start: 0, end: 2, speaker: "external_0" }]
+  );
+
+  assert.equal(merged[0].speaker, "you");
+});
+
+test("mergeWithTranscript can assign mic-only saved notes from diarization", () => {
+  const manager = new DiarizationManager();
+  const merged = manager.mergeWithTranscript(
+    [
+      { text: "first person", source: "mic", timestamp: 0, speaker: "you" },
+      { text: "second person", source: "mic", timestamp: 3, speaker: "you" },
+    ],
+    [
+      { start: 0, end: 2, speaker: "external_0" },
+      { start: 3, end: 5, speaker: "external_1" },
+    ],
+    { assignMicSegments: true }
+  );
+
+  assert.deepEqual(
+    merged.map((segment) => segment.speaker),
+    ["speaker_0", "speaker_1"]
+  );
+  assert.deepEqual(
+    merged.map((segment) => segment.source),
+    ["system", "system"]
+  );
+});
+
 test("stabilizeSpeakerClusters merges isolated short speakers into the nearest stable speaker", () => {
   const manager = new DiarizationManager();
   const stabilized = manager.stabilizeSpeakerClusters([

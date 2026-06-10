@@ -1859,7 +1859,8 @@
       "filter": "篩選發言者",
       "filterAll": "所有發言者",
       "filterEmpty": "沒有符合的發言者內容",
-      "filterAria": "篩選轉錄發言者"
+      "filterAria": "篩選轉錄發言者",
+      "currentSessionSpeakers": "目前會話"
     }
   },
   "dictionary": {

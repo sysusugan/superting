@@ -1863,7 +1863,8 @@
       "filter": "筛选发言人",
       "filterAll": "所有发言人",
       "filterEmpty": "没有匹配的发言人内容",
-      "filterAria": "筛选转录发言人"
+      "filterAria": "筛选转录发言人",
+      "currentSessionSpeakers": "当前会话"
     }
   },
   "dictionary": {

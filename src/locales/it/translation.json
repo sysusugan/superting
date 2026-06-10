@@ -1859,7 +1859,8 @@
       "filter": "Filtra parlanti",
       "filterAll": "Tutti i parlanti",
       "filterEmpty": "Nessun contenuto per i parlanti selezionati",
-      "filterAria": "Filtra i parlanti della trascrizione"
+      "filterAria": "Filtra i parlanti della trascrizione",
+      "currentSessionSpeakers": "Sessione corrente"
     }
   },
   "dictionary": {

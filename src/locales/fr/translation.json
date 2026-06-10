@@ -1896,7 +1896,8 @@
       "filter": "Filtrer les intervenants",
       "filterAll": "Tous les intervenants",
       "filterEmpty": "Aucun contenu pour les intervenants sélectionnés",
-      "filterAria": "Filtrer les intervenants de la transcription"
+      "filterAria": "Filtrer les intervenants de la transcription",
+      "currentSessionSpeakers": "Session actuelle"
     }
   },
   "dictionary": {

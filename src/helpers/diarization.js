@@ -549,7 +549,8 @@ class DiarizationManager {
     return cleaned;
   }
 
-  mergeWithTranscript(transcriptSegments, diarizationSegments) {
+  mergeWithTranscript(transcriptSegments, diarizationSegments, options = {}) {
+    const assignMicSegments = options.assignMicSegments === true;
     if (!transcriptSegments || transcriptSegments.length === 0) return [];
     const deduped = dedupeMicAgainstSystem(transcriptSegments);
     if (!diarizationSegments || diarizationSegments.length === 0) {
@@ -567,10 +568,13 @@ class DiarizationManager {
       idx++;
     }
 
-    const nextSystemTimestampAt = (startIndex) => {
+    const isAssignableSegment = (segment) =>
+      segment?.source === "system" || (assignMicSegments && segment?.source === "mic");
+
+    const nextAssignableTimestampAt = (startIndex) => {
       for (let i = startIndex + 1; i < deduped.length; i += 1) {
         const candidate = deduped[i];
-        if (candidate.source === "system" && candidate.timestamp != null) {
+        if (isAssignableSegment(candidate) && candidate.timestamp != null) {
           return candidate.timestamp;
         }
       }
@@ -582,7 +586,7 @@ class DiarizationManager {
     const merged = deduped.map((seg, index) => {
       const enriched = { ...seg };
 
-      if (seg.source === "mic") {
+      if (seg.source === "mic" && !assignMicSegments) {
         applyConfirmedSpeaker(enriched, {
           speaker: "you",
           speakerIsPlaceholder: false,
@@ -590,9 +594,9 @@ class DiarizationManager {
         return enriched;
       }
 
-      if (seg.source === "system" && seg.timestamp != null) {
+      if (isAssignableSegment(seg) && seg.timestamp != null) {
         const segStart = seg.timestamp;
-        const segEnd = nextSystemTimestampAt(index) ?? segStart + 2.5;
+        const segEnd = nextAssignableTimestampAt(index) ?? segStart + 2.5;
         const midpoint = segStart + (segEnd - segStart) / 2;
         let bestSpeaker = null;
         let bestOverlap = 0;
@@ -623,6 +627,9 @@ class DiarizationManager {
             speaker: speakerMap.get(bestSpeaker) || bestSpeaker,
             speakerIsPlaceholder: false,
           });
+          if (assignMicSegments && enriched.source === "mic") {
+            enriched.source = "system";
+          }
         } else if (!enriched.speaker) {
           applyProvisionalSpeaker(enriched, {
             speaker: `speaker_${fallbackSpeakerIndex}`,

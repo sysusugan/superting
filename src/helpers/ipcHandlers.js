@@ -8100,7 +8100,8 @@ class IPCHandlers {
 
         const enrichedSegments = this.diarizationManager.mergeWithTranscript(
           normalized,
-          diarizationSegments
+          diarizationSegments,
+          { assignMicSegments: true }
         );
 
         const speakerSet = new Set(diarizationSegments.map((d) => d.speaker));
@@ -8372,7 +8373,8 @@ class IPCHandlers {
       }));
       const enrichedSegments = this.diarizationManager.mergeWithTranscript(
         normalized,
-        diarizationSegments
+        diarizationSegments,
+        { assignMicSegments: true }
       );
 
       const result = this.databaseManager.updateNote(noteId, {

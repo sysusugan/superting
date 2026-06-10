@@ -1860,7 +1860,8 @@
       "filter": "Sprecher filtern",
       "filterAll": "Alle Sprecher",
       "filterEmpty": "Keine Inhalte für die ausgewählten Sprecher",
-      "filterAria": "Sprecher im Transkript filtern"
+      "filterAria": "Sprecher im Transkript filtern",
+      "currentSessionSpeakers": "Aktuelle Sitzung"
     }
   },
   "dictionary": {
