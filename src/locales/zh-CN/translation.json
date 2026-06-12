@@ -1661,7 +1661,16 @@
       "audioMergedAndCompressed": "音频已合并并压缩",
       "rediarizeAudio": "重新识别说话人",
       "audioRediarizeFailed": "重新识别说话人失败",
-      "audioRediarized": "说话人已重新识别"
+      "audioRediarized": "说话人已重新识别",
+      "rediarizeDialogTitle": "重新识别说话人",
+      "rediarizeDialogDescription": "默认由系统自动判断发言者人数。只有结果明显过少或过多时，再使用高级选项。",
+      "rediarizeModeAuto": "自动识别人数",
+      "rediarizeModeAutoDescription": "推荐。由说话人识别模型自行判断人数。",
+      "rediarizeAdvanced": "高级选项",
+      "rediarizeModeMore": "尝试识别更多发言者",
+      "rediarizeModeFixed": "指定发言者人数",
+      "rediarizeExpectedCount": "发言者人数",
+      "rediarizeStart": "开始重新识别"
     },
     "bulkExport": {
       "select": "选择",
@@ -1873,7 +1882,8 @@
       "filterAll": "所有发言人",
       "filterEmpty": "没有匹配的发言人内容",
       "filterAria": "筛选转录发言人",
-      "currentSessionSpeakers": "当前会话"
+      "currentSessionSpeakers": "当前会话",
+      "unknownTrack": "未知音轨"
     },
     "collapseNoteList": "收起笔记列表",
     "expandNoteList": "展开笔记列表"

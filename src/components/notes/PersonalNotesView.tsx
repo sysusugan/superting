@@ -60,7 +60,7 @@ import {
 import { Input } from "../ui/input";
 import { useToast } from "../ui/useToast";
 import NoteListItem from "./NoteListItem";
-import NoteEditor from "./NoteEditor";
+import NoteEditor, { type RediarizeAudioOptions } from "./NoteEditor";
 import ActionPicker from "./ActionPicker";
 import ActionManagerDialog from "./ActionManagerDialog";
 import AddNotesToFolderDialog from "./AddNotesToFolderDialog";
@@ -817,12 +817,16 @@ export default function PersonalNotesView({
   );
 
   const rediarizeAudioFile = useCallback(
-    async (audioFileId: number) => {
+    async (audioFileId: number, options?: RediarizeAudioOptions) => {
       if (!activeNoteId) return;
       const key = `rediarize-${audioFileId}`;
       setAudioActionKey(key);
       try {
-        const result = await window.electronAPI.rediarizeNoteAudio?.(activeNoteId, audioFileId);
+        const result = await window.electronAPI.rediarizeNoteAudio?.(
+          activeNoteId,
+          audioFileId,
+          options
+        );
         if (!result?.success) {
           toast({
             title: t("notes.editor.audioRediarizeFailed"),
@@ -965,7 +969,7 @@ export default function PersonalNotesView({
     setShowAudioDownloadDialog(true);
   }, [activeNoteId, loadNoteAudioFiles, noteAudioFiles, t, toast]);
 
-  const handleRediarizeSavedAudio = useCallback(async () => {
+  const handleRediarizeSavedAudio = useCallback(async (options?: RediarizeAudioOptions) => {
     if (!activeNoteId) return;
     const files =
       noteAudioFiles.length > 0 ? noteAudioFiles : await loadNoteAudioFiles(activeNoteId);
@@ -978,7 +982,7 @@ export default function PersonalNotesView({
       return;
     }
     if (files.length === 1) {
-      await rediarizeAudioFile(files[0].id);
+      await rediarizeAudioFile(files[0].id, options);
       return;
     }
     setShowAudioDownloadDialog(true);

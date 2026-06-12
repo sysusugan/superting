@@ -1657,7 +1657,16 @@
       "audioMergedAndCompressed": "音訊已合併並壓縮",
       "rediarizeAudio": "重新識別說話人",
       "audioRediarizeFailed": "重新識別說話人失敗",
-      "audioRediarized": "說話人已重新識別"
+      "audioRediarized": "說話人已重新識別",
+      "rediarizeDialogTitle": "重新識別說話人",
+      "rediarizeDialogDescription": "預設由系統自動判斷發言者人數。只有結果明顯過少或過多時，再使用進階選項。",
+      "rediarizeModeAuto": "自動識別人數",
+      "rediarizeModeAutoDescription": "建議。由說話人識別模型自行判斷人數。",
+      "rediarizeAdvanced": "進階選項",
+      "rediarizeModeMore": "嘗試識別更多發言者",
+      "rediarizeModeFixed": "指定發言者人數",
+      "rediarizeExpectedCount": "發言者人數",
+      "rediarizeStart": "開始重新識別"
     },
     "bulkExport": {
       "select": "選擇",
@@ -1869,7 +1878,8 @@
       "filterAll": "所有發言者",
       "filterEmpty": "沒有符合的發言者內容",
       "filterAria": "篩選轉錄發言者",
-      "currentSessionSpeakers": "目前會話"
+      "currentSessionSpeakers": "目前會話",
+      "unknownTrack": "未知音軌"
     },
     "collapseNoteList": "收合筆記列表",
     "expandNoteList": "展開筆記列表"

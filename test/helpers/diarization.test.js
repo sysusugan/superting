@@ -91,6 +91,28 @@ test("mergeWithTranscript can assign mic-only saved notes from diarization", () 
   );
 });
 
+test("mergeWithTranscript can consume already stabilized diarization without collapsing speakers again", () => {
+  const manager = new DiarizationManager();
+  const merged = manager.mergeWithTranscript(
+    [
+      { text: "speaker zero", source: "system", timestamp: 0 },
+      { text: "speaker one", source: "system", timestamp: 5 },
+      { text: "speaker two", source: "system", timestamp: 10 },
+    ],
+    [
+      { start: 0, end: 1, speaker: "external_0" },
+      { start: 5, end: 6, speaker: "external_1" },
+      { start: 10, end: 11, speaker: "external_2" },
+    ],
+    { diarizationAlreadyStabilized: true }
+  );
+
+  assert.deepEqual(
+    merged.map((segment) => segment.speaker),
+    ["speaker_0", "speaker_1", "speaker_2"]
+  );
+});
+
 test("stabilizeSpeakerClusters merges isolated short speakers into the nearest stable speaker", () => {
   const manager = new DiarizationManager();
   const stabilized = manager.stabilizeSpeakerClusters([

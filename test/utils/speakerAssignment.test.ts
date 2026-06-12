@@ -9,7 +9,7 @@ import {
   getTranscriptSpeakerFilterOptions,
 } from "../../src/utils/speakerAssignment.ts";
 
-const labels = { you: "你", speaker: (n: number) => `发言人 ${n}` };
+const labels = { you: "你", speaker: (n: number) => `发言者 ${n}`, unknownTrack: "未知音轨" };
 
 test("manual speaker names override the default self label", () => {
   const display = getTranscriptSpeakerDisplay(
@@ -40,7 +40,7 @@ test("final transcript display does not label unresolved mic segments as self", 
     { selfFallback: false }
   );
 
-  assert.equal(display.label, "发言人 1");
+  assert.equal(display.label, "未知音轨");
   assert.equal(display.isSelf, false);
 });
 
@@ -107,7 +107,7 @@ test("speaker filter options ignore unresolved provisional placeholder speakers"
 
   assert.deepEqual(options, [
     { key: "speaker:you", label: "你", colorKey: "you" },
-    { key: "speaker:speaker_0", label: "发言人 1", colorKey: "speaker_0" },
+    { key: "speaker:speaker_0", label: "发言者 1", colorKey: "speaker_0" },
   ]);
 });
 
@@ -160,21 +160,21 @@ test("transcript speaker blocks merge adjacent segments from the same effective 
         text: "第一句 第二句",
         timestamp: 10,
         segmentIds: ["seg-1", "seg-2"],
-        speakerLabel: "发言人 1",
+        speakerLabel: "发言者 1",
       },
       {
         id: "seg-3",
         text: "第三句",
         timestamp: 20,
         segmentIds: ["seg-3"],
-        speakerLabel: "发言人 2",
+        speakerLabel: "发言者 2",
       },
       {
         id: "seg-4",
         text: "第四句",
         timestamp: 25,
         segmentIds: ["seg-4"],
-        speakerLabel: "发言人 1",
+        speakerLabel: "发言者 1",
       },
     ]
   );

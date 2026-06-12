@@ -1657,7 +1657,16 @@
       "audioMergedAndCompressed": "Аудио объединено и сжато",
       "rediarizeAudio": "Повторно определить говорящих",
       "audioRediarizeFailed": "Не удалось повторно определить говорящих",
-      "audioRediarized": "Говорящие повторно определены"
+      "audioRediarized": "Говорящие повторно определены",
+      "rediarizeDialogTitle": "Re-identify speakers",
+      "rediarizeDialogDescription": "By default OpenWhispr detects the number of speakers automatically. Use advanced options only when the result is clearly too few or too many speakers.",
+      "rediarizeModeAuto": "Auto-detect speakers",
+      "rediarizeModeAutoDescription": "Recommended. Let the diarization model decide the speaker count.",
+      "rediarizeAdvanced": "Advanced options",
+      "rediarizeModeMore": "Try to identify more speakers",
+      "rediarizeModeFixed": "Specify speaker count",
+      "rediarizeExpectedCount": "Speaker count",
+      "rediarizeStart": "Start re-identification"
     },
     "bulkExport": {
       "select": "Select",
@@ -1871,7 +1880,8 @@
       "filterAll": "Все говорящие",
       "filterEmpty": "Нет содержимого для выбранных говорящих",
       "filterAria": "Фильтровать говорящих в расшифровке",
-      "currentSessionSpeakers": "Текущая сессия"
+      "currentSessionSpeakers": "Текущая сессия",
+      "unknownTrack": "Unknown track"
     },
     "collapseNoteList": "Свернуть список заметок",
     "expandNoteList": "Развернуть список заметок"

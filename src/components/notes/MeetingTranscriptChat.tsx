@@ -665,6 +665,7 @@ export function MeetingTranscriptChat({
         {
           you: t("notes.speaker.you"),
           speaker: (n) => t("notes.speaker.label", { n }),
+          unknownTrack: t("notes.speaker.unknownTrack"),
         },
         {
           maxBlockDurationSeconds: 60,
@@ -851,7 +852,7 @@ export function MeetingTranscriptChat({
             );
             const fallbackSpeakerLabel =
               segment.source === "mic"
-                ? t("notes.speaker.label", { n: 1 })
+                ? t("notes.speaker.unknownTrack")
                 : t("notes.speaker.them");
             const isActiveSegment = blockSegments.some(
               (blockSegment) => activeSegmentId === blockSegment.id

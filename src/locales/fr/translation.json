@@ -1698,7 +1698,16 @@
       "audioMergedAndCompressed": "Audio fusionné et compressé",
       "rediarizeAudio": "Réidentifier les intervenants",
       "audioRediarizeFailed": "Impossible de réidentifier les intervenants",
-      "audioRediarized": "Intervenants réidentifiés"
+      "audioRediarized": "Intervenants réidentifiés",
+      "rediarizeDialogTitle": "Re-identify speakers",
+      "rediarizeDialogDescription": "By default OpenWhispr detects the number of speakers automatically. Use advanced options only when the result is clearly too few or too many speakers.",
+      "rediarizeModeAuto": "Auto-detect speakers",
+      "rediarizeModeAutoDescription": "Recommended. Let the diarization model decide the speaker count.",
+      "rediarizeAdvanced": "Advanced options",
+      "rediarizeModeMore": "Try to identify more speakers",
+      "rediarizeModeFixed": "Specify speaker count",
+      "rediarizeExpectedCount": "Speaker count",
+      "rediarizeStart": "Start re-identification"
     },
     "bulkExport": {
       "select": "Select",
@@ -1910,7 +1919,8 @@
       "filterAll": "Tous les intervenants",
       "filterEmpty": "Aucun contenu pour les intervenants sélectionnés",
       "filterAria": "Filtrer les intervenants de la transcription",
-      "currentSessionSpeakers": "Session actuelle"
+      "currentSessionSpeakers": "Session actuelle",
+      "unknownTrack": "Unknown track"
     },
     "collapseNoteList": "Réduire la liste des notes",
     "expandNoteList": "Développer la liste des notes"

@@ -16,6 +16,7 @@ interface AssignableTranscriptSegment {
 interface SpeakerDisplayLabels {
   you: string;
   speaker: (n: number) => string;
+  unknownTrack?: string;
 }
 
 interface SpeakerDisplayOptions {
@@ -182,7 +183,7 @@ export function getTranscriptSpeakerDisplay<T extends AssignableTranscriptSegmen
         ? labels.speaker(getSpeakerNumber(segment.speaker))
         : useSelfFallback && segment.source === "mic"
           ? labels.you
-          : labels.speaker(1));
+          : (labels.unknownTrack ?? labels.speaker(1)));
 
   return {
     label,

@@ -22,17 +22,30 @@ test("default expected speaker count is a soft hint, not a fixed diarization cou
   assert.equal(result.locked, false);
 });
 
-test("locked expected speaker count constrains diarization to other speakers", () => {
+test("locked expected speaker count constrains diarization to the full mixed-audio speaker count", () => {
   const result = resolveSpeakerExpectation({
     sessionConfig: { enabled: true, expectedCount: 4, expectedCountLocked: true },
     attendees: [],
     observedSpeakerIds: new Set(["speaker_0", "speaker_1", "speaker_2"]),
   });
 
-  assert.equal(result.numSpeakers, 3);
-  assert.equal(result.cap, 3);
+  assert.equal(result.numSpeakers, 4);
+  assert.equal(result.cap, 4);
   assert.equal(result.softTarget, null);
   assert.equal(result.locked, true);
+});
+
+test("automatic rediarization mode ignores persisted expected speaker count as a hard constraint", () => {
+  const result = resolveSpeakerExpectation({
+    sessionConfig: { enabled: true, expectedCount: 2, expectedCountLocked: false },
+    attendees: [],
+    observedSpeakerIds: new Set(["speaker_0", "speaker_1", "speaker_2"]),
+  });
+
+  assert.equal(result.numSpeakers, -1);
+  assert.equal(result.cap, MAX_SPEAKER_COUNT);
+  assert.equal(result.softTarget, 3);
+  assert.equal(result.locked, false);
 });
 
 test("automatic mode uses attendees and observed speakers only as a soft target", () => {

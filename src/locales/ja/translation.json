@@ -1629,7 +1629,16 @@
       "audioMergedAndCompressed": "音声を結合して圧縮しました",
       "rediarizeAudio": "話者を再識別",
       "audioRediarizeFailed": "話者を再識別できませんでした",
-      "audioRediarized": "話者を再識別しました"
+      "audioRediarized": "話者を再識別しました",
+      "rediarizeDialogTitle": "Re-identify speakers",
+      "rediarizeDialogDescription": "By default OpenWhispr detects the number of speakers automatically. Use advanced options only when the result is clearly too few or too many speakers.",
+      "rediarizeModeAuto": "Auto-detect speakers",
+      "rediarizeModeAutoDescription": "Recommended. Let the diarization model decide the speaker count.",
+      "rediarizeAdvanced": "Advanced options",
+      "rediarizeModeMore": "Try to identify more speakers",
+      "rediarizeModeFixed": "Specify speaker count",
+      "rediarizeExpectedCount": "Speaker count",
+      "rediarizeStart": "Start re-identification"
     },
     "bulkExport": {
       "select": "Select",
@@ -1869,7 +1878,8 @@
       "filterAll": "すべての話者",
       "filterEmpty": "選択した話者の内容はありません",
       "filterAria": "文字起こしの話者を絞り込む",
-      "currentSessionSpeakers": "現在のセッション"
+      "currentSessionSpeakers": "現在のセッション",
+      "unknownTrack": "Unknown track"
     },
     "collapseNoteList": "ノートリストを折りたたむ",
     "expandNoteList": "ノートリストを展開"

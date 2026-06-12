@@ -122,7 +122,7 @@ function resolveSpeakerExpectation({
 }) {
   const expectedCount = clampExpectedSpeakerCount(sessionConfig?.expectedCount);
   if (sessionConfig?.expectedCountLocked === true) {
-    const numSpeakers = Math.max(1, expectedCount - 1);
+    const numSpeakers = Math.max(1, expectedCount);
     return { numSpeakers, cap: numSpeakers, softTarget: null, locked: true };
   }
 
@@ -5672,10 +5672,7 @@ class IPCHandlers {
 
     const resolveSessionMaxSpeakers = () => {
       if (this.activeMeetingSpeakerConfig?.expectedCountLocked === true) {
-        return Math.max(
-          1,
-          clampExpectedSpeakerCount(this.activeMeetingSpeakerConfig.expectedCount) - 1
-        );
+        return Math.max(1, clampExpectedSpeakerCount(this.activeMeetingSpeakerConfig.expectedCount));
       }
       return MAX_SPEAKER_COUNT;
     };
@@ -7624,7 +7621,7 @@ class IPCHandlers {
         this.activeMeetingSpeakerConfig = { enabled, expectedCount, expectedCountLocked };
         liveSpeakerIdentifier.setEnabled(enabled);
         liveSpeakerIdentifier.setMaxSpeakers(
-          expectedCountLocked ? Math.max(1, expectedCount - 1) : MAX_SPEAKER_COUNT
+          expectedCountLocked ? Math.max(1, expectedCount) : MAX_SPEAKER_COUNT
         );
         return { success: true };
       } catch (error) {
@@ -8202,7 +8199,7 @@ class IPCHandlers {
         const enrichedSegments = this.diarizationManager.mergeWithTranscript(
           normalized,
           diarizationSegments,
-          { assignMicSegments: true }
+          { assignMicSegments: true, diarizationAlreadyStabilized: true }
         );
 
         const speakerSet = new Set(diarizationSegments.map((d) => d.speaker));
@@ -8440,11 +8437,19 @@ class IPCHandlers {
           .filter((segment) => segment.source === "system" && segment.speaker)
           .map((segment) => segment.speaker)
       );
+      const speakerMode =
+        options?.speakerMode === "fixed" || options?.speakerMode === "more"
+          ? options.speakerMode
+          : "auto";
+      const fixedExpectedCount =
+        speakerMode === "fixed"
+          ? clampExpectedSpeakerCount(options?.expectedCount)
+          : note.expected_speaker_count;
       const { numSpeakers, cap } = this._resolveSpeakerExpectation({
         sessionConfig: {
           enabled: true,
-          expectedCount: options?.expectedCount ?? note.expected_speaker_count,
-          expectedCountLocked: options?.expectedCountLocked === true,
+          expectedCount: fixedExpectedCount,
+          expectedCountLocked: speakerMode === "fixed" || options?.expectedCountLocked === true,
         },
         noteId,
         observedSpeakerIds,
@@ -8454,9 +8459,12 @@ class IPCHandlers {
         tmpWav,
         numSpeakers > 0 ? { numSpeakers } : {}
       );
-      diarizationSegments = this.diarizationManager.stabilizeSpeakerClusters(diarizationSegments, {
-        cap,
-      });
+      const stabilizeOptions =
+        speakerMode === "more" ? { cap, minNoiseDuration: 0, minNoiseSegments: 1 } : { cap };
+      diarizationSegments = this.diarizationManager.stabilizeSpeakerClusters(
+        diarizationSegments,
+        stabilizeOptions
+      );
 
       const startMs =
         transcriptSegments.find((segment) => segment.source === "system")?.timestamp ||
@@ -8475,7 +8483,7 @@ class IPCHandlers {
       const enrichedSegments = this.diarizationManager.mergeWithTranscript(
         normalized,
         diarizationSegments,
-        { assignMicSegments: true }
+        { assignMicSegments: true, diarizationAlreadyStabilized: true }
       );
 
       const result = this.databaseManager.updateNote(noteId, {

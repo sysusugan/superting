@@ -557,7 +557,10 @@ class DiarizationManager {
       return this.sanitizeTranscriptSegments(deduped.map((seg) => ({ ...seg })));
     }
 
-    const cappedDiarizationSegments = this.stabilizeSpeakerClusters(diarizationSegments);
+    const cappedDiarizationSegments =
+      options.diarizationAlreadyStabilized === true
+        ? diarizationSegments.map((segment) => ({ ...segment }))
+        : this.stabilizeSpeakerClusters(diarizationSegments, options.stabilizeOptions || {});
 
     // Build speaker renumbering map (e.g., speaker_00 → speaker_0)
     const speakerSet = new Set(cappedDiarizationSegments.map((d) => d.speaker));

@@ -344,6 +344,11 @@ export interface Enhancement {
 
 type MeetingViewMode = "raw" | "transcript" | "enhanced";
 type ImportTarget = "transcript" | "note";
+type RediarizeSpeakerMode = "auto" | "more" | "fixed";
+export type RediarizeAudioOptions = {
+  speakerMode: RediarizeSpeakerMode;
+  expectedCount?: number;
+};
 
 type SpeakerNameEntry = {
   id: number;
@@ -486,7 +491,7 @@ interface NoteEditorProps {
   onDownloadOriginalAudio?: () => void;
   onShowOriginalAudioInFolder?: () => void;
   onManageSavedAudio?: () => void;
-  onRediarizeAudio?: () => void;
+  onRediarizeAudio?: (options?: RediarizeAudioOptions) => void;
   hasDownloadableAudio?: boolean;
   noteAudioFiles?: NoteAudioFile[];
   audioActionKey?: string | null;
@@ -594,6 +599,10 @@ export default function NoteEditor({
     Array<{ id: number; display_name: string; email: string | null }>
   >([]);
   const [speakerNames, setSpeakerNames] = useState<SpeakerNameEntry[]>([]);
+  const [isRediarizeDialogOpen, setIsRediarizeDialogOpen] = useState(false);
+  const [rediarizeMode, setRediarizeMode] = useState<RediarizeSpeakerMode>("auto");
+  const [rediarizeExpectedCount, setRediarizeExpectedCount] = useState(3);
+  const [showRediarizeAdvanced, setShowRediarizeAdvanced] = useState(false);
   const editorRef = useRef<Editor | null>(null);
   const findInputRef = useRef<HTMLInputElement>(null);
   const plainTranscriptTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -663,6 +672,7 @@ export default function NoteEditor({
       getTranscriptSpeakerFilterOptions(displaySegments, speakerMappings, {
         you: t("notes.speaker.you"),
         speaker: (n) => t("notes.speaker.label", { n }),
+        unknownTrack: t("notes.speaker.unknownTrack"),
       }),
     [displaySegments, speakerMappings, t]
   );
@@ -1707,6 +1717,21 @@ export default function NoteEditor({
     [onExportNote, viewMode]
   );
 
+  const submitRediarizeAudio = useCallback(() => {
+    if (!onRediarizeAudio) return;
+    if (!showRediarizeAdvanced || rediarizeMode === "auto") {
+      onRediarizeAudio({ speakerMode: "auto" });
+    } else if (rediarizeMode === "more") {
+      onRediarizeAudio({ speakerMode: "more" });
+    } else {
+      onRediarizeAudio({
+        speakerMode: "fixed",
+        expectedCount: Math.max(1, Math.min(8, Math.floor(rediarizeExpectedCount))),
+      });
+    }
+    setIsRediarizeDialogOpen(false);
+  }, [onRediarizeAudio, rediarizeExpectedCount, rediarizeMode, showRediarizeAdvanced]);
+
   return (
     <div
       className="flex h-full min-w-0 min-h-0 overflow-hidden"
@@ -2163,7 +2188,7 @@ export default function NoteEditor({
                 {onRediarizeAudio && (
                   <button
                     type="button"
-                    onClick={() => onRediarizeAudio()}
+                    onClick={() => setIsRediarizeDialogOpen(true)}
                     disabled={!hasDownloadableAudio || audioActionKey !== null}
                     className="shrink-0 h-6 w-6 flex items-center justify-center rounded-md bg-foreground/4 dark:bg-white/5 text-foreground/50 dark:text-foreground/40 hover:text-foreground/70 hover:bg-foreground/8 dark:hover:text-foreground/60 dark:hover:bg-white/8 disabled:pointer-events-none disabled:opacity-40 transition-colors duration-150"
                     aria-label={t("notes.editor.rediarizeAudio")}
@@ -2441,6 +2466,95 @@ export default function NoteEditor({
           onWriteAssistantMessage={embeddedChat.writeAssistantMessage}
         />
       )}
+      <Dialog open={isRediarizeDialogOpen} onOpenChange={setIsRediarizeDialogOpen}>
+        <DialogContent className="sm:max-w-105 p-5 gap-4">
+          <DialogHeader>
+            <DialogTitle>{t("notes.editor.rediarizeDialogTitle")}</DialogTitle>
+            <DialogDescription>{t("notes.editor.rediarizeDialogDescription")}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowRediarizeAdvanced(false);
+                setRediarizeMode("auto");
+              }}
+              className={cn(
+                "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+                !showRediarizeAdvanced
+                  ? "border-primary/45 bg-primary/8 text-foreground"
+                  : "border-border bg-background hover:bg-muted/60"
+              )}
+            >
+              <span className="block font-medium">{t("notes.editor.rediarizeModeAuto")}</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                {t("notes.editor.rediarizeModeAutoDescription")}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowRediarizeAdvanced((value) => !value)}
+              className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium hover:bg-muted/60"
+            >
+              {t("notes.editor.rediarizeAdvanced")}
+              {showRediarizeAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+            {showRediarizeAdvanced && (
+              <div className="grid gap-2 rounded-lg border border-border bg-muted/25 p-3">
+                <button
+                  type="button"
+                  onClick={() => setRediarizeMode("more")}
+                  className={cn(
+                    "rounded-md px-3 py-2 text-left text-sm transition-colors",
+                    rediarizeMode === "more"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                  )}
+                >
+                  {t("notes.editor.rediarizeModeMore")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRediarizeMode("fixed")}
+                  className={cn(
+                    "rounded-md px-3 py-2 text-left text-sm transition-colors",
+                    rediarizeMode === "fixed"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                  )}
+                >
+                  {t("notes.editor.rediarizeModeFixed")}
+                </button>
+                {rediarizeMode === "fixed" && (
+                  <label className="mt-1 grid gap-1.5 text-xs font-medium text-muted-foreground">
+                    {t("notes.editor.rediarizeExpectedCount")}
+                    <input
+                      type="number"
+                      min={1}
+                      max={8}
+                      value={rediarizeExpectedCount}
+                      onChange={(event) =>
+                        setRediarizeExpectedCount(
+                          Math.max(1, Math.min(8, Number(event.target.value) || 1))
+                        )
+                      }
+                      className="h-8 rounded-md border border-border bg-background px-2 text-sm text-foreground outline-none focus:border-ring/50"
+                    />
+                  </label>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsRediarizeDialogOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button onClick={submitRediarizeAudio} disabled={!hasDownloadableAudio}>
+              {t("notes.editor.rediarizeStart")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={!!pendingImportFile}
         onOpenChange={(open) => {

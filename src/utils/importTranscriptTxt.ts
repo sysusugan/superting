@@ -22,7 +22,7 @@ function hashSpeakerName(value: string): string {
 }
 
 function buildSpeakerPatch(label: string): Partial<TranscriptSegment> {
-  const generic = label.match(/^发言人\s*(\d+)$/);
+  const generic = label.match(/^发言(?:人|者)\s*(\d+)$/);
   if (generic) {
     const n = Math.max(1, Number(generic[1]) || 1);
     return {

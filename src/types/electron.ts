@@ -620,7 +620,11 @@ declare global {
       rediarizeNoteAudio?: (
         noteId: number,
         audioFileId?: number | null,
-        options?: { expectedCount?: number; expectedCountLocked?: boolean }
+        options?: {
+          speakerMode?: "auto" | "more" | "fixed";
+          expectedCount?: number;
+          expectedCountLocked?: boolean;
+        }
       ) => Promise<{
         success: boolean;
         note?: NoteItem;
