@@ -76,7 +76,7 @@ export function shouldApplyMediaSeekNow(media: {
   src?: string | null;
   readyState?: number | null;
 }): boolean {
-  if (!media.src) return true;
+  if (!media.src) return false;
   return Number(media.readyState) >= 1;
 }
 

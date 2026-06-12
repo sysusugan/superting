@@ -140,17 +140,19 @@ function TranscriptAudioPlayer({
   noteId,
   audioFiles,
   audioActionKey,
-  seekSeconds,
+  seekRequest,
   metadataDurationSeconds,
   onTimeChange,
+  onUserSeek,
   onMergeAudioFiles,
 }: {
   noteId: number;
   audioFiles: NoteAudioFile[];
   audioActionKey?: string | null;
-  seekSeconds: number | null;
+  seekRequest: { seconds: number; key: number } | null;
   metadataDurationSeconds?: number | null;
   onTimeChange?: (seconds: number) => void;
+  onUserSeek?: (seconds: number) => void;
   onMergeAudioFiles?: () => Promise<NoteAudioFile | null>;
 }) {
   const { t } = useTranslation();
@@ -218,15 +220,15 @@ function TranscriptAudioPlayer({
   }, [audioFileIdsKey, metadataDurationSeconds, noteId]);
 
   useEffect(() => {
-    if (seekSeconds == null) return;
+    if (!seekRequest) return;
     const seek = async () => {
       const url = playbackUrl || (await preparePlayback());
       const audio = audioRef.current;
       if (!url || !audio) return;
-      applySeek(audio, seekSeconds);
+      applySeek(audio, seekRequest.seconds);
     };
     seek();
-  }, [applySeek, playbackUrl, preparePlayback, seekSeconds]);
+  }, [applySeek, playbackUrl, preparePlayback, seekRequest]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -249,11 +251,12 @@ function TranscriptAudioPlayer({
     const url = playbackUrl || (await preparePlayback());
     const audio = audioRef.current;
     if (!url || !audio) return;
-    audio.currentTime = Math.max(
+    const nextSeconds = Math.max(
       0,
       Math.min(audio.duration || Infinity, audio.currentTime + delta)
     );
-    reportTime(audio.currentTime);
+    applySeek(audio, nextSeconds);
+    onUserSeek?.(nextSeconds);
   };
 
   const toggleRate = () => {
@@ -318,6 +321,7 @@ function TranscriptAudioPlayer({
             } else {
               reportTime(next);
             }
+            onUserSeek?.(next);
           }}
           className="h-1.5 min-w-0 flex-1 cursor-pointer accent-indigo-500"
           style={{
@@ -640,7 +644,11 @@ export default function NoteEditor({
   } | null>(null);
   const [diarizedSegments, setDiarizedSegments] = useState<TranscriptSegment[] | null>(null);
   const [activePlaybackSegmentId, setActivePlaybackSegmentId] = useState<string | null>(null);
-  const [playbackSeekSeconds, setPlaybackSeekSeconds] = useState<number | null>(null);
+  const [playbackSeekRequest, setPlaybackSeekRequest] = useState<{
+    seconds: number;
+    key: number;
+  } | null>(null);
+  const [activePlaybackScrollKey, setActivePlaybackScrollKey] = useState(0);
   const [speakerMappings, setSpeakerMappings] = useState<Record<string, string>>({});
   const [speakerProfiles, setSpeakerProfiles] = useState<
     Array<{ id: number; display_name: string; email: string | null }>
@@ -890,7 +898,8 @@ export default function NoteEditor({
         setReplaceText("");
         setSpeakerMappings({});
         setActivePlaybackSegmentId(null);
-        setPlaybackSeekSeconds(null);
+        setPlaybackSeekRequest(null);
+        setActivePlaybackScrollKey(0);
         if (!isRecording) {
           setViewMode("raw");
         }
@@ -1048,10 +1057,18 @@ export default function NoteEditor({
       );
       if (seekSeconds == null || !Number.isFinite(seekSeconds)) return;
       setActivePlaybackSegmentId(segment.id);
-      setPlaybackSeekSeconds(Math.max(0, seekSeconds));
+      setActivePlaybackScrollKey((current) => current + 1);
+      setPlaybackSeekRequest((current) => ({
+        seconds: Math.max(0, seekSeconds),
+        key: (current?.key ?? 0) + 1,
+      }));
     },
     [recordingStartedAt, transcriptAudioDurationSeconds]
   );
+
+  const handleTranscriptAudioUserSeek = useCallback(() => {
+    setActivePlaybackScrollKey((current) => current + 1);
+  }, []);
 
   const handlePlaybackTimeChange = useCallback(
     (seconds: number) => {
@@ -2274,9 +2291,10 @@ export default function NoteEditor({
               noteId={note.id}
               audioFiles={noteAudioFiles}
               audioActionKey={audioActionKey}
-              seekSeconds={playbackSeekSeconds}
+              seekRequest={playbackSeekRequest}
               metadataDurationSeconds={transcriptAudioDurationSeconds}
               onTimeChange={handlePlaybackTimeChange}
+              onUserSeek={handleTranscriptAudioUserSeek}
               onMergeAudioFiles={onMergeAudioFiles}
             />
           )}
@@ -2379,6 +2397,7 @@ export default function NoteEditor({
                 ignoreCase={ignoreCase}
                 activeSearchIndex={activeFindIndex}
                 activeSegmentId={activePlaybackSegmentId}
+                activeSegmentScrollKey={activePlaybackScrollKey}
                 onSearchMatchCountChange={handleTranscriptFindMatchCountChange}
                 micPartial={isRecording ? meetingMicPartial : undefined}
                 systemPartial={isRecording ? meetingSystemPartial : undefined}

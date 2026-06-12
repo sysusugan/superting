@@ -62,7 +62,7 @@ test("playback active segment ignores invalid timestamps", () => {
 });
 
 test("media seek waits until metadata is available after a source is assigned", () => {
-  assert.equal(shouldApplyMediaSeekNow({ src: "", readyState: 0 }), true);
+  assert.equal(shouldApplyMediaSeekNow({ src: "", readyState: 0 }), false);
   assert.equal(shouldApplyMediaSeekNow({ src: "ow-audio://note/1", readyState: 0 }), false);
   assert.equal(shouldApplyMediaSeekNow({ src: "ow-audio://note/1", readyState: 1 }), true);
 });

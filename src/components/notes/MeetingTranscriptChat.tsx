@@ -556,6 +556,7 @@ interface MeetingTranscriptChatProps {
   speakerProfiles?: SpeakerProfileLite[];
   participants?: Array<{ email: string; displayName: string | null }>;
   activeSegmentId?: string | null;
+  activeSegmentScrollKey?: number;
   isRecording?: boolean;
   isDiarizing?: boolean;
   recordingStartedAt?: number | null;
@@ -593,6 +594,7 @@ export function MeetingTranscriptChat({
   speakerProfiles,
   participants,
   activeSegmentId,
+  activeSegmentScrollKey = 0,
   isRecording,
   isDiarizing,
   recordingStartedAt,
@@ -608,17 +610,24 @@ export function MeetingTranscriptChat({
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldStickToBottomRef = useRef(true);
+  const activeSegmentIdRef = useRef<string | null>(null);
   const [hintDismissed, setHintDismissed] = useState(false);
 
   useEffect(() => {
-    if (!activeSegmentId) return;
+    activeSegmentIdRef.current = activeSegmentId ?? null;
+  }, [activeSegmentId]);
+
+  useEffect(() => {
+    if (activeSegmentScrollKey <= 0) return;
+    const requestedSegmentId = activeSegmentIdRef.current;
+    if (!requestedSegmentId) return;
     const container = scrollRef.current;
     if (!container) return;
     const target = Array.from(container.querySelectorAll<HTMLElement>("[data-segment-ids]")).find(
-      (element) => (element.dataset.segmentIds || "").split(" ").includes(activeSegmentId)
+      (element) => (element.dataset.segmentIds || "").split(" ").includes(requestedSegmentId)
     );
     target?.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [activeSegmentId]);
+  }, [activeSegmentScrollKey]);
 
   useEffect(() => {
     const el = scrollRef.current;
