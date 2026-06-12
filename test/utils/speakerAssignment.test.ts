@@ -28,6 +28,22 @@ test("manual speaker names override the default self label", () => {
   assert.equal(display.isSelf, false);
 });
 
+test("final transcript display does not label unresolved mic segments as self", () => {
+  const display = getTranscriptSpeakerDisplay(
+    {
+      id: "seg-1",
+      text: "hello",
+      source: "mic",
+    },
+    {},
+    labels,
+    { selfFallback: false }
+  );
+
+  assert.equal(display.label, "发言人 1");
+  assert.equal(display.isSelf, false);
+});
+
 test("speaker group assignment renames every segment with the same speaker id", () => {
   const segments = [
     { id: "seg-1", text: "first", source: "system" as const, speaker: "speaker_0" },
@@ -189,6 +205,37 @@ test("transcript speaker blocks split same speaker by maximum block duration", (
       { text: "第五段", timestamp: 122, segmentIds: ["seg-5"] },
     ]
   );
+});
+
+test("transcript speaker blocks split a single oversized segment for display", () => {
+  const text = [
+    "第一部分说明会议背景以及这次讨论的主要目标。",
+    "第二部分继续讲企业内部流程以及下一步落地方式。",
+    "第三部分补充客户场景和组织协同的细节。",
+    "第四部分讨论产品能力以及后续行动安排。",
+  ].join("");
+  const segments = [
+    {
+      id: "seg-1",
+      text,
+      source: "system" as const,
+      speaker: "speaker_0",
+      timestamp: 18_018,
+    },
+  ];
+
+  const blocks = buildTranscriptSpeakerBlocks(segments, {}, labels, {
+    maxBlockDurationSeconds: 60,
+    maxBlockTextLength: 24,
+    timelineDurationSeconds: 300,
+  });
+
+  assert.ok(blocks.length > 1);
+  assert.deepEqual(
+    blocks.map((block) => block.timestamp),
+    [18_018, 24_018, 30_018, 36_018]
+  );
+  assert.ok(blocks.every((block) => block.text.length <= 24));
 });
 
 test("transcript speaker blocks support epoch millisecond timestamps for duration limits", () => {

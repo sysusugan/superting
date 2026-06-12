@@ -18,6 +18,10 @@ interface SpeakerDisplayLabels {
   speaker: (n: number) => string;
 }
 
+interface SpeakerDisplayOptions {
+  selfFallback?: boolean;
+}
+
 export interface TranscriptSpeakerFilterOption {
   key: string;
   label: string;
@@ -37,6 +41,9 @@ export interface TranscriptSpeakerBlock<T extends AssignableTranscriptSegment> {
 
 interface TranscriptSpeakerBlockOptions {
   maxBlockDurationSeconds?: number;
+  maxBlockTextLength?: number;
+  selfFallback?: boolean;
+  timelineDurationSeconds?: number | null;
 }
 
 const getSpeakerNumber = (speakerId: string) => {
@@ -58,9 +65,77 @@ const getTranscriptSpeakerBlockKey = (
   return `source:${segment.source}`;
 };
 
-const getTranscriptTimestampDeltaSeconds = (from: number, to: number) => {
-  const delta = to - from;
-  return from > 1_000_000_000 || to > 1_000_000_000 ? delta / 1000 : delta;
+const normalizeTranscriptTimestampSeconds = (
+  timestamp: number,
+  timelineDurationSeconds?: number | null
+) => {
+  if (timestamp > 1_000_000_000) return timestamp / 1000;
+  if (
+    typeof timelineDurationSeconds === "number" &&
+    Number.isFinite(timelineDurationSeconds) &&
+    timelineDurationSeconds > 0 &&
+    timestamp > timelineDurationSeconds + 30 &&
+    timestamp / 100 <= timelineDurationSeconds + 30
+  ) {
+    return timestamp / 100;
+  }
+  return timestamp;
+};
+
+const getTranscriptTimestampDeltaSeconds = (
+  from: number,
+  to: number,
+  timelineDurationSeconds?: number | null
+) => {
+  const normalizedFrom = normalizeTranscriptTimestampSeconds(from, timelineDurationSeconds);
+  const normalizedTo = normalizeTranscriptTimestampSeconds(to, timelineDurationSeconds);
+  return normalizedTo - normalizedFrom;
+};
+
+const offsetTranscriptTimestamp = (
+  timestamp: number | undefined,
+  offsetSeconds: number,
+  timelineDurationSeconds?: number | null
+) => {
+  if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return timestamp;
+  if (timestamp > 1_000_000_000) return timestamp + offsetSeconds * 1000;
+  if (
+    typeof timelineDurationSeconds === "number" &&
+    Number.isFinite(timelineDurationSeconds) &&
+    timelineDurationSeconds > 0 &&
+    timestamp > timelineDurationSeconds + 30 &&
+    timestamp / 100 <= timelineDurationSeconds + 30
+  ) {
+    return timestamp + offsetSeconds * 100;
+  }
+  return timestamp + offsetSeconds;
+};
+
+const splitTextForDisplay = (text: string, maxLength: number | null) => {
+  const normalized = text.trim();
+  if (!maxLength || normalized.length <= maxLength) return [normalized];
+
+  const chunks: string[] = [];
+  let remaining = normalized;
+  while (remaining.length > maxLength) {
+    const windowText = remaining.slice(0, maxLength + 1);
+    const breakIndex = Math.max(
+      windowText.lastIndexOf("。"),
+      windowText.lastIndexOf("！"),
+      windowText.lastIndexOf("？"),
+      windowText.lastIndexOf("."),
+      windowText.lastIndexOf("!"),
+      windowText.lastIndexOf("?"),
+      windowText.lastIndexOf("，"),
+      windowText.lastIndexOf(","),
+      windowText.lastIndexOf(" ")
+    );
+    const cut = breakIndex > Math.floor(maxLength * 0.45) ? breakIndex + 1 : maxLength;
+    chunks.push(remaining.slice(0, cut).trim());
+    remaining = remaining.slice(cut).trim();
+  }
+  if (remaining) chunks.push(remaining);
+  return chunks.filter(Boolean);
 };
 
 const isUnresolvedProvisionalPlaceholder = (segment: AssignableTranscriptSegment) =>
@@ -93,24 +168,29 @@ const lockSpeakerName = <T extends AssignableTranscriptSegment>(
 export function getTranscriptSpeakerDisplay<T extends AssignableTranscriptSegment>(
   segment: T,
   speakerMappings: Record<string, string> = {},
-  labels: SpeakerDisplayLabels
+  labels: SpeakerDisplayLabels,
+  options: SpeakerDisplayOptions = {}
 ) {
   const mapped = segment.speaker ? speakerMappings[segment.speaker] : undefined;
+  const useSelfFallback = options.selfFallback !== false;
   const label =
     segment.speakerName ||
     mapped ||
-    (segment.speaker === "you"
+    (useSelfFallback && segment.speaker === "you"
       ? labels.you
       : segment.speaker
         ? labels.speaker(getSpeakerNumber(segment.speaker))
-        : segment.source === "mic"
+        : useSelfFallback && segment.source === "mic"
           ? labels.you
           : labels.speaker(1));
 
   return {
     label,
     isSelf:
-      !segment.speakerName && !mapped && (segment.speaker === "you" || segment.source === "mic"),
+      useSelfFallback &&
+      !segment.speakerName &&
+      !mapped &&
+      (segment.speaker === "you" || segment.source === "mic"),
   };
 }
 
@@ -180,6 +260,14 @@ export function buildTranscriptSpeakerBlocks<T extends AssignableTranscriptSegme
     options.maxBlockDurationSeconds > 0
       ? options.maxBlockDurationSeconds
       : null;
+  const maxBlockTextLength =
+    typeof options.maxBlockTextLength === "number" &&
+    Number.isFinite(options.maxBlockTextLength) &&
+    options.maxBlockTextLength > 0
+      ? Math.floor(options.maxBlockTextLength)
+      : null;
+  const displayOptions = { selfFallback: options.selfFallback };
+  const timelineDurationSeconds = options.timelineDurationSeconds;
 
   const canMergeIntoPreviousBlock = (
     previous: TranscriptSpeakerBlock<T> | undefined,
@@ -188,6 +276,12 @@ export function buildTranscriptSpeakerBlocks<T extends AssignableTranscriptSegme
   ) => {
     if (!previous) return false;
     if (getTranscriptSpeakerBlockKey(previous.segments[0], speakerMappings) !== key) return false;
+    if (
+      maxBlockTextLength != null &&
+      `${previous.text} ${segment.text.trim()}`.trim().length > maxBlockTextLength
+    ) {
+      return false;
+    }
     if (maxBlockDurationSeconds == null) return true;
     if (
       typeof previous.timestamp !== "number" ||
@@ -198,7 +292,11 @@ export function buildTranscriptSpeakerBlocks<T extends AssignableTranscriptSegme
       return true;
     }
     return (
-      getTranscriptTimestampDeltaSeconds(previous.timestamp, segment.timestamp) <=
+      getTranscriptTimestampDeltaSeconds(
+        previous.timestamp,
+        segment.timestamp,
+        timelineDurationSeconds
+      ) <=
       maxBlockDurationSeconds
     );
   };
@@ -216,15 +314,39 @@ export function buildTranscriptSpeakerBlocks<T extends AssignableTranscriptSegme
       continue;
     }
 
-    blocks.push({
-      id: segment.id,
-      text: segment.text.trim(),
-      source: segment.source,
-      timestamp: segment.timestamp,
-      speaker: segment.speaker,
-      speakerName: segment.speakerName,
-      speakerDisplay: getTranscriptSpeakerDisplay(segment, speakerMappings, labels),
-      segments: [segment],
+    const chunks = splitTextForDisplay(segment.text, maxBlockTextLength);
+    chunks.forEach((text, chunkIndex) => {
+      const chunkSegment =
+        chunkIndex === 0
+          ? segment
+          : {
+              ...segment,
+              id: `${segment.id}:part-${chunkIndex + 1}`,
+              text,
+              timestamp:
+                maxBlockDurationSeconds == null
+                  ? segment.timestamp
+                  : offsetTranscriptTimestamp(
+                      segment.timestamp,
+                      maxBlockDurationSeconds * chunkIndex,
+                      timelineDurationSeconds
+                    ),
+            };
+      blocks.push({
+        id: chunkSegment.id,
+        text,
+        source: chunkSegment.source,
+        timestamp: chunkSegment.timestamp,
+        speaker: chunkSegment.speaker,
+        speakerName: chunkSegment.speakerName,
+        speakerDisplay: getTranscriptSpeakerDisplay(
+          chunkSegment,
+          speakerMappings,
+          labels,
+          displayOptions
+        ),
+        segments: [chunkSegment],
+      });
     });
   }
 

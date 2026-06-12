@@ -559,6 +559,7 @@ interface MeetingTranscriptChatProps {
   isRecording?: boolean;
   isDiarizing?: boolean;
   recordingStartedAt?: number | null;
+  timelineDurationSeconds?: number | null;
   onMapSpeaker?: (
     speakerId: string,
     displayName: string,
@@ -595,6 +596,7 @@ export function MeetingTranscriptChat({
   isRecording,
   isDiarizing,
   recordingStartedAt,
+  timelineDurationSeconds,
   onMapSpeaker,
   onMapSegmentSpeaker,
   onConfirmSuggestion,
@@ -664,9 +666,14 @@ export function MeetingTranscriptChat({
           you: t("notes.speaker.you"),
           speaker: (n) => t("notes.speaker.label", { n }),
         },
-        { maxBlockDurationSeconds: 60 }
+        {
+          maxBlockDurationSeconds: 60,
+          maxBlockTextLength: 420,
+          selfFallback: false,
+          timelineDurationSeconds,
+        }
       ),
-    [segments, speakerMappings, t]
+    [segments, speakerMappings, t, timelineDurationSeconds]
   );
   const renderedSearchItems = isEditing ? segments : speakerBlocks;
 
@@ -737,7 +744,11 @@ export function MeetingTranscriptChat({
             {liveItems.map((item) => {
               const timestampLabel =
                 !item.pending && item.timestamp != null
-                  ? formatTranscriptTimestamp(item.timestamp, timelineStartedAt)
+                  ? formatTranscriptTimestamp(
+                      item.timestamp,
+                      timelineStartedAt,
+                      timelineDurationSeconds
+                    )
                   : null;
 
               return (
@@ -833,9 +844,15 @@ export function MeetingTranscriptChat({
               matchedProfile.id != null &&
               !matchedProfile.email &&
               !!onAttachSpeakerEmail;
-            const timestampLabel = formatTranscriptTimestamp(segment.timestamp, timelineStartedAt);
+            const timestampLabel = formatTranscriptTimestamp(
+              segment.timestamp,
+              timelineStartedAt,
+              timelineDurationSeconds
+            );
             const fallbackSpeakerLabel =
-              segment.source === "mic" ? t("notes.speaker.you") : t("notes.speaker.them");
+              segment.source === "mic"
+                ? t("notes.speaker.label", { n: 1 })
+                : t("notes.speaker.them");
             const isActiveSegment = blockSegments.some(
               (blockSegment) => activeSegmentId === blockSegment.id
             );

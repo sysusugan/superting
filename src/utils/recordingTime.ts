@@ -30,18 +30,40 @@ export function formatRecordingElapsed(
 
 export function getRelativeTranscriptSeconds(
   timestamp: number | null | undefined,
-  recordingStartedAt?: number | null
+  recordingStartedAt?: number | null,
+  timelineDurationSeconds?: number | null
 ): number | undefined {
   if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return undefined;
-  if (timestamp <= 1_000_000_000) return Math.max(0, timestamp);
+  if (timestamp <= 1_000_000_000) {
+    const seconds = Math.max(0, timestamp);
+    if (
+      typeof timelineDurationSeconds === "number" &&
+      Number.isFinite(timelineDurationSeconds) &&
+      timelineDurationSeconds > 0 &&
+      seconds > timelineDurationSeconds + 30
+    ) {
+      const centiseconds = seconds / 100;
+      if (centiseconds <= timelineDurationSeconds + 30) return Math.max(0, centiseconds);
+    }
+    return seconds;
+  }
   if (!recordingStartedAt || !Number.isFinite(recordingStartedAt)) return undefined;
   return Math.max(0, (timestamp - recordingStartedAt) / 1000);
 }
 
 export function formatTranscriptTimestamp(
   timestamp: number | null | undefined,
-  recordingStartedAt?: number | null
+  recordingStartedAt?: number | null,
+  timelineDurationSeconds?: number | null
 ): string {
-  const seconds = getRelativeTranscriptSeconds(timestamp, recordingStartedAt);
+  const seconds = getRelativeTranscriptSeconds(timestamp, recordingStartedAt, timelineDurationSeconds);
   return seconds == null ? "" : formatClock(seconds);
+}
+
+export function getTranscriptSeekSeconds(
+  timestamp: number | null | undefined,
+  recordingStartedAt?: number | null,
+  timelineDurationSeconds?: number | null
+): number | undefined {
+  return getRelativeTranscriptSeconds(timestamp, recordingStartedAt, timelineDurationSeconds);
 }

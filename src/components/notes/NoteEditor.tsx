@@ -63,6 +63,7 @@ import EmbeddedChat, { type EmbeddedChatMode } from "./EmbeddedChat";
 import { selectEmbeddedChatTranscript } from "./embeddedChatTranscript";
 import { useEmbeddedChat } from "../../hooks/useEmbeddedChat";
 import { normalizeDbDate } from "../../utils/dateFormatting";
+import { getTranscriptSeekSeconds } from "../../utils/recordingTime";
 import { parseTranscriptSegments } from "../../utils/parseTranscriptSegments";
 import {
   getFindMatches,
@@ -136,12 +137,14 @@ function TranscriptAudioPlayer({
   audioFiles,
   audioActionKey,
   seekSeconds,
+  metadataDurationSeconds,
   onMergeAudioFiles,
 }: {
   noteId: number;
   audioFiles: NoteAudioFile[];
   audioActionKey?: string | null;
   seekSeconds: number | null;
+  metadataDurationSeconds?: number | null;
   onMergeAudioFiles?: () => Promise<NoteAudioFile | null>;
 }) {
   const { t } = useTranslation();
@@ -179,9 +182,9 @@ function TranscriptAudioPlayer({
   useEffect(() => {
     setPlaybackUrl(null);
     setCurrentTime(0);
-    setDuration(0);
+    setDuration(metadataDurationSeconds || 0);
     setIsPlaying(false);
-  }, [noteId, audioFileIdsKey]);
+  }, [audioFileIdsKey, metadataDurationSeconds, noteId]);
 
   useEffect(() => {
     if (seekSeconds == null) return;
@@ -246,7 +249,14 @@ function TranscriptAudioPlayer({
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
           onEnded={() => setIsPlaying(false)}
-          onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
+          onLoadedMetadata={(event) => {
+            const nextDuration = event.currentTarget.duration;
+            if (Number.isFinite(nextDuration) && nextDuration > 0) {
+              setDuration(nextDuration);
+            } else {
+              setDuration(metadataDurationSeconds || 0);
+            }
+          }}
           onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime || 0)}
         />
         <input
@@ -616,6 +626,13 @@ export default function NoteEditor({
 
   const hasMeetingTranscript = !isRecording && !!effectiveTranscript;
   const isRediarizingAudio = audioActionKey?.startsWith("rediarize-") ?? false;
+  const transcriptAudioDurationSeconds = useMemo(() => {
+    const total = noteAudioFiles.reduce((sum, file) => {
+      const duration = Number(file.duration_seconds);
+      return Number.isFinite(duration) && duration > 0 ? sum + duration : sum;
+    }, 0);
+    return total > 0 ? total : null;
+  }, [noteAudioFiles]);
 
   const filteredFolders = useMemo(
     () =>
@@ -962,10 +979,15 @@ export default function NoteEditor({
   );
 
   const handleSeekToTranscriptSegment = useCallback((segment: TranscriptSegment) => {
-    if (typeof segment.timestamp !== "number" || !Number.isFinite(segment.timestamp)) return;
+    const seekSeconds = getTranscriptSeekSeconds(
+      segment.timestamp,
+      recordingStartedAt,
+      transcriptAudioDurationSeconds
+    );
+    if (seekSeconds == null || !Number.isFinite(seekSeconds)) return;
     setActivePlaybackSegmentId(segment.id);
-    setPlaybackSeekSeconds(Math.max(0, segment.timestamp));
-  }, []);
+    setPlaybackSeekSeconds(Math.max(0, seekSeconds));
+  }, [recordingStartedAt, transcriptAudioDurationSeconds]);
 
   const handleMapSpeaker = useCallback(
     async (
@@ -2166,6 +2188,7 @@ export default function NoteEditor({
               audioFiles={noteAudioFiles}
               audioActionKey={audioActionKey}
               seekSeconds={playbackSeekSeconds}
+              metadataDurationSeconds={transcriptAudioDurationSeconds}
               onMergeAudioFiles={onMergeAudioFiles}
             />
           )}
@@ -2282,6 +2305,7 @@ export default function NoteEditor({
                 onDismissSuggestion={handleDismissSuggestion}
                 onAttachSpeakerEmail={handleAttachSpeakerEmail}
                 recordingStartedAt={recordingStartedAt}
+                timelineDurationSeconds={transcriptAudioDurationSeconds}
                 onSeekToSegment={
                   !isRecording && !isTranscriptEditing ? handleSeekToTranscriptSegment : undefined
                 }
