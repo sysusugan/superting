@@ -965,6 +965,25 @@ export default function PersonalNotesView({
     setShowAudioDownloadDialog(true);
   }, [activeNoteId, loadNoteAudioFiles, noteAudioFiles, t, toast]);
 
+  const handleRediarizeSavedAudio = useCallback(async () => {
+    if (!activeNoteId) return;
+    const files =
+      noteAudioFiles.length > 0 ? noteAudioFiles : await loadNoteAudioFiles(activeNoteId);
+    if (files.length === 0) {
+      toast({
+        title: t("notes.editor.originalAudioUnavailable"),
+        description: t("notes.editor.audioUnavailableDescription"),
+        variant: "destructive",
+      });
+      return;
+    }
+    if (files.length === 1) {
+      await rediarizeAudioFile(files[0].id);
+      return;
+    }
+    setShowAudioDownloadDialog(true);
+  }, [activeNoteId, loadNoteAudioFiles, noteAudioFiles, rediarizeAudioFile, t, toast]);
+
   const handleShowOriginalAudioInFolder = useCallback(async () => {
     if (!activeNoteId) return;
     const files =
@@ -1549,6 +1568,7 @@ export default function PersonalNotesView({
               onDownloadOriginalAudio={handleDownloadOriginalAudio}
               onShowOriginalAudioInFolder={handleShowOriginalAudioInFolder}
               onManageSavedAudio={handleManageSavedAudio}
+              onRediarizeAudio={handleRediarizeSavedAudio}
               hasDownloadableAudio={noteAudioFiles.length > 0}
               noteAudioFiles={noteAudioFiles}
               audioActionKey={audioActionKey}
