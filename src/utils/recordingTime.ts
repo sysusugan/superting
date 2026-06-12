@@ -72,6 +72,14 @@ export function getTranscriptSeekSeconds(
   return getRelativeTranscriptSeconds(timestamp, recordingStartedAt, timelineDurationSeconds);
 }
 
+export function shouldApplyMediaSeekNow(media: {
+  src?: string | null;
+  readyState?: number | null;
+}): boolean {
+  if (!media.src) return true;
+  return Number(media.readyState) >= 1;
+}
+
 export interface PlaybackTranscriptSegment {
   id: string;
   timestamp?: number | null;

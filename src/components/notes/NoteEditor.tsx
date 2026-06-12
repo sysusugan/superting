@@ -19,7 +19,6 @@ import {
   X,
   Filter,
   FileUp,
-  ListMusic,
   Pause,
   Play,
   RotateCcw,
@@ -64,7 +63,11 @@ import EmbeddedChat, { type EmbeddedChatMode } from "./EmbeddedChat";
 import { selectEmbeddedChatTranscript } from "./embeddedChatTranscript";
 import { useEmbeddedChat } from "../../hooks/useEmbeddedChat";
 import { normalizeDbDate } from "../../utils/dateFormatting";
-import { getPlaybackActiveSegmentId, getTranscriptSeekSeconds } from "../../utils/recordingTime";
+import {
+  getPlaybackActiveSegmentId,
+  getTranscriptSeekSeconds,
+  shouldApplyMediaSeekNow,
+} from "../../utils/recordingTime";
 import { parseTranscriptSegments } from "../../utils/parseTranscriptSegments";
 import {
   getFindMatches,
@@ -158,6 +161,7 @@ function TranscriptAudioPlayer({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [rate, setRate] = useState(1);
+  const pendingSeekSecondsRef = useRef<number | null>(null);
 
   const playableFile = audioFiles.length === 1 ? audioFiles[0] : null;
   const audioFileIdsKey = useMemo(() => audioFiles.map((file) => file.id).join(":"), [audioFiles]);
@@ -169,6 +173,21 @@ function TranscriptAudioPlayer({
       onTimeChange?.(safeSeconds);
     },
     [onTimeChange]
+  );
+
+  const applySeek = useCallback(
+    (audio: HTMLAudioElement, seconds: number) => {
+      const nextSeconds = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
+      if (!shouldApplyMediaSeekNow(audio)) {
+        pendingSeekSecondsRef.current = nextSeconds;
+        reportTime(nextSeconds);
+        return;
+      }
+      pendingSeekSecondsRef.current = null;
+      audio.currentTime = nextSeconds;
+      reportTime(audio.currentTime);
+    },
+    [reportTime]
   );
 
   const preparePlayback = useCallback(async () => {
@@ -195,6 +214,7 @@ function TranscriptAudioPlayer({
     setCurrentTime(0);
     setDuration(metadataDurationSeconds || 0);
     setIsPlaying(false);
+    pendingSeekSecondsRef.current = null;
   }, [audioFileIdsKey, metadataDurationSeconds, noteId]);
 
   useEffect(() => {
@@ -203,11 +223,10 @@ function TranscriptAudioPlayer({
       const url = playbackUrl || (await preparePlayback());
       const audio = audioRef.current;
       if (!url || !audio) return;
-      audio.currentTime = Math.max(0, seekSeconds);
-      reportTime(audio.currentTime);
+      applySeek(audio, seekSeconds);
     };
     seek();
-  }, [playbackUrl, preparePlayback, reportTime, seekSeconds]);
+  }, [applySeek, playbackUrl, preparePlayback, seekSeconds]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -249,8 +268,6 @@ function TranscriptAudioPlayer({
   if (audioFiles.length === 0) return null;
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const prepareLabel =
-    audioFiles.length > 1 ? t("notes.editor.mergeAudio") : t("notes.editor.audioPlayerPrepare");
   const playLabel = isPlaying
     ? t("notes.editor.audioPlayerPause")
     : t("notes.editor.audioPlayerPlay");
@@ -269,11 +286,16 @@ function TranscriptAudioPlayer({
           onPause={() => setIsPlaying(false)}
           onEnded={() => setIsPlaying(false)}
           onLoadedMetadata={(event) => {
+            const audio = event.currentTarget;
             const nextDuration = event.currentTarget.duration;
             if (Number.isFinite(nextDuration) && nextDuration > 0) {
               setDuration(nextDuration);
             } else {
               setDuration(metadataDurationSeconds || 0);
+            }
+            const pendingSeekSeconds = pendingSeekSecondsRef.current;
+            if (pendingSeekSeconds != null) {
+              applySeek(audio, pendingSeekSeconds);
             }
           }}
           onTimeUpdate={(event) => reportTime(event.currentTarget.currentTime || 0)}
@@ -291,8 +313,11 @@ function TranscriptAudioPlayer({
           onChange={(event) => {
             const next = Number(event.target.value);
             const audio = audioRef.current;
-            if (audio) audio.currentTime = next;
-            reportTime(next);
+            if (audio) {
+              applySeek(audio, next);
+            } else {
+              reportTime(next);
+            }
           }}
           className="h-1.5 min-w-0 flex-1 cursor-pointer accent-indigo-500"
           style={{
@@ -303,21 +328,6 @@ function TranscriptAudioPlayer({
           {duration ? formatPlaybackTime(duration) : playbackUrl ? "--:--" : ""}
         </span>
         <div className="ml-1 flex shrink-0 items-center gap-1.5 border-l border-border/60 pl-3">
-          <Tooltip content={prepareLabel}>
-            <button
-              type="button"
-              onClick={() => preparePlayback()}
-              className={iconButtonClass}
-              title={prepareLabel}
-              aria-label={prepareLabel}
-            >
-              {isPreparing || isMerging ? (
-                <Loader2 size={15} className="animate-spin" />
-              ) : (
-                <ListMusic size={15} />
-              )}
-            </button>
-          </Tooltip>
           <Tooltip content={t("notes.editor.audioPlayerBack15")}>
             <button
               type="button"

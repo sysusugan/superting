@@ -7,6 +7,7 @@ import {
   getPlaybackActiveSegmentId,
   getRelativeTranscriptSeconds,
   getTranscriptSeekSeconds,
+  shouldApplyMediaSeekNow,
 } from "../../src/utils/recordingTime.ts";
 
 test("recording elapsed seconds are derived from the session start timestamp", () => {
@@ -58,4 +59,10 @@ test("playback active segment ignores invalid timestamps", () => {
   assert.equal(getPlaybackActiveSegmentId(5, segments), null);
   assert.equal(getPlaybackActiveSegmentId(12.5, segments), "valid");
   assert.equal(getPlaybackActiveSegmentId(Number.NaN, segments), null);
+});
+
+test("media seek waits until metadata is available after a source is assigned", () => {
+  assert.equal(shouldApplyMediaSeekNow({ src: "", readyState: 0 }), true);
+  assert.equal(shouldApplyMediaSeekNow({ src: "ow-audio://note/1", readyState: 0 }), false);
+  assert.equal(shouldApplyMediaSeekNow({ src: "ow-audio://note/1", readyState: 1 }), true);
 });
