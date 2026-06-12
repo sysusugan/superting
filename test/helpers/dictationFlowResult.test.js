@@ -69,6 +69,14 @@ test("marks cleanup fallback when refined text is missing but raw text exists", 
       rawText: "raw brand term",
       source: "local",
       warning: "cleanup_failed",
+      cleanupError: {
+        message: "OpenAI API key is missing",
+        code: "API_KEY_MISSING",
+        provider: "openai",
+        model: "gpt-5-mini",
+        stage: "cleanup",
+        stack: "do not persist",
+      },
     },
     {
       provider: "whisper",
@@ -85,6 +93,13 @@ test("marks cleanup fallback when refined text is missing but raw text exists", 
   assert.equal(result.model, "base");
   assert.equal(result.audioDurationMs, 900);
   assert.equal(result.warning, "cleanup_failed");
+  assert.deepEqual(result.processingMetadata.voiceFlow.cleanupError, {
+    message: "OpenAI API key is missing",
+    code: "API_KEY_MISSING",
+    provider: "openai",
+    model: "gpt-5-mini",
+    stage: "cleanup",
+  });
 });
 
 test("prefers committed streaming final text over stop and partial fallbacks", () => {
@@ -180,7 +195,10 @@ test("keeps the most user-visible dictation warning", () => {
   assert.equal(pickDictationWarning("partial_result", "streaming_stop_timeout"), "partial_result");
   assert.equal(pickDictationWarning(null, "streaming_stop_timeout"), "streaming_stop_timeout");
   assert.equal(pickDictationWarning("cleanup_failed", "partial_result"), "cleanup_failed");
-  assert.equal(pickDictationWarning(null, "dictionary_prompt_truncated"), "dictionary_prompt_truncated");
+  assert.equal(
+    pickDictationWarning(null, "dictionary_prompt_truncated"),
+    "dictionary_prompt_truncated"
+  );
   assert.equal(
     pickDictationWarning("dictionary_prompt_truncated", "cleanup_failed"),
     "cleanup_failed"

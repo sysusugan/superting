@@ -298,6 +298,8 @@
       "dictionaryCorrections": "Dictionary corrections",
       "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
       "cleanupFailed": "La pulizia IA non è riuscita; è stata mantenuta la trascrizione originale",
+      "cleanupFailureReason": "Reason: {{reason}}",
+      "cleanupFailureProviderModel": "Provider/model: {{provider}} / {{model}}",
       "emptyDescription": "Le dettature recenti appariranno qui dopo la prima nota vocale.",
       "deskTitle": "Postazione dettatura",
       "deskDescription": "Acquisisci voce, regola il vocabolario e rivedi le trascrizioni in uno spazio focalizzato.",

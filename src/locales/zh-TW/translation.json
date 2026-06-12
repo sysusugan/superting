@@ -298,6 +298,8 @@
       "dictionaryCorrections": "詞典糾錯",
       "addCorrectionAlias": "新增常見誤識別規則：{{from}} -> {{to}}",
       "cleanupFailed": "AI 潤飾失敗，已保留原始轉錄",
+      "cleanupFailureReason": "失敗原因：{{reason}}",
+      "cleanupFailureProviderModel": "服務商/模型：{{provider}} / {{model}}",
       "emptyDescription": "完成第一次語音記錄後，最近的聽寫內容會出現在這裡。",
       "deskTitle": "聽寫工作台",
       "deskDescription": "在一個聚焦的工作區完成語音記錄、詞彙校準和轉錄回看。",

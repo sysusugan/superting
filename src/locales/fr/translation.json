@@ -298,6 +298,8 @@
       "dictionaryCorrections": "Dictionary corrections",
       "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
       "cleanupFailed": "Le nettoyage IA a échoué ; la transcription brute a été conservée",
+      "cleanupFailureReason": "Reason: {{reason}}",
+      "cleanupFailureProviderModel": "Provider/model: {{provider}} / {{model}}",
       "emptyDescription": "Vos dictées récentes apparaîtront ici après votre première note vocale.",
       "deskTitle": "Bureau de dictée",
       "deskDescription": "Capturez la voix, ajustez le vocabulaire et relisez les transcriptions dans un espace dédié.",

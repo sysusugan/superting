@@ -285,6 +285,8 @@
       "dictionaryCorrections": "Dictionary corrections",
       "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
       "cleanupFailed": "A limpeza por IA falhou; a transcrição original foi mantida",
+      "cleanupFailureReason": "Reason: {{reason}}",
+      "cleanupFailureProviderModel": "Provider/model: {{provider}} / {{model}}",
       "emptyDescription": "Seus ditados recentes aparecerão aqui depois da primeira nota de voz.",
       "deskTitle": "Mesa de ditado",
       "deskDescription": "Capture fala, ajuste o vocabulário e revise transcrições em um espaço focado.",

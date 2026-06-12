@@ -125,6 +125,7 @@ class AudioManager {
     this.onTranscriptionComplete = null;
     this.onPartialTranscript = null;
     this.lastProcessingWarning = null;
+    this.lastProcessingCleanupError = null;
     this.cachedApiKey = null;
     this.cachedApiKeyProvider = null;
 
@@ -614,11 +615,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const whisperModel = settings.whisperModel;
       const parakeetModel = settings.parakeetModel || "parakeet-tdt-0.6b-v3";
 
-      logger.debug(
-        "Transcription routing",
-        { useLocalWhisper, localProvider },
-        "transcription"
-      );
+      logger.debug("Transcription routing", { useLocalWhisper, localProvider }, "transcription");
 
       let result;
       let activeModel;
@@ -770,6 +767,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             source: "local",
             timings,
             warning: this.lastProcessingWarning,
+            cleanupError: this.lastProcessingCleanupError,
           };
         } else {
           throw new Error("No text transcribed");
@@ -846,6 +844,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             source: "local-parakeet",
             timings,
             warning: this.lastProcessingWarning,
+            cleanupError: this.lastProcessingCleanupError,
           };
         } else {
           throw new Error("No text transcribed");
@@ -1068,6 +1067,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
 
   async processTranscription(text, source) {
     this.lastProcessingWarning = null;
+    this.lastProcessingCleanupError = null;
     const normalizedText = typeof text === "string" ? text.trim() : "";
 
     if (!normalizedText) {
@@ -1157,6 +1157,13 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         });
         logger.warn("Reasoning failed", { source, error: error.message }, "notes");
         this.lastProcessingWarning = "cleanup_failed";
+        this.lastProcessingCleanupError = {
+          message: error.message || "Cleanup failed",
+          code: typeof error.code === "string" ? error.code : undefined,
+          provider: route.config?.provider || cleanupProvider,
+          model: targetModel || undefined,
+          stage: "cleanup",
+        };
       }
     }
 
@@ -1478,6 +1485,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             source,
             timings,
             warning: pickDictationWarning(this.lastProcessingWarning, dictionaryWarning),
+            cleanupError: this.lastProcessingCleanupError,
           };
         }
 
@@ -1637,6 +1645,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           source,
           timings,
           warning: pickDictationWarning(this.lastProcessingWarning, dictionaryWarning),
+          cleanupError: this.lastProcessingCleanupError,
         };
       } else {
         // Log at info level so it shows without debug mode
@@ -1689,6 +1698,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
                 rawText: result.text,
                 source: "local-fallback",
                 warning: this.lastProcessingWarning,
+                cleanupError: this.lastProcessingCleanupError,
               };
             }
           }
@@ -2045,11 +2055,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       const provider = this.getStreamingProvider();
       const [, wsResult] = await Promise.all([
         this.cacheMicrophoneDeviceId(),
-        (async () => {
-          const {
-            preferredLanguage: warmupLang,
-            cloudTranscriptionModel,
-          } = getSettings();
+        async () => {
+          const { preferredLanguage: warmupLang, cloudTranscriptionModel } = getSettings();
           const res = await provider.warmup({
             sampleRate: 16000,
             language: warmupLang && warmupLang !== "auto" ? warmupLang : undefined,
@@ -2063,7 +2070,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
             throw err;
           }
           return res;
-        }),
+        },
       ]);
 
       if (wsResult.success) {
@@ -2487,8 +2494,8 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const streamingSttLanguage = getBaseLanguageCode(stSettings.preferredLanguage) || undefined;
     const streamingSttWordCount = finalText ? finalText.split(/\s+/).filter(Boolean).length : 0;
 
-    let usedCloudReasoning = false;
     let processingWarning = pickDictationWarning(streamingText.warning, stopResult.warning);
+    let cleanupError = null;
     if (finalText && !this.skipReasoning) {
       const reasoningStart = performance.now();
       const agentName = localStorage.getItem("agentName") || null;
@@ -2532,6 +2539,16 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           "streaming"
         );
         processingWarning = pickDictationWarning("cleanup_failed", processingWarning);
+        cleanupError = {
+          message: reasonError.message || "Cleanup failed",
+          code: typeof reasonError.code === "string" ? reasonError.code : undefined,
+          provider: route.config?.provider || stSettings.cleanupProvider || "auto",
+          model:
+            route.kind === "agent"
+              ? route.model || undefined
+              : getEffectiveCleanupModel() || undefined,
+          stage: "streaming_cleanup",
+        };
       }
     }
 
@@ -2579,6 +2596,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
           rawText: finalRawText || finalText,
           source: `${this.getStreamingProviderName()}-streaming`,
           warning: processingWarning,
+          cleanupError,
           partial: usedPartialResult,
         },
         {

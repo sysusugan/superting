@@ -611,6 +611,16 @@ export function MeetingTranscriptChat({
   const [hintDismissed, setHintDismissed] = useState(false);
 
   useEffect(() => {
+    if (!activeSegmentId) return;
+    const container = scrollRef.current;
+    if (!container) return;
+    const target = Array.from(container.querySelectorAll<HTMLElement>("[data-segment-id]")).find(
+      (element) => element.dataset.segmentId === activeSegmentId
+    );
+    target?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [activeSegmentId]);
+
+  useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     const updateStickyScroll = () => {
@@ -851,9 +861,7 @@ export function MeetingTranscriptChat({
               timelineDurationSeconds
             );
             const fallbackSpeakerLabel =
-              segment.source === "mic"
-                ? t("notes.speaker.unknownTrack")
-                : t("notes.speaker.them");
+              segment.source === "mic" ? t("notes.speaker.unknownTrack") : t("notes.speaker.them");
             const isActiveSegment = blockSegments.some(
               (blockSegment) => activeSegmentId === blockSegment.id
             );
@@ -944,7 +952,7 @@ export function MeetingTranscriptChat({
                   ) : (
                     <div
                       className={cn(
-                        "mt-1 whitespace-pre-wrap text-sm leading-6 text-slate-950 transition-colors",
+                        "mt-1 whitespace-pre-wrap text-[13px] leading-[1.65] text-slate-950 transition-colors",
                         isActiveSegment && "bg-indigo-50/50"
                       )}
                     >
@@ -961,7 +969,6 @@ export function MeetingTranscriptChat({
               </div>
             );
           })}
-
         </div>
       </div>
     </div>

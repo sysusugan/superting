@@ -56,7 +56,11 @@ export function formatTranscriptTimestamp(
   recordingStartedAt?: number | null,
   timelineDurationSeconds?: number | null
 ): string {
-  const seconds = getRelativeTranscriptSeconds(timestamp, recordingStartedAt, timelineDurationSeconds);
+  const seconds = getRelativeTranscriptSeconds(
+    timestamp,
+    recordingStartedAt,
+    timelineDurationSeconds
+  );
   return seconds == null ? "" : formatClock(seconds);
 }
 
@@ -66,4 +70,39 @@ export function getTranscriptSeekSeconds(
   timelineDurationSeconds?: number | null
 ): number | undefined {
   return getRelativeTranscriptSeconds(timestamp, recordingStartedAt, timelineDurationSeconds);
+}
+
+export interface PlaybackTranscriptSegment {
+  id: string;
+  timestamp?: number | null;
+}
+
+export function getPlaybackActiveSegmentId(
+  currentSeconds: number,
+  segments: PlaybackTranscriptSegment[],
+  recordingStartedAt?: number | null,
+  timelineDurationSeconds?: number | null
+): string | null {
+  if (!Number.isFinite(currentSeconds) || currentSeconds < 0) return null;
+
+  const timeline = segments
+    .map((segment) => ({
+      id: segment.id,
+      seconds: getRelativeTranscriptSeconds(
+        segment.timestamp,
+        recordingStartedAt,
+        timelineDurationSeconds
+      ),
+    }))
+    .filter((item): item is { id: string; seconds: number } => item.seconds != null)
+    .sort((a, b) => a.seconds - b.seconds);
+
+  if (timeline.length === 0 || currentSeconds < timeline[0].seconds) return null;
+
+  let activeId = timeline[0].id;
+  for (const item of timeline) {
+    if (item.seconds > currentSeconds) break;
+    activeId = item.id;
+  }
+  return activeId;
 }

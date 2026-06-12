@@ -298,6 +298,8 @@
       "dictionaryCorrections": "Dictionary corrections",
       "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
       "cleanupFailed": "AIクリーンアップに失敗したため、元の文字起こしを保持しました",
+      "cleanupFailureReason": "Reason: {{reason}}",
+      "cleanupFailureProviderModel": "Provider/model: {{provider}} / {{model}}",
       "emptyDescription": "最初の音声メモを録音すると、最近の音声入力がここに表示されます。",
       "deskTitle": "音声入力デスク",
       "deskDescription": "音声の記録、語彙の調整、文字起こしの確認をひとつの作業スペースで行えます。",

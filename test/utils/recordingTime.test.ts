@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   formatTranscriptTimestamp,
   getElapsedRecordingSeconds,
+  getPlaybackActiveSegmentId,
   getRelativeTranscriptSeconds,
   getTranscriptSeekSeconds,
 } from "../../src/utils/recordingTime.ts";
@@ -34,4 +35,27 @@ test("centisecond-style transcript timestamps normalize to audio seconds", () =>
 
 test("epoch transcript timestamps seek relative to the recording start", () => {
   assert.equal(getTranscriptSeekSeconds(1_700_000_240_000, 1_700_000_000_000), 240);
+});
+
+test("playback active segment follows the current audio time", () => {
+  const segments = [
+    { id: "intro", timestamp: 0 },
+    { id: "middle", timestamp: 30.12 },
+    { id: "next", timestamp: 31.16 },
+    { id: "final", timestamp: 32.19 },
+  ];
+
+  assert.equal(getPlaybackActiveSegmentId(0, segments), "intro");
+  assert.equal(getPlaybackActiveSegmentId(30.12, segments), "middle");
+  assert.equal(getPlaybackActiveSegmentId(30.9, segments), "middle");
+  assert.equal(getPlaybackActiveSegmentId(31.16, segments), "next");
+  assert.equal(getPlaybackActiveSegmentId(120, segments), "final");
+});
+
+test("playback active segment ignores invalid timestamps", () => {
+  const segments = [{ id: "missing" }, { id: "valid", timestamp: 12 }];
+
+  assert.equal(getPlaybackActiveSegmentId(5, segments), null);
+  assert.equal(getPlaybackActiveSegmentId(12.5, segments), "valid");
+  assert.equal(getPlaybackActiveSegmentId(Number.NaN, segments), null);
 });

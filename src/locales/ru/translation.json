@@ -298,6 +298,8 @@
       "dictionaryCorrections": "Dictionary corrections",
       "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
       "cleanupFailed": "Очистка ИИ не удалась; сохранена исходная расшифровка",
+      "cleanupFailureReason": "Reason: {{reason}}",
+      "cleanupFailureProviderModel": "Provider/model: {{provider}} / {{model}}",
       "emptyDescription": "Недавние диктовки появятся здесь после первой голосовой заметки.",
       "deskTitle": "Рабочее место диктовки",
       "deskDescription": "Записывайте речь, настраивайте словарь и просматривайте расшифровки в одном месте.",

@@ -298,6 +298,8 @@
       "dictionaryCorrections": "Dictionary corrections",
       "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
       "cleanupFailed": "KI-Bereinigung fehlgeschlagen; die Rohtranskription wurde beibehalten",
+      "cleanupFailureReason": "Reason: {{reason}}",
+      "cleanupFailureProviderModel": "Provider/model: {{provider}} / {{model}}",
       "emptyDescription": "Ihre letzten Diktate erscheinen hier, nachdem Sie Ihre erste Sprachnotiz aufgenommen haben.",
       "deskTitle": "Diktat-Arbeitsplatz",
       "deskDescription": "Sprache erfassen, Vokabular anpassen und Transkripte in einem fokussierten Bereich prüfen.",

@@ -297,6 +297,8 @@
       "dictionaryCorrections": "Dictionary corrections",
       "addCorrectionAlias": "Add common misrecognition: {{from}} -> {{to}}",
       "cleanupFailed": "AI cleanup failed; the raw transcription was kept",
+      "cleanupFailureReason": "Reason: {{reason}}",
+      "cleanupFailureProviderModel": "Provider/model: {{provider}} / {{model}}",
       "emptyDescription": "Your recent dictations will appear here after you capture your first voice note.",
       "deskTitle": "Dictation desk",
       "deskDescription": "Capture speech, tune vocabulary, and review transcripts from one focused workspace.",

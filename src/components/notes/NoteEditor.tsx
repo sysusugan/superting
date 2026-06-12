@@ -63,7 +63,7 @@ import EmbeddedChat, { type EmbeddedChatMode } from "./EmbeddedChat";
 import { selectEmbeddedChatTranscript } from "./embeddedChatTranscript";
 import { useEmbeddedChat } from "../../hooks/useEmbeddedChat";
 import { normalizeDbDate } from "../../utils/dateFormatting";
-import { getTranscriptSeekSeconds } from "../../utils/recordingTime";
+import { getPlaybackActiveSegmentId, getTranscriptSeekSeconds } from "../../utils/recordingTime";
 import { parseTranscriptSegments } from "../../utils/parseTranscriptSegments";
 import {
   getFindMatches,
@@ -138,6 +138,7 @@ function TranscriptAudioPlayer({
   audioActionKey,
   seekSeconds,
   metadataDurationSeconds,
+  onTimeChange,
   onMergeAudioFiles,
 }: {
   noteId: number;
@@ -145,6 +146,7 @@ function TranscriptAudioPlayer({
   audioActionKey?: string | null;
   seekSeconds: number | null;
   metadataDurationSeconds?: number | null;
+  onTimeChange?: (seconds: number) => void;
   onMergeAudioFiles?: () => Promise<NoteAudioFile | null>;
 }) {
   const { t } = useTranslation();
@@ -159,6 +161,14 @@ function TranscriptAudioPlayer({
   const playableFile = audioFiles.length === 1 ? audioFiles[0] : null;
   const audioFileIdsKey = useMemo(() => audioFiles.map((file) => file.id).join(":"), [audioFiles]);
   const isMerging = audioActionKey === "merge";
+  const reportTime = useCallback(
+    (seconds: number) => {
+      const safeSeconds = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+      setCurrentTime(safeSeconds);
+      onTimeChange?.(safeSeconds);
+    },
+    [onTimeChange]
+  );
 
   const preparePlayback = useCallback(async () => {
     if (isPreparing || playbackUrl) return playbackUrl;
@@ -193,10 +203,10 @@ function TranscriptAudioPlayer({
       const audio = audioRef.current;
       if (!url || !audio) return;
       audio.currentTime = Math.max(0, seekSeconds);
-      setCurrentTime(audio.currentTime);
+      reportTime(audio.currentTime);
     };
     seek();
-  }, [playbackUrl, preparePlayback, seekSeconds]);
+  }, [playbackUrl, preparePlayback, reportTime, seekSeconds]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -223,7 +233,7 @@ function TranscriptAudioPlayer({
       0,
       Math.min(audio.duration || Infinity, audio.currentTime + delta)
     );
-    setCurrentTime(audio.currentTime);
+    reportTime(audio.currentTime);
   };
 
   const toggleRate = () => {
@@ -240,7 +250,7 @@ function TranscriptAudioPlayer({
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="border-b border-border/50 bg-white px-8 py-3">
+    <div className="border-b border-border/40 bg-white px-8 py-2">
       <div className="mx-auto max-w-5xl">
         <audio
           ref={audioRef}
@@ -257,7 +267,7 @@ function TranscriptAudioPlayer({
               setDuration(metadataDurationSeconds || 0);
             }
           }}
-          onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime || 0)}
+          onTimeUpdate={(event) => reportTime(event.currentTarget.currentTime || 0)}
         />
         <input
           type="range"
@@ -270,16 +280,16 @@ function TranscriptAudioPlayer({
             const next = Number(event.target.value);
             const audio = audioRef.current;
             if (audio) audio.currentTime = next;
-            setCurrentTime(next);
+            reportTime(next);
           }}
-          className="w-full accent-indigo-500"
+          className="h-1.5 w-full cursor-pointer accent-indigo-500"
           style={{
             background: `linear-gradient(to right, #6366f1 ${progress}%, #e5e7eb ${progress}%)`,
           }}
         />
-        <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-xs text-muted-foreground">
+        <div className="mt-1.5 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[11px] text-muted-foreground">
           <span className="tabular-nums">{formatPlaybackTime(currentTime)}</span>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => preparePlayback()}
@@ -288,9 +298,9 @@ function TranscriptAudioPlayer({
               aria-label={t("notes.editor.mergeAudio")}
             >
               {isPreparing || isMerging ? (
-                <Loader2 size={18} className="animate-spin" />
+                <Loader2 size={15} className="animate-spin" />
               ) : (
-                <ListMusic size={18} />
+                <ListMusic size={15} />
               )}
             </button>
             <button
@@ -298,18 +308,18 @@ function TranscriptAudioPlayer({
               onClick={() => jumpBy(-15)}
               className="text-muted-foreground transition-colors hover:text-foreground"
             >
-              <RotateCcw size={20} />
+              <RotateCcw size={17} />
             </button>
             <button
               type="button"
               onClick={togglePlayback}
               disabled={isPreparing || isMerging}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 transition-colors hover:bg-indigo-200 disabled:opacity-50"
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 transition-colors hover:bg-indigo-200 disabled:opacity-50"
             >
               {isPlaying ? (
-                <Pause size={18} fill="currentColor" />
+                <Pause size={14} fill="currentColor" />
               ) : (
-                <Play size={18} fill="currentColor" />
+                <Play size={14} fill="currentColor" />
               )}
             </button>
             <button
@@ -317,12 +327,12 @@ function TranscriptAudioPlayer({
               onClick={() => jumpBy(15)}
               className="text-muted-foreground transition-colors hover:text-foreground"
             >
-              <RotateCw size={20} />
+              <RotateCw size={17} />
             </button>
             <button
               type="button"
               onClick={toggleRate}
-              className="min-w-8 text-left text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className="min-w-7 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               {rate}x
             </button>
@@ -988,16 +998,34 @@ export default function NoteEditor({
     [note.id]
   );
 
-  const handleSeekToTranscriptSegment = useCallback((segment: TranscriptSegment) => {
-    const seekSeconds = getTranscriptSeekSeconds(
-      segment.timestamp,
-      recordingStartedAt,
-      transcriptAudioDurationSeconds
-    );
-    if (seekSeconds == null || !Number.isFinite(seekSeconds)) return;
-    setActivePlaybackSegmentId(segment.id);
-    setPlaybackSeekSeconds(Math.max(0, seekSeconds));
-  }, [recordingStartedAt, transcriptAudioDurationSeconds]);
+  const handleSeekToTranscriptSegment = useCallback(
+    (segment: TranscriptSegment) => {
+      const seekSeconds = getTranscriptSeekSeconds(
+        segment.timestamp,
+        recordingStartedAt,
+        transcriptAudioDurationSeconds
+      );
+      if (seekSeconds == null || !Number.isFinite(seekSeconds)) return;
+      setActivePlaybackSegmentId(segment.id);
+      setPlaybackSeekSeconds(Math.max(0, seekSeconds));
+    },
+    [recordingStartedAt, transcriptAudioDurationSeconds]
+  );
+
+  const handlePlaybackTimeChange = useCallback(
+    (seconds: number) => {
+      const nextSegmentId = getPlaybackActiveSegmentId(
+        seconds,
+        visibleTranscriptSegments,
+        recordingStartedAt,
+        transcriptAudioDurationSeconds
+      );
+      setActivePlaybackSegmentId((current) =>
+        current === nextSegmentId ? current : nextSegmentId
+      );
+    },
+    [recordingStartedAt, transcriptAudioDurationSeconds, visibleTranscriptSegments]
+  );
 
   const handleMapSpeaker = useCallback(
     async (
@@ -2207,6 +2235,7 @@ export default function NoteEditor({
               audioActionKey={audioActionKey}
               seekSeconds={playbackSeekSeconds}
               metadataDurationSeconds={transcriptAudioDurationSeconds}
+              onTimeChange={handlePlaybackTimeChange}
               onMergeAudioFiles={onMergeAudioFiles}
             />
           )}

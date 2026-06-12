@@ -100,11 +100,7 @@ export default function ControlPanel() {
   const updateErrorToastShown = useRef<Error | null>(null);
   const { hotkey } = useHotkey();
   const { toast } = useToast();
-  const {
-    useLocalWhisper,
-    localTranscriptionProvider,
-    useCleanupModel,
-  } = useSettings();
+  const { useLocalWhisper, localTranscriptionProvider, useCleanupModel } = useSettings();
 
   const {
     status: updateStatus,
@@ -464,9 +460,9 @@ export default function ControlPanel() {
             try {
               const [{ default: ReasoningService }, { getEffectiveCleanupModel, getSettings }] =
                 await Promise.all([
-                import("../services/ReasoningService"),
-                import("../stores/settingsStore"),
-              ]);
+                  import("../services/ReasoningService"),
+                  import("../stores/settingsStore"),
+                ]);
               const model = getEffectiveCleanupModel();
               if (model) {
                 const agentName = localStorage.getItem("agentName") || null;
@@ -507,8 +503,47 @@ export default function ControlPanel() {
                   }
                 }
               }
-            } catch {
-              // Reasoning failed — keep the raw STT result
+            } catch (reasonError) {
+              const { getEffectiveCleanupModel, getSettings } =
+                await import("../stores/settingsStore");
+              const settings = getSettings();
+              const reasonRecord =
+                reasonError && typeof reasonError === "object"
+                  ? (reasonError as Record<string, unknown>)
+                  : {};
+              const processingMetadata = {
+                voiceFlow: {
+                  mode: "retry",
+                  provider: result.transcription.provider,
+                  model: result.transcription.model,
+                  language: result.transcription.language,
+                  rawText,
+                  refinedText: "",
+                  displayText: rawText,
+                  warning: "cleanup_failed",
+                  cleanupError: {
+                    message: reasonError instanceof Error ? reasonError.message : "Cleanup failed",
+                    code: typeof reasonRecord.code === "string" ? reasonRecord.code : undefined,
+                    provider: settings.cleanupProvider || "auto",
+                    model: getEffectiveCleanupModel() || undefined,
+                    stage: "cleanup",
+                  },
+                  dictionaryCorrections: [],
+                },
+              };
+              const updated = await window.electronAPI.updateTranscriptionText(
+                id,
+                rawText,
+                rawText,
+                {
+                  warning: "cleanup_failed",
+                  partial: false,
+                  processingMetadata,
+                }
+              );
+              if (updated.success && updated.transcription) {
+                finalTranscription = updated.transcription;
+              }
             }
           }
 
@@ -713,10 +748,7 @@ export default function ControlPanel() {
         </div>
         <main className="min-w-0 flex-1 flex flex-col overflow-hidden bg-background">
           <div
-            className={cn(
-              "min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-background",
-              "p-0"
-            )}
+            className={cn("min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-background", "p-0")}
           >
             {(gpuAccelAvailable.cuda || gpuAccelAvailable.vulkan) &&
               activeView === "home" &&

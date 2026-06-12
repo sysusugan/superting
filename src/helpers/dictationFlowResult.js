@@ -23,6 +23,19 @@ function uniqueCorrections(corrections) {
   return unique;
 }
 
+function normalizeCleanupError(value) {
+  if (!value || typeof value !== "object") return undefined;
+  const message = typeof value.message === "string" ? value.message.trim() : "";
+  if (!message) return undefined;
+  return {
+    message,
+    code: typeof value.code === "string" ? value.code : undefined,
+    provider: typeof value.provider === "string" ? value.provider : undefined,
+    model: typeof value.model === "string" ? value.model : undefined,
+    stage: typeof value.stage === "string" ? value.stage : undefined,
+  };
+}
+
 function correctResultText(rawText, refinedText, displayText, metadata = {}) {
   const options = {
     dictionary: metadata.customDictionary,
@@ -80,6 +93,7 @@ function normalizeProcessingMetadata(result, normalized, corrections, metadata =
       refinedText: normalized.refinedText,
       displayText: normalized.displayText,
       warning: normalized.warning,
+      cleanupError: normalized.cleanupError,
       dictionaryCorrections: corrections,
       timings: normalized.timings,
       chunksTotal: normalized.chunksTotal,
@@ -96,6 +110,7 @@ export function normalizeTranscriptionResult(result = {}, metadata = {}) {
   const displayText = cleanText(result.displayText) || refinedText || rawText;
   const corrected = correctResultText(rawText, refinedText, displayText, metadata);
   const hasDictionaryCorrections = corrected.corrections.length > 0;
+  const cleanupError = normalizeCleanupError(result.cleanupError ?? metadata.cleanupError);
 
   const normalized = {
     ...result,
@@ -115,6 +130,7 @@ export function normalizeTranscriptionResult(result = {}, metadata = {}) {
       result.warning ?? metadata.warning ?? null,
       hasDictionaryCorrections ? "dictionary_corrected" : null
     ),
+    cleanupError,
     partial: Boolean(result.partial ?? metadata.partial ?? false),
     dictionaryCorrections: hasDictionaryCorrections ? corrected.corrections : undefined,
     clientTranscriptionId: result.clientTranscriptionId ?? metadata.clientTranscriptionId,

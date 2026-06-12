@@ -19,7 +19,11 @@ import type {
 } from "../../types/electron";
 import { cn } from "../lib/utils";
 import { getCachedPlatform } from "../../utils/platform";
-import { getDictionaryCorrections, getVoiceFlowMetadata } from "../../utils/voiceFlowMetadata";
+import {
+  getCleanupError,
+  getDictionaryCorrections,
+  getVoiceFlowMetadata,
+} from "../../utils/voiceFlowMetadata";
 import { getSettings, useSettingsStore } from "../../stores/settingsStore";
 
 const platform = getCachedPlatform();
@@ -53,6 +57,7 @@ export default function TranscriptionItem({
   const [isRetrying, setIsRetrying] = useState(false);
   const corrections = getDictionaryCorrections(item);
   const voiceFlow = getVoiceFlowMetadata(item);
+  const cleanupError = getCleanupError(item);
   const customDictionaryAliases = useSettingsStore((state) => state.customDictionaryAliases);
 
   const timestampSource = item.timestamp.endsWith("Z") ? item.timestamp : `${item.timestamp}Z`;
@@ -92,7 +97,11 @@ export default function TranscriptionItem({
     const settingsStore = useSettingsStore.getState();
     const normalizedFrom = from.trim();
     const normalizedTo = to.trim();
-    if (!normalizedFrom || !normalizedTo || normalizedFrom.toLowerCase() === normalizedTo.toLowerCase()) {
+    if (
+      !normalizedFrom ||
+      !normalizedTo ||
+      normalizedFrom.toLowerCase() === normalizedTo.toLowerCase()
+    ) {
       return;
     }
     const aliasExists = customDictionaryAliases.some(
@@ -287,9 +296,24 @@ export default function TranscriptionItem({
             </span>
             <p className="text-xs text-muted-foreground/80 leading-relaxed mt-1">{item.raw_text}</p>
             {voiceFlow?.warning === "cleanup_failed" && (
-              <p className="text-[10px] text-muted-foreground/50 italic mt-1">
-                {t("controlPanel.history.cleanupFailed")}
-              </p>
+              <div className="mt-1 space-y-0.5 text-[10px] text-muted-foreground/50">
+                <p className="italic">{t("controlPanel.history.cleanupFailed")}</p>
+                {cleanupError?.message && (
+                  <p>
+                    {t("controlPanel.history.cleanupFailureReason", {
+                      reason: cleanupError.message,
+                    })}
+                  </p>
+                )}
+                {(cleanupError?.provider || cleanupError?.model) && (
+                  <p>
+                    {t("controlPanel.history.cleanupFailureProviderModel", {
+                      provider: cleanupError.provider || "-",
+                      model: cleanupError.model || "-",
+                    })}
+                  </p>
+                )}
+              </div>
             )}
             {voiceFlow?.warning !== "cleanup_failed" && item.raw_text === item.text && (
               <p className="text-[10px] text-muted-foreground/50 italic mt-1">

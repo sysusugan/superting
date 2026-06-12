@@ -298,6 +298,8 @@
       "dictionaryCorrections": "词典纠错",
       "addCorrectionAlias": "添加常见误识别规则：{{from}} -> {{to}}",
       "cleanupFailed": "AI 润色失败，已保留原始转录",
+      "cleanupFailureReason": "失败原因：{{reason}}",
+      "cleanupFailureProviderModel": "服务商/模型：{{provider}} / {{model}}",
       "emptyDescription": "完成第一次语音记录后，最近的听写内容会出现在这里。",
       "deskTitle": "听写工作台",
       "deskDescription": "在一个聚焦的工作区里完成语音记录、词汇校准和转录回看。",

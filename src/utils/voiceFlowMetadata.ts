@@ -6,6 +6,14 @@ export interface DictionaryCorrectionRecord {
   kind?: string;
 }
 
+export interface CleanupErrorRecord {
+  message: string;
+  code?: string;
+  provider?: string;
+  model?: string;
+  stage?: string;
+}
+
 export interface VoiceFlowMetadata {
   mode?: string | null;
   provider?: string | null;
@@ -16,6 +24,7 @@ export interface VoiceFlowMetadata {
   displayText?: string | null;
   warning?: string | null;
   dictionaryCorrections?: DictionaryCorrectionRecord[];
+  cleanupError?: CleanupErrorRecord;
 }
 
 function parseMetadata(value: string | null): Record<string, unknown> | null {
@@ -41,15 +50,37 @@ function normalizeCorrection(value: unknown): DictionaryCorrectionRecord | null 
   };
 }
 
+function normalizeCleanupError(value: unknown): CleanupErrorRecord | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const message = typeof record.message === "string" ? record.message.trim() : "";
+  if (!message) return null;
+  return {
+    message,
+    code: typeof record.code === "string" ? record.code : undefined,
+    provider: typeof record.provider === "string" ? record.provider : undefined,
+    model: typeof record.model === "string" ? record.model : undefined,
+    stage: typeof record.stage === "string" ? record.stage : undefined,
+  };
+}
+
 export function getVoiceFlowMetadata(item: TranscriptionItem): VoiceFlowMetadata | null {
   const metadata = parseMetadata(item.processing_metadata);
   const voiceFlow = metadata?.voiceFlow;
   if (!voiceFlow || typeof voiceFlow !== "object") return null;
-  return voiceFlow as VoiceFlowMetadata;
+  const normalized = voiceFlow as VoiceFlowMetadata;
+  const cleanupError = normalizeCleanupError(normalized.cleanupError);
+  return cleanupError
+    ? { ...normalized, cleanupError }
+    : { ...normalized, cleanupError: undefined };
 }
 
 export function getDictionaryCorrections(item: TranscriptionItem): DictionaryCorrectionRecord[] {
   const corrections = getVoiceFlowMetadata(item)?.dictionaryCorrections;
   if (!Array.isArray(corrections)) return [];
   return corrections.map(normalizeCorrection).filter(Boolean) as DictionaryCorrectionRecord[];
+}
+
+export function getCleanupError(item: TranscriptionItem): CleanupErrorRecord | null {
+  return getVoiceFlowMetadata(item)?.cleanupError ?? null;
 }
