@@ -376,7 +376,7 @@ function TranscriptSpeakerFilter({
   const activeCount = allSelected ? options.length : selectedKeys.size;
 
   const toggleAll = () => {
-    onChange(null);
+    onChange(allSelected ? new Set() : null);
   };
 
   const toggleOne = (key: string) => {
@@ -394,15 +394,15 @@ function TranscriptSpeakerFilter({
         <button
           type="button"
           aria-label={t("notes.speaker.filterAria")}
+          title={t("notes.speaker.filter")}
           className={cn(
-            "h-7 inline-flex items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors",
+            "h-7 min-w-7 inline-flex items-center justify-center gap-1 rounded-md px-1.5 text-xs font-medium transition-colors",
             allSelected
               ? "bg-foreground/5 text-foreground/55 hover:bg-foreground/9 hover:text-foreground/75"
               : "bg-primary/10 text-primary hover:bg-primary/15"
           )}
         >
           <Filter size={13} />
-          <span className="hidden sm:inline">{t("notes.speaker.filter")}</span>
           {!allSelected && <span className="tabular-nums">{activeCount}</span>}
         </button>
       </PopoverTrigger>
@@ -427,7 +427,7 @@ function TranscriptSpeakerFilter({
         <div className="my-1 h-px bg-border/50" />
         <div className="max-h-64 overflow-y-auto">
           {options.map((option, index) => {
-            const checked = allSelected || selectedKeys.has(option.key);
+            const checked = allSelected || selectedKeys?.has(option.key) === true;
             return (
               <button
                 key={option.key}

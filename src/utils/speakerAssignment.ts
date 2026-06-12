@@ -139,7 +139,7 @@ export function filterTranscriptSegmentsBySpeaker<T extends AssignableTranscript
   segments: T[],
   selectedSpeakerKeys: Set<string> | null
 ): T[] {
-  if (!selectedSpeakerKeys || selectedSpeakerKeys.size === 0) return segments;
+  if (!selectedSpeakerKeys) return segments;
   return segments.filter((segment) =>
     selectedSpeakerKeys.has(getTranscriptSpeakerFilterKey(segment))
   );

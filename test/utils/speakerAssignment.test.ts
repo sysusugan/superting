@@ -118,11 +118,16 @@ test("speaker filtering only keeps selected effective speakers", () => {
   ];
 
   const filtered = filterTranscriptSegmentsBySpeaker(segments, new Set(["speaker:speaker_0"]));
+  const none = filterTranscriptSegmentsBySpeaker(segments, new Set());
   const all = filterTranscriptSegmentsBySpeaker(segments, null);
 
   assert.deepEqual(
     filtered.map((segment) => segment.id),
     ["seg-2"]
+  );
+  assert.deepEqual(
+    none.map((segment) => segment.id),
+    []
   );
   assert.deepEqual(
     all.map((segment) => segment.id),
