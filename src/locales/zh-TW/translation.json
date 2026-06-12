@@ -1286,6 +1286,7 @@
       "audioRetention": "音訊保留",
       "audioRetentionDescription": "將音訊錄製檔案儲存在本機以便重新轉錄和下載。檔案會在保留期限過後自動刪除。",
       "audioRetentionDisabled": "已停用",
+      "audioRetentionForever": "永久保存",
       "audioRetentionDays": "{{count}} 天",
       "audioStorageUsage": "儲存空間用量",
       "audioStorageUsageDescription": "儲存在此裝置上的音訊檔案",

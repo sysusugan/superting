@@ -2315,6 +2315,7 @@ EOF`,
                       className="h-7 rounded border border-border/70 bg-surface-1/80 px-2.5 text-xs font-medium text-foreground shadow-sm hover:border-border-hover hover:bg-surface-2/70 focus:outline-none focus:ring-2 focus:ring-ring/30 focus:ring-offset-1 transition-colors duration-200"
                     >
                       <option value={0}>{t("settingsPage.privacy.audioRetentionDisabled")}</option>
+                      <option value={-1}>{t("settingsPage.privacy.audioRetentionForever")}</option>
                       <option value={7}>
                         {t("settingsPage.privacy.audioRetentionDays", { count: 7 })}
                       </option>

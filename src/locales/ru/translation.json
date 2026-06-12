@@ -1286,6 +1286,7 @@
       "audioRetention": "Хранение аудио",
       "audioRetentionDescription": "Сохранять аудиозаписи локально для повторной расшифровки и скачивания. Файлы автоматически удаляются по истечении срока хранения.",
       "audioRetentionDisabled": "Отключено",
+      "audioRetentionForever": "Навсегда",
       "audioRetentionDays": "{{count}} дн.",
       "audioStorageUsage": "Использование хранилища",
       "audioStorageUsageDescription": "Аудиофайлы, сохранённые на этом устройстве",

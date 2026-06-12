@@ -1273,6 +1273,7 @@
       "audioRetention": "Retenção de áudio",
       "audioRetentionDescription": "Armazena gravações de áudio localmente para retranscrição e download. Os arquivos são excluídos automaticamente após o período de retenção.",
       "audioRetentionDisabled": "Desativado",
+      "audioRetentionForever": "Para sempre",
       "audioRetentionDays": "{{count}} dias",
       "audioStorageUsage": "Uso de armazenamento",
       "audioStorageUsageDescription": "Arquivos de áudio armazenados neste dispositivo",

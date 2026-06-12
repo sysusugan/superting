@@ -1289,6 +1289,7 @@
       "audioRetention": "音频保留",
       "audioRetentionDescription": "在本地存储音频录制文件以便重新转录和下载。文件会在保留期过后自动删除。",
       "audioRetentionDisabled": "已禁用",
+      "audioRetentionForever": "永久保存",
       "audioRetentionDays": "{{count}} 天",
       "audioStorageUsage": "存储用量",
       "audioStorageUsageDescription": "存储在此设备上的音频文件",

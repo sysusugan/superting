@@ -144,8 +144,9 @@ test("compressRetainedAudioToOpusWebm converts retained WAV to same basename Web
   assert.equal(fs.existsSync(path.join(audioDir, wavName)), false);
   assert.equal(
     fs.existsSync(path.join(audioDir, ".pending-delete", wavName)),
-    true
+    false
   );
+  assert.equal(fs.existsSync(path.join(audioDir, ".pending-delete")), false);
   const compressed = fs.readFileSync(result.path);
   assert.equal(compressed[0], 0x1a);
   assert.equal(compressed[1], 0x45);
@@ -219,8 +220,27 @@ test("compressAllRetainedAudioToOpusWebm compresses only uncompressed retained a
     [wavName, "OpenWhispr-meeting-2026-05-28-06-00-00-12.webm"],
   ]);
   assert.equal(fs.existsSync(path.join(audioDir, wavName)), false);
-  assert.equal(fs.existsSync(path.join(audioDir, ".pending-delete", wavName)), true);
+  assert.equal(fs.existsSync(path.join(audioDir, ".pending-delete", wavName)), false);
   assert.equal(fs.existsSync(path.join(audioDir, webmName)), true);
+});
+
+test("compressAllRetainedAudioToOpusWebm removes legacy pending-delete backups", async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const audioDir = path.join(root, "audio");
+  const pendingDir = path.join(audioDir, ".pending-delete");
+  const storage = new AudioStorageManager({ audioDir });
+  const wavName = "OpenWhispr-meeting-2026-05-28-06-00-00-12.wav";
+  fs.writeFileSync(path.join(audioDir, wavName), buildTestWav(buildTonePcm()));
+  fs.mkdirSync(pendingDir, { recursive: true });
+  fs.writeFileSync(path.join(pendingDir, "old.wav"), Buffer.from("legacy backup"));
+
+  const result = await storage.compressAllRetainedAudioToOpusWebm();
+
+  assert.equal(result.success, true);
+  assert.equal(result.pendingDeleteRemoved, 1);
+  assert.equal(fs.existsSync(pendingDir), false);
 });
 
 test("getRetainedAudioPath returns existing retained audio and rejects missing or unsafe names", (t) => {
@@ -265,6 +285,51 @@ test("cleanupExpiredAudio reports deleted retained note audio filenames to datab
   assert.equal(result.deleted, 1);
   assert.deepEqual(deletedFilenames, [expired]);
   assert.deepEqual(remainingFilenames, [retained]);
+});
+
+test("cleanupExpiredAudio skips deletion when retention is permanent", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const audioDir = path.join(root, "audio");
+  const storage = new AudioStorageManager({ audioDir });
+  const oldFile = "OpenWhispr-meeting-2026-05-28-06-07-08-12.wav";
+  fs.writeFileSync(path.join(audioDir, oldFile), Buffer.from("old"));
+
+  const oldTime = Date.now() - 400 * 86400000;
+  fs.utimesSync(path.join(audioDir, oldFile), oldTime / 1000, oldTime / 1000);
+
+  let removed = false;
+  const result = storage.cleanupExpiredAudio(-1, {
+    clearAudioFlags() {
+      removed = true;
+    },
+    removeNoteAudioFilesByFilename() {
+      removed = true;
+    },
+  });
+
+  assert.equal(result.deleted, 0);
+  assert.equal(result.kept, 1);
+  assert.equal(removed, false);
+  assert.equal(fs.existsSync(path.join(audioDir, oldFile)), true);
+});
+
+test("cleanupPendingDeleteAudio deletes historical pending-delete directory", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const audioDir = path.join(root, "audio");
+  const pendingDir = path.join(audioDir, ".pending-delete");
+  const storage = new AudioStorageManager({ audioDir });
+  fs.mkdirSync(path.join(pendingDir, "nested"), { recursive: true });
+  fs.writeFileSync(path.join(pendingDir, "old.wav"), Buffer.from("legacy"));
+  fs.writeFileSync(path.join(pendingDir, "nested", "old.webm"), Buffer.from("legacy"));
+
+  const result = storage.cleanupPendingDeleteAudio();
+
+  assert.equal(result.deleted, 2);
+  assert.equal(fs.existsSync(pendingDir), false);
 });
 
 test("deleteRetainedAudioFiles deletes safe retained audio and rejects unsafe names", (t) => {

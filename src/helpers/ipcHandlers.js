@@ -418,6 +418,7 @@ class IPCHandlers {
     this.uploadTranscriptionCoordinator = new UploadTranscriptionCoordinator();
     this.audioStorageManager = new AudioStorageManager();
     this._audioCleanupInterval = null;
+    this._audioRetentionDays = null;
     this._noteFilesEnabled = false;
     this._noteAudioProtocolTokens = new Map();
     require("./markdownMirror").setDatabaseManager(this.databaseManager);
@@ -650,23 +651,21 @@ class IPCHandlers {
   }
 
   _setupAudioCleanup() {
-    const DEFAULT_RETENTION_DAYS = 30;
     const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
-    // Run initial cleanup with default retention
     try {
       if (this.databaseManager?.backfillNoteAudioFilesFromDirectory) {
         this.databaseManager.backfillNoteAudioFilesFromDirectory(this.audioStorageManager.audioDir);
       }
-      this.audioStorageManager.cleanupExpiredAudio(DEFAULT_RETENTION_DAYS, this.databaseManager);
+      this.audioStorageManager.cleanupPendingDeleteAudio();
     } catch (error) {
-      debugLogger.error("Initial audio cleanup failed", { error: error.message }, "audio-storage");
+      debugLogger.error("Initial audio maintenance failed", { error: error.message }, "audio-storage");
     }
 
     // Set up periodic cleanup every 6 hours
     this._audioCleanupInterval = setInterval(() => {
       try {
-        this.audioStorageManager.cleanupExpiredAudio(DEFAULT_RETENTION_DAYS, this.databaseManager);
+        this._runAudioRetentionCleanup();
       } catch (error) {
         debugLogger.error(
           "Periodic audio cleanup failed",
@@ -675,6 +674,17 @@ class IPCHandlers {
         );
       }
     }, SIX_HOURS_MS);
+  }
+
+  _runAudioRetentionCleanup() {
+    if (this._audioRetentionDays == null) {
+      return { deleted: 0, kept: 0, skipped: true };
+    }
+    this.audioStorageManager.cleanupPendingDeleteAudio();
+    return this.audioStorageManager.cleanupExpiredAudio(
+      this._audioRetentionDays,
+      this.databaseManager
+    );
   }
 
   _registerNoteAudioProtocol() {
@@ -1242,6 +1252,15 @@ class IPCHandlers {
       return this.audioStorageManager.getStorageUsage();
     });
 
+    ipcMain.handle("set-audio-retention-days", async (_event, days) => {
+      const parsed = Number(days);
+      this._audioRetentionDays = Number.isFinite(parsed) ? Math.round(parsed) : 30;
+      return {
+        success: true,
+        cleanup: this._runAudioRetentionCleanup(),
+      };
+    });
+
     ipcMain.handle("compress-all-audio", async () => {
       const affectedNoteIds = new Set();
       const result = await this.audioStorageManager.compressAllRetainedAudioToOpusWebm({
@@ -1264,6 +1283,7 @@ class IPCHandlers {
         }
       }
 
+      this.audioStorageManager.cleanupPendingDeleteAudio();
       return {
         ...result,
         affectedNotes: affectedNoteIds.size,
@@ -1273,6 +1293,7 @@ class IPCHandlers {
 
     ipcMain.handle("delete-all-audio", async () => {
       const result = this.audioStorageManager.deleteAllAudio();
+      this.audioStorageManager.cleanupPendingDeleteAudio();
       try {
         const rows = this.databaseManager.db
           .prepare("SELECT id FROM transcriptions WHERE has_audio = 1")
@@ -2308,6 +2329,7 @@ class IPCHandlers {
           audioFile.filename
         );
         if (!compressed.success) return compressed;
+        this.audioStorageManager.cleanupPendingDeleteAudio();
 
         if (!compressed.alreadyCompressed && compressed.filename !== audioFile.filename) {
           this.databaseManager.replaceNoteAudioFilesWithMergedFile(
@@ -6375,7 +6397,7 @@ class IPCHandlers {
         meetingOneOnOneProfileBound = false;
         meetingNoteId = options.noteId ?? null;
         meetingShouldRetainAudio =
-          options.dataRetentionEnabled !== false && (options.audioRetentionDays ?? 30) > 0;
+          options.dataRetentionEnabled !== false && (options.audioRetentionDays ?? 30) !== 0;
 
         if (systemAudioMode === "unsupported" && this._meetingSystemStreaming?.isConnected) {
           await this._meetingSystemStreaming.disconnect().catch(() => ({ text: "" }));

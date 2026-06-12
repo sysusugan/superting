@@ -1286,6 +1286,7 @@
       "audioRetention": "Retención de audio",
       "audioRetentionDescription": "Almacena grabaciones de audio localmente para volver a transcribir y descargar. Los archivos se eliminan automáticamente tras el periodo de retención.",
       "audioRetentionDisabled": "Desactivado",
+      "audioRetentionForever": "Para siempre",
       "audioRetentionDays": "{{count}} días",
       "audioStorageUsage": "Uso de almacenamiento",
       "audioStorageUsageDescription": "Archivos de audio almacenados en este dispositivo",

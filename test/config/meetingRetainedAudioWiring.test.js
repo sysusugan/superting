@@ -18,3 +18,13 @@ test("meeting retained audio is wired through the retained audio writer", () => 
     "meeting audio persistence must not use the diarization PCM stream"
   );
 });
+
+test("meeting audio retention treats -1 days as permanent retention", () => {
+  const source = fs.readFileSync(ipcHandlersPath, "utf8");
+
+  assert.match(
+    source,
+    /options\.dataRetentionEnabled !== false &&\s*\(options\.audioRetentionDays \?\? 30\) !== 0/,
+    "meeting recording should retain audio for positive days and permanent -1 retention"
+  );
+});

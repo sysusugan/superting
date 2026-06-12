@@ -1286,6 +1286,7 @@
       "audioRetention": "音声の保持",
       "audioRetentionDescription": "再文字起こしやダウンロードのために音声録音をローカルに保存します。ファイルは保持期間が過ぎると自動的に削除されます。",
       "audioRetentionDisabled": "無効",
+      "audioRetentionForever": "永久保存",
       "audioRetentionDays": "{{count}}日",
       "audioStorageUsage": "ストレージ使用量",
       "audioStorageUsageDescription": "このデバイスに保存された音声ファイル",

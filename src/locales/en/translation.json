@@ -1282,6 +1282,7 @@
       "audioRetention": "Audio Retention",
       "audioRetentionDescription": "Store audio recordings locally for re-transcription and download. Files are automatically deleted after the retention period.",
       "audioRetentionDisabled": "Disabled",
+      "audioRetentionForever": "Forever",
       "audioRetentionDays": "{{count}} days",
       "audioStorageUsage": "Storage Usage",
       "audioStorageUsageDescription": "Audio files stored on this device",

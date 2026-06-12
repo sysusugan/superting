@@ -440,6 +440,14 @@ declare global {
         totalBytes: number;
         uncompressedCount?: number;
       }>;
+      setAudioRetentionDays: (days: number) => Promise<{
+        success: boolean;
+        cleanup?: {
+          deleted: number;
+          kept: number;
+          skipped?: boolean;
+        };
+      }>;
       compressAllAudio: () => Promise<{
         success: boolean;
         scanned: number;

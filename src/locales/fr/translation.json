@@ -1286,6 +1286,7 @@
       "audioRetention": "Conservation de l'audio",
       "audioRetentionDescription": "Stocke les enregistrements audio localement pour la retranscription et le téléchargement. Les fichiers sont automatiquement supprimés après la période de conservation.",
       "audioRetentionDisabled": "Désactivé",
+      "audioRetentionForever": "Toujours",
       "audioRetentionDays": "{{count}} jours",
       "audioStorageUsage": "Espace utilisé",
       "audioStorageUsageDescription": "Fichiers audio stockés sur cet appareil",

@@ -68,43 +68,6 @@ class AudioStorageManager {
     );
   }
 
-  _ensurePendingDeleteDir() {
-    const dir = path.join(this.audioDir, PENDING_DELETE_DIR);
-    fs.mkdirSync(dir, { recursive: true });
-    return dir;
-  }
-
-  moveRetainedAudioToPendingDelete(filename) {
-    const sourcePath = resolveRetainedAudioPath(this.audioDir, filename);
-    if (!sourcePath) {
-      return { success: false, error: "Invalid audio filename" };
-    }
-    if (!fs.existsSync(sourcePath)) {
-      return { success: false, error: "Audio file unavailable" };
-    }
-
-    try {
-      const pendingDir = this._ensurePendingDeleteDir();
-      let pendingFilename = filename;
-      let pendingPath = path.join(pendingDir, pendingFilename);
-      if (fs.existsSync(pendingPath)) {
-        const ext = path.extname(filename);
-        const base = path.basename(filename, ext);
-        pendingFilename = `${base}-${Date.now()}${ext}`;
-        pendingPath = path.join(pendingDir, pendingFilename);
-      }
-      fs.renameSync(sourcePath, pendingPath);
-      return { success: true, path: pendingPath, filename: pendingFilename };
-    } catch (error) {
-      debugLogger.error(
-        "Failed to move retained audio to pending delete",
-        { filename, error: error.message },
-        "audio-storage"
-      );
-      return { success: false, error: error.message };
-    }
-  }
-
   _writePcmAsWav(inputPcmPath, outputWavPath, stats, { sampleRate, channels }) {
     const bytesPerSample = 2;
     const header = Buffer.alloc(44);
@@ -230,26 +193,26 @@ class AudioStorageManager {
         bitrate: options.bitrate || "24k",
         application: "voip",
       });
-      const pendingDelete = this.moveRetainedAudioToPendingDelete(filename);
-      if (!pendingDelete.success) {
+      try {
+        fs.unlinkSync(inputPath);
+      } catch (error) {
         try {
           fs.unlinkSync(outputPath);
         } catch {
           // ignore cleanup errors
         }
-        return { success: false, error: pendingDelete.error || "Failed to preserve original WAV" };
+        return { success: false, error: error.message || "Failed to delete original WAV" };
       }
 
       debugLogger.debug(
         "Retained audio compressed",
-        { filename, outputFilename, pendingDeleteFilename: pendingDelete.filename },
+        { filename, outputFilename },
         "audio-storage"
       );
       return {
         success: true,
         path: outputPath,
         filename: outputFilename,
-        pendingDelete,
         validation,
       };
     } catch (error) {
@@ -272,6 +235,7 @@ class AudioStorageManager {
         compressed: 0,
         skipped: files.length - targets.length,
         failed: 0,
+        pendingDeleteRemoved: 0,
         files: [],
         errors: [],
       };
@@ -312,6 +276,7 @@ class AudioStorageManager {
         },
         "audio-storage"
       );
+      result.pendingDeleteRemoved = this.cleanupPendingDeleteAudio().deleted;
       return result;
     } catch (error) {
       debugLogger.error(
@@ -433,8 +398,17 @@ class AudioStorageManager {
 
   cleanupExpiredAudio(retentionDays, databaseManager) {
     try {
-      const cutoffMs = Date.now() - retentionDays * 86400000;
       const files = fs.readdirSync(this.audioDir).filter(isRetainedAudioFile);
+      if (retentionDays <= 0) {
+        debugLogger.info(
+          "Audio cleanup skipped",
+          { kept: files.length, retentionDays },
+          "audio-storage"
+        );
+        return { deleted: 0, kept: files.length };
+      }
+
+      const cutoffMs = Date.now() - retentionDays * 86400000;
       const expiredIds = [];
       const deletedFilenames = [];
       const remainingFilenames = [];
@@ -500,11 +474,59 @@ class AudioStorageManager {
           );
         }
       }
+      this.cleanupPendingDeleteAudio();
       debugLogger.info("All audio deleted", { count: files.length }, "audio-storage");
       return { deleted: files.length };
     } catch (error) {
       debugLogger.error("Failed to delete all audio", { error: error.message }, "audio-storage");
       return { deleted: 0 };
+    }
+  }
+
+  cleanupPendingDeleteAudio() {
+    const pendingDir = path.join(this.audioDir, PENDING_DELETE_DIR);
+    const resolvedAudioDir = path.resolve(this.audioDir);
+    const resolvedPendingDir = path.resolve(pendingDir);
+    if (
+      resolvedPendingDir !== path.join(resolvedAudioDir, PENDING_DELETE_DIR) ||
+      !resolvedPendingDir.startsWith(`${resolvedAudioDir}${path.sep}`)
+    ) {
+      return { deleted: 0 };
+    }
+
+    try {
+      if (!fs.existsSync(resolvedPendingDir)) {
+        return { deleted: 0 };
+      }
+
+      let deleted = 0;
+      const countFiles = (dir) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const entryPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            countFiles(entryPath);
+          } else if (entry.isFile()) {
+            deleted += 1;
+          }
+        }
+      };
+      countFiles(resolvedPendingDir);
+      fs.rmSync(resolvedPendingDir, { recursive: true, force: true });
+      if (deleted > 0) {
+        debugLogger.info(
+          "Pending-delete audio backups removed",
+          { deleted },
+          "audio-storage"
+        );
+      }
+      return { deleted };
+    } catch (error) {
+      debugLogger.warn(
+        "Failed to clean pending-delete audio backups",
+        { error: error.message },
+        "audio-storage"
+      );
+      return { deleted: 0, error: error.message };
     }
   }
 

@@ -29,6 +29,24 @@ let _ReasoningService: typeof import("../services/ReasoningService").default | n
 
 const isBrowser = typeof window !== "undefined";
 
+function normalizeAudioRetentionDays(value: unknown): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 30;
+  return Math.round(parsed);
+}
+
+function syncAudioRetentionDaysToMain(days: number): void {
+  if (!isBrowser) return;
+  const syncPromise = window.electronAPI?.setAudioRetentionDays?.(days);
+  void syncPromise?.catch?.((error: Error) => {
+    logger.warn(
+      "Failed to sync audio retention setting to main process",
+      { error: error.message },
+      "settings"
+    );
+  });
+}
+
 function readString(key: string, fallback: string): string {
   if (!isBrowser) return fallback;
   return localStorage.getItem(key) ?? fallback;
@@ -811,8 +829,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (!isBrowser) return 30;
     const stored = localStorage.getItem("audioRetentionDays");
     if (stored === null) return 30;
-    const parsed = parseInt(stored, 10);
-    return isNaN(parsed) ? 30 : parsed;
+    return normalizeAudioRetentionDays(stored);
   })(),
   dataRetentionEnabled: readBoolean("dataRetentionEnabled", true),
   audioCuesEnabled: readBoolean("audioCuesEnabled", true),
@@ -1237,8 +1254,10 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
   setTelemetryEnabled: createBooleanSetter("telemetryEnabled"),
   setAudioRetentionDays: (days: number) => {
-    if (isBrowser) localStorage.setItem("audioRetentionDays", String(days));
-    set({ audioRetentionDays: days });
+    const normalized = normalizeAudioRetentionDays(days);
+    if (isBrowser) localStorage.setItem("audioRetentionDays", String(normalized));
+    set({ audioRetentionDays: normalized });
+    syncAudioRetentionDaysToMain(normalized);
   },
   setDataRetentionEnabled: (value: boolean) => {
     if (isBrowser) localStorage.setItem("dataRetentionEnabled", String(value));
@@ -1655,6 +1674,7 @@ export async function initializeSettings(): Promise<void> {
   if (!isBrowser) return;
 
   const state = useSettingsStore.getState();
+  syncAudioRetentionDaysToMain(state.audioRetentionDays);
 
   if (window.electronAPI) {
     try {
@@ -1933,17 +1953,21 @@ export async function initializeSettings(): Promise<void> {
       }
     } else if (NUMERIC_SETTINGS.has(key)) {
       const parsed = Number(newValue);
-      if (Number.isNaN(parsed)) {
-        value =
-          key === "audioRetentionDays" ? 30 : (state as unknown as Record<string, unknown>)[key];
+      if (key === "audioRetentionDays") {
+        value = normalizeAudioRetentionDays(newValue);
+      } else if (Number.isNaN(parsed)) {
+        value = (state as unknown as Record<string, unknown>)[key];
       } else {
-        value = key === "audioRetentionDays" ? Math.round(parsed) : parsed;
+        value = parsed;
       }
     } else {
       value = newValue;
     }
 
     useSettingsStore.setState({ [key]: value });
+    if (key === "audioRetentionDays" && typeof value === "number") {
+      syncAudioRetentionDaysToMain(value);
+    }
 
     if (key === "uiLanguage" && typeof value === "string") {
       void i18n.changeLanguage(value);
