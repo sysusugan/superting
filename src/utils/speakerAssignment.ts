@@ -95,25 +95,6 @@ const getTranscriptTimestampDeltaSeconds = (
   return normalizedTo - normalizedFrom;
 };
 
-const offsetTranscriptTimestamp = (
-  timestamp: number | undefined,
-  offsetSeconds: number,
-  timelineDurationSeconds?: number | null
-) => {
-  if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return timestamp;
-  if (timestamp > 1_000_000_000) return timestamp + offsetSeconds * 1000;
-  if (
-    typeof timelineDurationSeconds === "number" &&
-    Number.isFinite(timelineDurationSeconds) &&
-    timelineDurationSeconds > 0 &&
-    timestamp > timelineDurationSeconds + 30 &&
-    timestamp / 100 <= timelineDurationSeconds + 30
-  ) {
-    return timestamp + offsetSeconds * 100;
-  }
-  return timestamp + offsetSeconds;
-};
-
 const splitTextForDisplay = (text: string, maxLength: number | null) => {
   const normalized = text.trim();
   if (!maxLength || normalized.length <= maxLength) return [normalized];
@@ -328,14 +309,7 @@ export function buildTranscriptSpeakerBlocks<T extends AssignableTranscriptSegme
               ...segment,
               id: `${segment.id}:part-${chunkIndex + 1}`,
               text,
-              timestamp:
-                maxBlockDurationSeconds == null
-                  ? segment.timestamp
-                  : offsetTranscriptTimestamp(
-                      segment.timestamp,
-                      maxBlockDurationSeconds * chunkIndex,
-                      timelineDurationSeconds
-                    ),
+              timestamp: undefined,
             };
       blocks.push({
         id: chunkSegment.id,

@@ -59,6 +59,11 @@ const getSpeakerNumber = (speakerId: string) => {
   return match ? Number(match[1]) + 1 : 1;
 };
 
+export interface TranscriptSeekTarget {
+  id: string;
+  timestamp?: number;
+}
+
 function HighlightedText({
   text,
   searchTerm,
@@ -576,7 +581,7 @@ interface MeetingTranscriptChatProps {
   onConfirmSuggestion?: (speakerId: string, suggestedName: string, profileId: number) => void;
   onDismissSuggestion?: (speakerId: string) => void;
   onAttachSpeakerEmail?: (profileId: number, email: string | null) => void;
-  onSeekToSegment?: (segment: TranscriptSegment) => void;
+  onSeekToSegment?: (target: TranscriptSeekTarget) => void;
   emptyMessage?: string;
 }
 
@@ -876,15 +881,13 @@ export function MeetingTranscriptChat({
                 : segment.source === "mic"
                   ? t("notes.speaker.label", { n: 1 })
                   : t("notes.speaker.them");
-            const isActiveSegment = blockSegments.some(
+            const blockId = "segments" in item ? item.id : segment.id;
+            const isActiveSegment =
+              activeSegmentId === blockId ||
+              blockSegments.some(
               (blockSegment) => activeSegmentId === blockSegment.id
             );
-            const seekSegment =
-              blockSegments.find(
-                (blockSegment) =>
-                  typeof blockSegment.timestamp === "number" &&
-                  Number.isFinite(blockSegment.timestamp)
-              ) || segment;
+            const seekTarget = { id: blockId, timestamp: item.timestamp };
 
             const labelElement = (
               <div className="flex min-w-0 items-center gap-2">
@@ -928,13 +931,15 @@ export function MeetingTranscriptChat({
               <div
                 key={"segments" in item ? `block-${item.id}` : segment.id}
                 data-segment-id={segment.id}
-                data-segment-ids={blockSegments.map((blockSegment) => blockSegment.id).join(" ")}
+                data-segment-ids={[blockId, ...blockSegments.map((blockSegment) => blockSegment.id)]
+                  .filter(Boolean)
+                  .join(" ")}
                 className={cn(
                   "group grid grid-cols-[10px_minmax(0,1fr)] gap-3 border-l-2 border-transparent px-2 py-1.5 transition-colors",
                   onSeekToSegment && "cursor-pointer hover:bg-slate-50/80",
                   isActiveSegment && "border-l-indigo-500 bg-indigo-50/70"
                 )}
-                onClick={() => onSeekToSegment?.(seekSegment)}
+                onClick={() => onSeekToSegment?.(seekTarget)}
                 style={{ animation: "agent-message-in 200ms ease-out both" }}
               >
                 <div className="relative pt-1.5">

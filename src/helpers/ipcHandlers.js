@@ -11,10 +11,10 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 const crypto = require("crypto");
-const { pathToFileURL } = require("url");
 const debugLogger = require("./debugLogger");
 const tokenStore = require("./tokenStore");
 const { classifyAndLog } = require("./networkErrors");
+const { createNoteAudioFileResponse } = require("./noteAudioRangeResponse");
 const GnomeShortcutManager = require("./gnomeShortcut");
 const HyprlandShortcutManager = require("./hyprlandShortcut");
 const AssemblyAiStreaming = require("./assemblyAiStreaming");
@@ -731,7 +731,7 @@ class IPCHandlers {
         const audioPath = this.audioStorageManager.getRetainedAudioPath(audioFile.filename);
         if (!audioPath) return new Response("Not found", { status: 404 });
 
-        return net.fetch(pathToFileURL(audioPath).toString());
+        return createNoteAudioFileResponse(audioPath, request.headers);
       } catch (error) {
         debugLogger.warn("Failed to serve note audio", { error: error.message }, "notes");
         return new Response("Audio unavailable", { status: 500 });

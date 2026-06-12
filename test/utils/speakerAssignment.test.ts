@@ -267,9 +267,33 @@ test("transcript speaker blocks split a single oversized segment for display", (
   assert.ok(blocks.length > 1);
   assert.deepEqual(
     blocks.map((block) => block.timestamp),
-    [18_018, 24_018, 30_018, 36_018]
+    [18_018, undefined, undefined, undefined]
   );
   assert.ok(blocks.every((block) => block.text.length <= 24));
+});
+
+test("transcript speaker blocks do not use later segment timestamps as block start", () => {
+  const segments = [
+    { id: "seg-1", text: "没有时间的开头", source: "system" as const, speaker: "speaker_0" },
+    {
+      id: "seg-2",
+      text: "后续才有时间",
+      source: "system" as const,
+      speaker: "speaker_0",
+      timestamp: 30,
+    },
+  ];
+
+  const blocks = buildTranscriptSpeakerBlocks(segments, {}, labels, {
+    maxBlockDurationSeconds: 60,
+  });
+
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].timestamp, undefined);
+  assert.deepEqual(
+    blocks[0].segments.map((segment) => segment.id),
+    ["seg-1", "seg-2"]
+  );
 });
 
 test("transcript speaker blocks support epoch millisecond timestamps for duration limits", () => {

@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { RichTextEditor } from "../ui/RichTextEditor";
 import type { Editor } from "@tiptap/react";
-import { MeetingTranscriptChat } from "./MeetingTranscriptChat";
+import { MeetingTranscriptChat, type TranscriptSeekTarget } from "./MeetingTranscriptChat";
 import type { TranscriptSegment } from "../../stores/meetingRecordingStore";
 import {
   Dialog,
@@ -164,6 +164,7 @@ function TranscriptAudioPlayer({
   const [duration, setDuration] = useState(0);
   const [rate, setRate] = useState(1);
   const pendingSeekSecondsRef = useRef<number | null>(null);
+  const pendingSeekRetryCountRef = useRef(0);
 
   const playableFile = audioFiles.length === 1 ? audioFiles[0] : null;
   const audioFileIdsKey = useMemo(() => audioFiles.map((file) => file.id).join(":"), [audioFiles]);
@@ -180,14 +181,42 @@ function TranscriptAudioPlayer({
   const applySeek = useCallback(
     (audio: HTMLAudioElement, seconds: number) => {
       const nextSeconds = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
+      pendingSeekSecondsRef.current = nextSeconds;
+      pendingSeekRetryCountRef.current = 0;
       if (!shouldApplyMediaSeekNow(audio)) {
-        pendingSeekSecondsRef.current = nextSeconds;
         reportTime(nextSeconds);
         return;
       }
-      pendingSeekSecondsRef.current = null;
       audio.currentTime = nextSeconds;
       reportTime(audio.currentTime);
+    },
+    [reportTime]
+  );
+
+  const verifyPendingSeek = useCallback(
+    (audio: HTMLAudioElement) => {
+      const pendingSeekSeconds = pendingSeekSecondsRef.current;
+      if (pendingSeekSeconds == null) return;
+      if (Math.abs((audio.currentTime || 0) - pendingSeekSeconds) < 0.75) {
+        pendingSeekSecondsRef.current = null;
+        pendingSeekRetryCountRef.current = 0;
+        return;
+      }
+      if (
+        pendingSeekSeconds > 1 &&
+        (audio.currentTime || 0) < 1 &&
+        pendingSeekRetryCountRef.current < 1 &&
+        shouldApplyMediaSeekNow(audio)
+      ) {
+        pendingSeekRetryCountRef.current += 1;
+        audio.currentTime = pendingSeekSeconds;
+        reportTime(audio.currentTime);
+        return;
+      }
+      if (pendingSeekRetryCountRef.current >= 1) {
+        pendingSeekSecondsRef.current = null;
+        pendingSeekRetryCountRef.current = 0;
+      }
     },
     [reportTime]
   );
@@ -217,6 +246,7 @@ function TranscriptAudioPlayer({
     setDuration(metadataDurationSeconds || 0);
     setIsPlaying(false);
     pendingSeekSecondsRef.current = null;
+    pendingSeekRetryCountRef.current = 0;
   }, [audioFileIdsKey, metadataDurationSeconds, noteId]);
 
   useEffect(() => {
@@ -301,7 +331,18 @@ function TranscriptAudioPlayer({
               applySeek(audio, pendingSeekSeconds);
             }
           }}
-          onTimeUpdate={(event) => reportTime(event.currentTarget.currentTime || 0)}
+          onCanPlay={(event) => {
+            const audio = event.currentTarget;
+            const pendingSeekSeconds = pendingSeekSecondsRef.current;
+            if (pendingSeekSeconds != null) {
+              audio.currentTime = pendingSeekSeconds;
+            }
+          }}
+          onSeeked={(event) => verifyPendingSeek(event.currentTarget)}
+          onTimeUpdate={(event) => {
+            verifyPendingSeek(event.currentTarget);
+            reportTime(event.currentTarget.currentTime || 0);
+          }}
         />
         <span className="w-11 shrink-0 tabular-nums">{formatPlaybackTime(currentTime)}</span>
         <input
@@ -1049,7 +1090,7 @@ export default function NoteEditor({
   );
 
   const handleSeekToTranscriptSegment = useCallback(
-    (segment: TranscriptSegment) => {
+    (segment: TranscriptSeekTarget) => {
       const seekSeconds = getTranscriptSeekSeconds(
         segment.timestamp,
         recordingStartedAt,
