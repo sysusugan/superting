@@ -1936,28 +1936,6 @@ export default function NoteEditor({
                       <MessageSquareText size={10} />
                       {t("notes.editor.transcript")}
                     </button>
-                    {hasTranscriptEditControls && !isTranscriptEditing && (
-                      <button
-                        type="button"
-                        onClick={handleStartTranscriptEdit}
-                        disabled={!canEditTranscript}
-                        className={cn(
-                          "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border-l transition-colors",
-                          viewMode === "transcript"
-                            ? "border-border/70 text-muted-foreground hover:bg-muted hover:text-foreground"
-                            : "border-transparent text-muted-foreground/70 hover:bg-background/80 hover:text-foreground",
-                          "disabled:cursor-not-allowed disabled:opacity-40"
-                        )}
-                        aria-label={t("notes.editor.transcriptEdit")}
-                        title={
-                          isRecording
-                            ? t("notes.editor.transcriptEditDisabledRecording")
-                            : t("notes.editor.transcriptEdit")
-                        }
-                      >
-                        <Pencil size={10} />
-                      </button>
-                    )}
                   </div>
                   <button
                     data-segment-button
@@ -2069,17 +2047,6 @@ export default function NoteEditor({
                     </button>
                   </div>
                 )}
-                {viewMode === "transcript" &&
-                  !isTranscriptEditing &&
-                  !isRecording &&
-                  speakerFilterOptions.length > 1 && (
-                    <TranscriptSpeakerFilter
-                      options={speakerFilterOptions}
-                      selectedKeys={selectedSpeakerFilterKeys}
-                      onChange={setSelectedSpeakerFilterKeys}
-                      t={t}
-                    />
-                  )}
                 {(onExportNote || onExportTranscript || onDownloadOriginalAudio) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -2201,6 +2168,32 @@ export default function NoteEditor({
                     )}
                   </button>
                 )}
+                {viewMode === "transcript" &&
+                  hasTranscriptEditControls &&
+                  !isTranscriptEditing &&
+                  !isRecording && (
+                    <button
+                      type="button"
+                      onClick={handleStartTranscriptEdit}
+                      disabled={!canEditTranscript}
+                      className="shrink-0 h-6 w-6 inline-flex items-center justify-center rounded-md bg-foreground/4 dark:bg-white/5 text-foreground/50 dark:text-foreground/40 hover:text-foreground/70 hover:bg-foreground/8 dark:hover:text-foreground/60 dark:hover:bg-white/8 disabled:pointer-events-none disabled:opacity-40 transition-colors duration-150"
+                      aria-label={t("notes.editor.transcriptEdit")}
+                      title={t("notes.editor.transcriptEdit")}
+                    >
+                      <Pencil size={11} />
+                    </button>
+                  )}
+                {viewMode === "transcript" &&
+                  !isTranscriptEditing &&
+                  !isRecording &&
+                  speakerFilterOptions.length > 1 && (
+                    <TranscriptSpeakerFilter
+                      options={speakerFilterOptions}
+                      selectedKeys={selectedSpeakerFilterKeys}
+                      onChange={setSelectedSpeakerFilterKeys}
+                      t={t}
+                    />
+                  )}
               </div>
             </div>
           </div>
