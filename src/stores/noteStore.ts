@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import type { NoteItem, NoteSortBy } from "../types/electron";
 
-
 interface NoteState {
   notes: NoteItem[];
   activeNoteId: number | null;
@@ -18,6 +17,18 @@ let hasBoundIpcListeners = false;
 const DEFAULT_LIMIT = 50;
 let currentLimit = DEFAULT_LIMIT;
 let loadGeneration = 0;
+
+function getTimestampMs(value: string | null | undefined): number {
+  const timestamp = Date.parse(String(value || ""));
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function preferNewerNote(incoming: NoteItem, existing: NoteItem | undefined): NoteItem {
+  if (!existing) return incoming;
+  return getTimestampMs(existing.updated_at) > getTimestampMs(incoming.updated_at)
+    ? existing
+    : incoming;
+}
 
 function ensureIpcListeners() {
   if (hasBoundIpcListeners || typeof window === "undefined") {
@@ -75,7 +86,10 @@ export async function initializeNotes(
   ensureIpcListeners();
   const items = (await window.electronAPI?.getNotes(noteType, limit, folderId, sortBy)) ?? [];
   if (gen !== loadGeneration) return items;
-  useNoteStore.setState({ notes: items });
+  const existingById = new Map(useNoteStore.getState().notes.map((note) => [note.id, note]));
+  useNoteStore.setState({
+    notes: items.map((note) => preferNewerNote(note, existingById.get(note.id))),
+  });
   return items;
 }
 
@@ -89,9 +103,15 @@ export function addNote(note: NoteItem): void {
 
 export function updateNoteInStore(note: NoteItem): void {
   if (!note) return;
-  const { notes } = useNoteStore.getState();
+  const { notes, activeFolderId } = useNoteStore.getState();
+  if (activeFolderId && note.folder_id !== activeFolderId) return;
+  const hasExisting = notes.some((existing) => existing.id === note.id);
   useNoteStore.setState({
-    notes: notes.map((existing) => (existing.id === note.id ? note : existing)),
+    notes: hasExisting
+      ? notes.map((existing) =>
+          existing.id === note.id ? preferNewerNote(note, existing) : existing
+        )
+      : [note, ...notes].slice(0, currentLimit),
   });
 }
 
@@ -125,6 +145,10 @@ export function getActiveNoteIdValue(): number | null {
 
 export function getActiveFolderIdValue(): number | null {
   return useNoteStore.getState().activeFolderId;
+}
+
+export function getNotesValue(): NoteItem[] {
+  return useNoteStore.getState().notes;
 }
 
 export function useNotes(): NoteItem[] {
