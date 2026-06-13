@@ -164,6 +164,14 @@ type RediarizeDiagnostics = {
   missingTimestampCount?: number;
   diarizationSegmentCount?: number;
   lockedSegmentCount?: number;
+  diarizationDiagnostics?: {
+    windows?: Array<{
+      skipped?: boolean;
+      reason?: string | null;
+      retriedWithGain?: boolean;
+      segmentCount?: number;
+    }>;
+  };
 };
 
 function formatRediarizeDiagnostics(
@@ -195,6 +203,17 @@ function formatRediarizeDiagnostics(
         count: stats.missingTimestampCount ?? 0,
       })
     );
+  }
+  const windows = stats.diarizationDiagnostics?.windows || [];
+  const skippedWindows = windows.filter(
+    (window) => window.skipped || window.reason === "silent_or_no_audible_speech"
+  ).length;
+  const retriedWindows = windows.filter((window) => window.retriedWithGain).length;
+  if (skippedWindows > 0) {
+    parts.push(t("notes.editor.audioRediarizeStatsSkippedWindows", { count: skippedWindows }));
+  }
+  if (retriedWindows > 0) {
+    parts.push(t("notes.editor.audioRediarizeStatsRetriedWindows", { count: retriedWindows }));
   }
   return parts.join(" · ");
 }
@@ -871,9 +890,12 @@ export default function PersonalNotesView({
           options
         );
         if (!result?.success) {
+          const diagnosticDescription = formatRediarizeDiagnostics(result, t);
           toast({
             title: t("notes.editor.audioRediarizeFailed"),
-            description: result?.error || t("notes.editor.audioUnavailableDescription"),
+            description:
+              [result?.error, diagnosticDescription].filter(Boolean).join(" · ") ||
+              t("notes.editor.audioUnavailableDescription"),
             variant: "destructive",
           });
           return;

@@ -1686,7 +1686,9 @@
       "audioRediarizeStatsMatched": "匹配 {{count}} 个片段",
       "audioRediarizeStatsFallback": "{{count}} 个片段使用最近时间匹配",
       "audioRediarizeStatsUnmatched": "{{count}} 个片段未匹配",
-      "audioRediarizeStatsMissingTimestamp": "{{count}} 个片段缺少时间戳"
+      "audioRediarizeStatsMissingTimestamp": "{{count}} 个片段缺少时间戳",
+      "audioRediarizeStatsSkippedWindows": "{{count}} 个音频片段没有可识别的人声",
+      "audioRediarizeStatsRetriedWindows": "{{count}} 个低音量片段已增强后重试"
     },
     "bulkExport": {
       "select": "选择",

@@ -4,6 +4,127 @@ const test = require("node:test");
 const DiarizationManager = require("../../src/helpers/diarization.js");
 const { MAX_SPEAKER_COUNT } = require("../../src/constants/speakerDetection.json");
 
+class TestDiarizationManager extends DiarizationManager {
+  constructor({ analyses = [], diarizeResults = [] } = {}) {
+    super();
+    this.analyses = analyses;
+    this.diarizeResults = diarizeResults;
+    this.diarizeCalls = [];
+    this.extractedWindows = [];
+    this.normalizedAudio = [];
+    this.tempIndex = 0;
+  }
+
+  async _analyzeAudioFile() {
+    return this.analyses.shift();
+  }
+
+  async _extractAudioWindowToWav(_inputPath, outputPath, options) {
+    this.extractedWindows.push({ outputPath, options });
+  }
+
+  async _normalizeAudioPeak(inputPath, outputPath, options) {
+    this.normalizedAudio.push({ inputPath, outputPath, options });
+  }
+
+  _makeAdaptiveTempPath(label) {
+    this.tempIndex += 1;
+    return `/tmp/${label}-${this.tempIndex}.wav`;
+  }
+
+  _cleanupAdaptiveTempPath() {}
+
+  async diarize(wavPath, options = {}) {
+    this.diarizeCalls.push({ wavPath, options });
+    return this.diarizeResults.shift() || [];
+  }
+}
+
+test("_buildDiarizationArgs uses configurable diarization thresholds", () => {
+  const manager = new DiarizationManager();
+  const args = manager._buildDiarizationArgs("/tmp/input.wav", {
+    numSpeakers: 2,
+    threshold: 0.5,
+    minDurationOn: 0.12,
+    minDurationOff: 0.35,
+  });
+
+  assert.ok(args.includes("--clustering.num-clusters=2"));
+  assert.ok(args.includes("--clustering.cluster-threshold=0.5"));
+  assert.ok(args.includes("--min-duration-on=0.12"));
+  assert.ok(args.includes("--min-duration-off=0.35"));
+});
+
+test("diarizeAdaptive skips silent audio without spawning diarization", async () => {
+  const manager = new TestDiarizationManager({
+    analyses: [
+      {
+        durationSeconds: 120,
+        meanVolumeDb: -90,
+        maxVolumeDb: -80,
+        activeRatio: 0,
+        silenceRatio: 1,
+      },
+    ],
+  });
+
+  const result = await manager.diarizeAdaptive("/tmp/silent.wav");
+
+  assert.deepEqual(result.segments, []);
+  assert.equal(manager.diarizeCalls.length, 0);
+  assert.equal(result.diagnostics.mode, "single");
+  assert.equal(result.diagnostics.windows[0].profile, "silent");
+  assert.equal(result.diagnostics.windows[0].skipped, true);
+});
+
+test("diarizeAdaptive retries low signal audio with temporary peak normalization", async () => {
+  const manager = new TestDiarizationManager({
+    analyses: [
+      {
+        durationSeconds: 120,
+        meanVolumeDb: -62,
+        maxVolumeDb: -28,
+        activeRatio: 0.12,
+        silenceRatio: 0.88,
+      },
+    ],
+    diarizeResults: [[], [{ start: 1, end: 2, speaker: "speaker_0" }]],
+  });
+
+  const result = await manager.diarizeAdaptive("/tmp/quiet.wav");
+
+  assert.deepEqual(result.segments, [{ start: 1, end: 2, speaker: "speaker_0" }]);
+  assert.equal(manager.diarizeCalls.length, 2);
+  assert.equal(manager.normalizedAudio.length, 1);
+  assert.equal(result.diagnostics.windows[0].profile, "low_signal");
+  assert.equal(result.diagnostics.windows[0].retriedWithGain, true);
+});
+
+test("diarizeAdaptive windows long audio and offsets successful window segments", async () => {
+  const manager = new TestDiarizationManager({
+    analyses: [
+      { durationSeconds: 720, meanVolumeDb: -40, maxVolumeDb: -6, activeRatio: 0.6 },
+      { durationSeconds: 300, meanVolumeDb: -90, maxVolumeDb: -80, activeRatio: 0 },
+      { durationSeconds: 300, meanVolumeDb: -40, maxVolumeDb: -6, activeRatio: 0.6 },
+      { durationSeconds: 180, meanVolumeDb: -40, maxVolumeDb: -6, activeRatio: 0.6 },
+    ],
+    diarizeResults: [
+      [{ start: 10, end: 20, speaker: "speaker_0" }],
+      [{ start: 30, end: 40, speaker: "speaker_1" }],
+    ],
+  });
+
+  const result = await manager.diarizeAdaptive("/tmp/long.wav");
+
+  assert.deepEqual(result.segments, [
+    { start: 280, end: 290, speaker: "speaker_0" },
+    { start: 570, end: 580, speaker: "speaker_1" },
+  ]);
+  assert.equal(manager.extractedWindows.length, 3);
+  assert.equal(result.diagnostics.mode, "windowed");
+  assert.equal(result.diagnostics.windowCount, 3);
+});
+
 test("mergeWithTranscript caps diarization speakers before exposing transcript speakers", () => {
   const manager = new DiarizationManager();
   const transcriptSegments = Array.from({ length: 12 }, (_, index) => ({

@@ -6,6 +6,27 @@ export type SelfHostedType = "openai-compatible" | "lan";
 
 export type TranscriptionStatus = "completed" | "failed" | "pending";
 
+export type DiarizationDiagnostics = {
+  mode?: "single" | "windowed";
+  windowCount?: number;
+  windows?: Array<{
+    startSeconds: number;
+    endSeconds: number;
+    profile: "normal" | "low_signal" | "silent";
+    skipped?: boolean;
+    reason?: string | null;
+    retriedWithGain?: boolean;
+    segmentCount?: number;
+    analysis?: {
+      durationSeconds?: number | null;
+      meanVolumeDb?: number | null;
+      maxVolumeDb?: number | null;
+      activeRatio?: number | null;
+      silenceRatio?: number | null;
+    };
+  }>;
+};
+
 export type TranscriptionErrorCode =
   | "TIMEOUT"
   | "NETWORK"
@@ -638,6 +659,7 @@ declare global {
         missingTimestampCount?: number;
         diarizationSegmentCount?: number;
         lockedSegmentCount?: number;
+        diarizationDiagnostics?: DiarizationDiagnostics;
       }>;
       downloadNoteAudio: (
         noteId: number,
@@ -1493,6 +1515,7 @@ declare global {
             speakerMatchReason?: "missing_timestamp" | "no_diarization" | "no_overlap";
           }>;
           speakerEmbeddings?: Record<string, number[]> | null;
+          diarizationDiagnostics?: DiarizationDiagnostics;
         }) => void
       ) => () => void;
 

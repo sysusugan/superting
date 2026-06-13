@@ -403,10 +403,7 @@ function clearCache() {
 }
 
 function makeTempPath(suffix) {
-  return path.join(
-    os.tmpdir(),
-    `openwhispr-${suffix}-${crypto.randomBytes(6).toString("hex")}`
-  );
+  return path.join(os.tmpdir(), `openwhispr-${suffix}-${crypto.randomBytes(6).toString("hex")}`);
 }
 
 function _buildOpusEncodeArgs({
@@ -536,9 +533,7 @@ function _runFFmpeg(args, { signal, onStart } = {}) {
         });
         settle(
           reject,
-          new Error(
-            `FFmpeg exited with code ${code}${stderrPreview ? `: ${stderrPreview}` : ""}`
-          )
+          new Error(`FFmpeg exited with code ${code}${stderrPreview ? `: ${stderrPreview}` : ""}`)
         );
         return;
       }
@@ -571,24 +566,137 @@ function parseFFmpegVolume(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function parseVolumedetect(stderr) {
+function parseAudioAnalysis(stderr) {
   const text = String(stderr || "");
   const meanMatch = text.match(/mean_volume:\s*(-?inf|-?\d+(?:\.\d+)?)\s*dB/);
   const maxMatch = text.match(/max_volume:\s*(-?inf|-?\d+(?:\.\d+)?)\s*dB/);
+  const durationSeconds = parseFFmpegDuration(text);
+  const silenceRanges = [];
+  const rangeRegex =
+    /silence_start:\s*(-?\d+(?:\.\d+)?)(?:[\s\S]*?silence_end:\s*(-?\d+(?:\.\d+)?))?/g;
+  let match;
+
+  while ((match = rangeRegex.exec(text)) !== null) {
+    const start = Number(match[1]);
+    const end = match[2] == null ? durationSeconds : Number(match[2]);
+    if (
+      Number.isFinite(start) &&
+      Number.isFinite(end) &&
+      end > start &&
+      Number.isFinite(durationSeconds) &&
+      durationSeconds > 0
+    ) {
+      silenceRanges.push({
+        start: Math.max(0, Math.min(durationSeconds, start)),
+        end: Math.max(0, Math.min(durationSeconds, end)),
+      });
+    }
+  }
+
+  const silenceSeconds = silenceRanges.reduce((sum, range) => sum + (range.end - range.start), 0);
+  const silenceRatio =
+    Number.isFinite(durationSeconds) && durationSeconds > 0
+      ? Math.max(0, Math.min(1, silenceSeconds / durationSeconds))
+      : null;
+
   return {
-    durationSeconds: parseFFmpegDuration(text),
+    durationSeconds,
     meanVolumeDb: meanMatch ? parseFFmpegVolume(meanMatch[1]) : null,
     maxVolumeDb: maxMatch ? parseFFmpegVolume(maxMatch[1]) : null,
+    silenceRatio,
+    activeRatio: silenceRatio == null ? null : Math.max(0, Math.min(1, 1 - silenceRatio)),
   };
 }
 
 async function analyzeAudioFile(filePath, options = {}) {
   const { signal } = options;
   const result = await _runFFmpeg(
-    ["-hide_banner", "-i", filePath, "-af", "volumedetect", "-f", "null", "-"],
+    [
+      "-hide_banner",
+      "-i",
+      filePath,
+      "-af",
+      "silencedetect=noise=-50dB:d=0.2,volumedetect",
+      "-f",
+      "null",
+      "-",
+    ],
     { signal }
   );
-  return parseVolumedetect(result.stderr);
+  return parseAudioAnalysis(result.stderr);
+}
+
+function _buildExtractWindowArgs({ input, output, startSeconds, durationSeconds }) {
+  return [
+    "-ss",
+    String(startSeconds),
+    "-t",
+    String(durationSeconds),
+    "-i",
+    input,
+    "-ar",
+    "16000",
+    "-ac",
+    "1",
+    "-y",
+    output,
+  ];
+}
+
+function _buildPeakNormalizeArgs({
+  input,
+  output,
+  currentPeakDb,
+  targetPeakDb = -10,
+  maxGainDb = 18,
+}) {
+  const neededGain = targetPeakDb - currentPeakDb;
+  const gainDb = Math.max(0, Math.min(maxGainDb, Number.isFinite(neededGain) ? neededGain : 0));
+  return [
+    "-i",
+    input,
+    "-af",
+    `volume=${Number(gainDb.toFixed(2))}dB`,
+    "-ar",
+    "16000",
+    "-ac",
+    "1",
+    "-y",
+    output,
+  ];
+}
+
+async function extractAudioWindowToWav(inputPath, outputPath, options = {}) {
+  const { signal, startSeconds = 0, durationSeconds } = options;
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    throw new Error("extractAudioWindowToWav requires a positive durationSeconds");
+  }
+  await _runFFmpeg(
+    _buildExtractWindowArgs({
+      input: inputPath,
+      output: outputPath,
+      startSeconds: Math.max(0, startSeconds),
+      durationSeconds,
+    }),
+    { signal }
+  );
+}
+
+async function normalizeAudioPeak(inputPath, outputPath, options = {}) {
+  const { signal, targetPeakDb = -10, maxGainDb = 18, currentPeakDb = null } = options;
+  const peak = Number.isFinite(currentPeakDb)
+    ? currentPeakDb
+    : (await analyzeAudioFile(inputPath, { signal })).maxVolumeDb;
+  await _runFFmpeg(
+    _buildPeakNormalizeArgs({
+      input: inputPath,
+      output: outputPath,
+      currentPeakDb: peak,
+      targetPeakDb,
+      maxGainDb,
+    }),
+    { signal }
+  );
 }
 
 async function validateCompressedAudio(inputPath, outputPath, options = {}) {
@@ -618,15 +726,12 @@ async function validateCompressedAudio(inputPath, outputPath, options = {}) {
   );
   const durationDrift = Math.abs(input.durationSeconds - output.durationSeconds);
   if (durationDrift > maxAllowedDrift) {
-    throw new Error(
-      `Compressed audio duration differs from input by ${durationDrift.toFixed(2)}s`
-    );
+    throw new Error(`Compressed audio duration differs from input by ${durationDrift.toFixed(2)}s`);
   }
 
   const inputIsAudible =
     Number.isFinite(input.maxVolumeDb) && input.maxVolumeDb > audibleThresholdDb;
-  const outputIsSilent =
-    output.maxVolumeDb == null || output.maxVolumeDb < silentOutputThresholdDb;
+  const outputIsSilent = output.maxVolumeDb == null || output.maxVolumeDb < silentOutputThresholdDb;
   if (inputIsAudible && outputIsSilent) {
     throw new Error("compressed audio is silent while input audio is audible");
   }
@@ -638,10 +743,9 @@ function compressToOpusWebm(inputPath, outputPath, options = {}) {
   const { signal, tempPath: providedTempPath, ...encodeOpts } = options;
   const tempPath = providedTempPath || makeTempPath("opus-compress");
 
-  return _runFFmpeg(
-    _buildOpusEncodeArgs({ input: inputPath, output: tempPath, ...encodeOpts }),
-    { signal }
-  ).then(
+  return _runFFmpeg(_buildOpusEncodeArgs({ input: inputPath, output: tempPath, ...encodeOpts }), {
+    signal,
+  }).then(
     async () => {
       if (!fs.existsSync(tempPath)) {
         throw new Error("FFmpeg Opus compression produced no output file");
@@ -696,9 +800,7 @@ function compressToOpusWebm(inputPath, outputPath, options = {}) {
 
 function mergeToOpusWebm(inputPaths, outputPath, options = {}) {
   if (!Array.isArray(inputPaths) || inputPaths.length === 0) {
-    return Promise.reject(
-      new Error("mergeToOpusWebm requires at least one input path")
-    );
+    return Promise.reject(new Error("mergeToOpusWebm requires at least one input path"));
   }
 
   const { signal, ...encodeOpts } = options;
@@ -706,21 +808,16 @@ function mergeToOpusWebm(inputPaths, outputPath, options = {}) {
   const tempPath = makeTempPath("opus-merge");
 
   // Build concat list. Escape single quotes per ffmpeg concat demuxer rules.
-  const lines = inputPaths
-    .map((p) => `file '${String(p).replace(/'/g, "'\\''")}'`)
-    .join("\n");
+  const lines = inputPaths.map((p) => `file '${String(p).replace(/'/g, "'\\''")}'`).join("\n");
   try {
     fs.writeFileSync(listFile, lines + "\n");
   } catch (writeErr) {
-    return Promise.reject(
-      new Error(`Failed to write concat list: ${writeErr.message}`)
-    );
+    return Promise.reject(new Error(`Failed to write concat list: ${writeErr.message}`));
   }
 
-  return _runFFmpeg(
-    _buildConcatEncodeArgs({ listFile, output: tempPath, ...encodeOpts }),
-    { signal }
-  ).then(
+  return _runFFmpeg(_buildConcatEncodeArgs({ listFile, output: tempPath, ...encodeOpts }), {
+    signal,
+  }).then(
     () => {
       try {
         fs.unlinkSync(listFile);
@@ -748,9 +845,7 @@ function mergeToOpusWebm(inputPaths, outputPath, options = {}) {
         } catch {
           // ignore
         }
-        throw new Error(
-          `Failed to move merged audio into place: ${renameErr.message}`
-        );
+        throw new Error(`Failed to move merged audio into place: ${renameErr.message}`);
       }
       debugLogger.debug("FFmpeg Opus merge complete", {
         outputPath,
@@ -778,15 +873,20 @@ module.exports = {
   isWavFormat,
   convertToWav,
   splitAudioFile,
+  extractAudioWindowToWav,
+  normalizeAudioPeak,
   wavToFloat32Samples,
   computeFloat32RMS,
   createAbortError,
   throwIfAborted,
+  parseAudioAnalysis,
   validateCompressedAudio,
   compressToOpusWebm,
   mergeToOpusWebm,
   _buildOpusEncodeArgs,
   _buildConcatEncodeArgs,
+  _buildExtractWindowArgs,
+  _buildPeakNormalizeArgs,
   _runFFmpeg,
   makeTempPath,
   clearCache,

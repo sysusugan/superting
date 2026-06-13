@@ -1654,7 +1654,9 @@
       "audioRediarizeStatsMatched": "{{count}} segments matched",
       "audioRediarizeStatsFallback": "{{count}} nearest-time fallback matches",
       "audioRediarizeStatsUnmatched": "{{count}} segments unmatched",
-      "audioRediarizeStatsMissingTimestamp": "{{count}} segments missing timestamps"
+      "audioRediarizeStatsMissingTimestamp": "{{count}} segments missing timestamps",
+      "audioRediarizeStatsSkippedWindows": "{{count}} audio window(s) had no audible speech",
+      "audioRediarizeStatsRetriedWindows": "{{count}} low-signal window(s) retried with gain"
     },
     "bulkExport": {
       "select": "Select",

@@ -1,0 +1,133 @@
+const DEFAULT_WINDOW_SECONDS = 300;
+const DEFAULT_OVERLAP_SECONDS = 30;
+
+const DIARIZATION_PROFILES = Object.freeze({
+  normal: Object.freeze({
+    name: "normal",
+    threshold: 0.55,
+    minDurationOn: 0.2,
+    minDurationOff: 0.5,
+  }),
+  low_signal: Object.freeze({
+    name: "low_signal",
+    threshold: 0.55,
+    minDurationOn: 0.2,
+    minDurationOff: 0.5,
+    retry: Object.freeze({
+      threshold: 0.5,
+      minDurationOn: 0.12,
+      minDurationOff: 0.35,
+      targetPeakDb: -10,
+      maxGainDb: 18,
+    }),
+  }),
+  silent: Object.freeze({
+    name: "silent",
+    skipped: true,
+    reason: "silent_or_no_audible_speech",
+  }),
+});
+
+function finiteOr(value, fallback) {
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function planDiarizationWindows(durationSeconds, options = {}) {
+  const duration = Math.max(0, finiteOr(Number(durationSeconds), 0));
+  if (duration === 0) return [];
+
+  const windowSeconds = Math.max(
+    1,
+    finiteOr(Number(options.windowSeconds), DEFAULT_WINDOW_SECONDS)
+  );
+  const overlapSeconds = Math.max(
+    0,
+    Math.min(windowSeconds - 1, finiteOr(Number(options.overlapSeconds), DEFAULT_OVERLAP_SECONDS))
+  );
+  const stepSeconds = Math.max(1, windowSeconds - overlapSeconds);
+  const windows = [];
+
+  for (let startSeconds = 0; startSeconds < duration; startSeconds += stepSeconds) {
+    const endSeconds = Math.min(duration, startSeconds + windowSeconds);
+    windows.push({
+      index: windows.length,
+      startSeconds,
+      endSeconds,
+      durationSeconds: endSeconds - startSeconds,
+    });
+    if (endSeconds >= duration) break;
+  }
+
+  return windows;
+}
+
+function selectDiarizationProfile(analysis = {}) {
+  const meanVolumeDb = finiteOr(analysis.meanVolumeDb, -Infinity);
+  const maxVolumeDb = finiteOr(analysis.maxVolumeDb, -Infinity);
+  const activeRatio = finiteOr(analysis.activeRatio, 0);
+
+  if (maxVolumeDb <= -75 || meanVolumeDb <= -85 || activeRatio <= 0.01) {
+    return DIARIZATION_PROFILES.silent;
+  }
+
+  if (meanVolumeDb <= -55 || maxVolumeDb <= -20 || activeRatio < 0.18) {
+    return DIARIZATION_PROFILES.low_signal;
+  }
+
+  return DIARIZATION_PROFILES.normal;
+}
+
+function scoreDiarizationWindow(analysis = {}, profile = DIARIZATION_PROFILES.normal) {
+  const activeRatio = Math.max(0, Math.min(1, finiteOr(analysis.activeRatio, 0)));
+  const maxVolumeDb = finiteOr(analysis.maxVolumeDb, -90);
+  const volumeScore = Math.max(0, Math.min(1, (maxVolumeDb + 60) / 60));
+  const profilePenalty = profile?.name === "low_signal" ? 0.15 : profile?.name === "silent" ? 1 : 0;
+
+  return activeRatio * 0.7 + volumeScore * 0.3 - profilePenalty;
+}
+
+function segmentsOverlap(a, b) {
+  return Math.min(a.end, b.end) > Math.max(a.start, b.start);
+}
+
+function mergeWindowSegments(windowResults = []) {
+  const candidates = [];
+
+  for (const result of windowResults) {
+    const offset = finiteOr(result?.startSeconds, 0);
+    const profile = result?.profile || selectDiarizationProfile(result?.analysis);
+    const score = finiteOr(result?.score, scoreDiarizationWindow(result?.analysis, profile));
+
+    for (const segment of result?.segments || []) {
+      const start = offset + Number(segment.start);
+      const end = offset + Number(segment.end);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) continue;
+      candidates.push({
+        start,
+        end,
+        speaker: segment.speaker,
+        score,
+      });
+    }
+  }
+
+  const selected = [];
+  for (const candidate of candidates.sort((a, b) => b.score - a.score || a.start - b.start)) {
+    if (selected.some((existing) => segmentsOverlap(existing, candidate))) continue;
+    selected.push(candidate);
+  }
+
+  return selected
+    .sort((a, b) => a.start - b.start || a.end - b.end)
+    .map(({ start, end, speaker }) => ({ start, end, speaker }));
+}
+
+module.exports = {
+  DEFAULT_OVERLAP_SECONDS,
+  DEFAULT_WINDOW_SECONDS,
+  DIARIZATION_PROFILES,
+  mergeWindowSegments,
+  planDiarizationWindows,
+  scoreDiarizationWindow,
+  selectDiarizationProfile,
+};

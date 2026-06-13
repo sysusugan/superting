@@ -8200,14 +8200,11 @@ class IPCHandlers {
           noteId,
           observedSpeakerIds,
         });
-        let diarizationSegments = await this.diarizationManager.diarize(
-          tmpWav,
-          numSpeakers > 0 ? { numSpeakers } : {}
-        );
-        diarizationSegments = this.diarizationManager.stabilizeSpeakerClusters(
-          diarizationSegments,
-          { cap }
-        );
+        const adaptiveResult = await this.diarizationManager.diarizeAdaptive(tmpWav, {
+          ...(numSpeakers > 0 ? { numSpeakers } : {}),
+          stabilizeOptions: { cap },
+        });
+        const diarizationSegments = adaptiveResult.segments || [];
 
         const startMs =
           (Number.isFinite(audioStartedAt) && audioStartedAt) ||
@@ -8333,7 +8330,11 @@ class IPCHandlers {
           }
         }
 
-        send({ segments: enrichedSegments, speakerEmbeddings: speakerEmbeddingsMap });
+        send({
+          segments: enrichedSegments,
+          speakerEmbeddings: speakerEmbeddingsMap,
+          diarizationDiagnostics: adaptiveResult.diagnostics,
+        });
       } catch (err) {
         debugLogger.warn("Background diarization failed", { error: err.message });
         send({ segments: [] });
@@ -8484,22 +8485,20 @@ class IPCHandlers {
         observedSpeakerIds,
       });
 
-      let diarizationSegments = await this.diarizationManager.diarize(
-        tmpWav,
-        numSpeakers > 0 ? { numSpeakers } : {}
-      );
+      const stabilizeOptions =
+        speakerMode === "more" ? { cap, minNoiseDuration: 0, minNoiseSegments: 1 } : { cap };
+      const adaptiveResult = await this.diarizationManager.diarizeAdaptive(tmpWav, {
+        ...(numSpeakers > 0 ? { numSpeakers } : {}),
+        stabilizeOptions,
+      });
+      const diarizationSegments = adaptiveResult.segments || [];
       if (!Array.isArray(diarizationSegments) || diarizationSegments.length === 0) {
         return {
           ...createRediarizeFailure("Speaker diarization did not detect any speaker segments"),
+          diarizationDiagnostics: adaptiveResult.diagnostics,
           audioFile,
         };
       }
-      const stabilizeOptions =
-        speakerMode === "more" ? { cap, minNoiseDuration: 0, minNoiseSegments: 1 } : { cap };
-      diarizationSegments = this.diarizationManager.stabilizeSpeakerClusters(
-        diarizationSegments,
-        stabilizeOptions
-      );
 
       const startMs =
         transcriptSegments.find((segment) => segment.source === "system")?.timestamp ||
@@ -8554,6 +8553,7 @@ class IPCHandlers {
         note: updatedNote,
         segments: enrichedSegments,
         audioFile,
+        diarizationDiagnostics: adaptiveResult.diagnostics,
         ...diagnostics,
       };
     } catch (error) {

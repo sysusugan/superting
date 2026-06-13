@@ -6,11 +6,24 @@ const debugLogger = require("./debugLogger");
 const { downloadFile, createDownloadSignal, checkDiskSpace } = require("./downloadUtils");
 const { resolveBinaryPath, gracefulStopProcess } = require("../utils/serverUtils");
 const { getModelsDirForService } = require("./modelDirUtils");
-const { convertToWav } = require("./ffmpegUtils");
+const {
+  analyzeAudioFile,
+  convertToWav,
+  extractAudioWindowToWav,
+  normalizeAudioPeak,
+} = require("./ffmpegUtils");
 const { getSafeTempDir } = require("./safeTempDir");
 const { applyConfirmedSpeaker, isSpeakerLocked } = require("./speakerAssignmentPolicy");
 const sidecarPidFile = require("./sidecarPidFile");
 const { MAX_SPEAKER_COUNT } = require("../constants/speakerDetection.json");
+const {
+  DEFAULT_WINDOW_SECONDS,
+  DIARIZATION_PROFILES,
+  mergeWindowSegments,
+  planDiarizationWindows,
+  scoreDiarizationWindow,
+  selectDiarizationProfile,
+} = require("./diarizationAudioPolicy");
 const {
   transcriptsOverlap,
   transcriptsLooselyOverlap,
@@ -323,18 +336,7 @@ class DiarizationManager {
       return [];
     }
 
-    const segPath = this._resolveModelPath(SEGMENTATION_ONNX);
-    const embPath = this._resolveModelPath(EMBEDDING_ONNX);
-
-    const args = [
-      `--segmentation.pyannote-model=${segPath}`,
-      `--embedding.model=${embPath}`,
-      `--clustering.num-clusters=${numSpeakers}`,
-      `--clustering.cluster-threshold=${threshold}`,
-      "--min-duration-on=0.2",
-      "--min-duration-off=0.5",
-      wavPath,
-    ];
+    const args = this._buildDiarizationArgs(wavPath, options);
 
     debugLogger.info("Starting diarization", {
       binaryPath,
@@ -398,6 +400,155 @@ class DiarizationManager {
         resolve([]);
       });
     });
+  }
+
+  _buildDiarizationArgs(wavPath, options = {}) {
+    const {
+      numSpeakers = -1,
+      threshold = 0.55,
+      minDurationOn = 0.2,
+      minDurationOff = 0.5,
+    } = options;
+    const segPath = this._resolveModelPath(SEGMENTATION_ONNX);
+    const embPath = this._resolveModelPath(EMBEDDING_ONNX);
+
+    return [
+      `--segmentation.pyannote-model=${segPath}`,
+      `--embedding.model=${embPath}`,
+      `--clustering.num-clusters=${numSpeakers}`,
+      `--clustering.cluster-threshold=${threshold}`,
+      `--min-duration-on=${minDurationOn}`,
+      `--min-duration-off=${minDurationOff}`,
+      wavPath,
+    ];
+  }
+
+  async diarizeAdaptive(wavPath, options = {}) {
+    const analysis = await this._analyzeAudioFile(wavPath, options);
+    const duration = Number(analysis?.durationSeconds) || 0;
+    const shouldWindow = duration > DEFAULT_WINDOW_SECONDS;
+    const windows = shouldWindow
+      ? planDiarizationWindows(duration, options.windowOptions)
+      : [{ index: 0, startSeconds: 0, endSeconds: duration, durationSeconds: duration }];
+    const diagnostics = {
+      mode: shouldWindow ? "windowed" : "single",
+      windowCount: windows.length,
+      windows: [],
+    };
+    const tempPaths = [];
+
+    try {
+      const windowResults = [];
+      for (const window of windows) {
+        const windowPath = shouldWindow ? this._makeAdaptiveTempPath("diar-window") : wavPath;
+        if (shouldWindow) {
+          tempPaths.push(windowPath);
+          await this._extractAudioWindowToWav(wavPath, windowPath, {
+            startSeconds: window.startSeconds,
+            durationSeconds: window.durationSeconds,
+            signal: options.signal,
+          });
+        }
+
+        const windowAnalysis = shouldWindow
+          ? await this._analyzeAudioFile(windowPath, options)
+          : analysis;
+        const profile = selectDiarizationProfile(windowAnalysis);
+        const diagnostic = {
+          startSeconds: window.startSeconds,
+          endSeconds: window.endSeconds,
+          profile: profile.name,
+          analysis: windowAnalysis,
+          skipped: profile.name === "silent",
+          reason: profile.reason || null,
+          retriedWithGain: false,
+          segmentCount: 0,
+        };
+
+        if (profile.name === "silent") {
+          diagnostics.windows.push(diagnostic);
+          windowResults.push({
+            ...window,
+            analysis: windowAnalysis,
+            profile,
+            segments: [],
+            score: scoreDiarizationWindow(windowAnalysis, profile),
+          });
+          continue;
+        }
+
+        let segments = await this.diarize(windowPath, {
+          ...options,
+          threshold: profile.threshold,
+          minDurationOn: profile.minDurationOn,
+          minDurationOff: profile.minDurationOff,
+        });
+
+        if ((!Array.isArray(segments) || segments.length === 0) && profile.name === "low_signal") {
+          const normalizedPath = this._makeAdaptiveTempPath("diar-gain");
+          tempPaths.push(normalizedPath);
+          await this._normalizeAudioPeak(windowPath, normalizedPath, {
+            currentPeakDb: windowAnalysis.maxVolumeDb,
+            ...DIARIZATION_PROFILES.low_signal.retry,
+            signal: options.signal,
+          });
+          diagnostic.retriedWithGain = true;
+          segments = await this.diarize(normalizedPath, {
+            ...options,
+            threshold: DIARIZATION_PROFILES.low_signal.retry.threshold,
+            minDurationOn: DIARIZATION_PROFILES.low_signal.retry.minDurationOn,
+            minDurationOff: DIARIZATION_PROFILES.low_signal.retry.minDurationOff,
+          });
+        }
+
+        diagnostic.segmentCount = Array.isArray(segments) ? segments.length : 0;
+        diagnostics.windows.push(diagnostic);
+        windowResults.push({
+          ...window,
+          analysis: windowAnalysis,
+          profile,
+          segments: Array.isArray(segments) ? segments : [],
+          score: scoreDiarizationWindow(windowAnalysis, profile),
+        });
+      }
+
+      const mergedSegments = shouldWindow
+        ? mergeWindowSegments(windowResults)
+        : windowResults[0]?.segments || [];
+      return {
+        segments: this.stabilizeSpeakerClusters(mergedSegments, options.stabilizeOptions || {}),
+        diagnostics,
+      };
+    } finally {
+      for (const tempPath of tempPaths) {
+        this._cleanupAdaptiveTempPath(tempPath);
+      }
+    }
+  }
+
+  _makeAdaptiveTempPath(label) {
+    return path.join(
+      getSafeTempDir(),
+      `openwhispr-${label}-${Date.now()}-${Math.random().toString(16).slice(2)}.wav`
+    );
+  }
+
+  _cleanupAdaptiveTempPath(filePath) {
+    try {
+      fs.unlinkSync(filePath);
+    } catch (_) {}
+  }
+
+  _analyzeAudioFile(filePath, options = {}) {
+    return analyzeAudioFile(filePath, { signal: options.signal });
+  }
+
+  _extractAudioWindowToWav(inputPath, outputPath, options = {}) {
+    return extractAudioWindowToWav(inputPath, outputPath, options);
+  }
+
+  _normalizeAudioPeak(inputPath, outputPath, options = {}) {
+    return normalizeAudioPeak(inputPath, outputPath, options);
   }
 
   _parseOutput(stdout) {

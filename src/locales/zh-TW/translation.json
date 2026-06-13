@@ -1682,7 +1682,9 @@
       "audioRediarizeStatsMatched": "匹配 {{count}} 個片段",
       "audioRediarizeStatsFallback": "{{count}} 個片段使用最近時間匹配",
       "audioRediarizeStatsUnmatched": "{{count}} 個片段未匹配",
-      "audioRediarizeStatsMissingTimestamp": "{{count}} 個片段缺少時間戳"
+      "audioRediarizeStatsMissingTimestamp": "{{count}} 個片段缺少時間戳",
+      "audioRediarizeStatsSkippedWindows": "{{count}} 個音訊片段沒有可識別的人聲",
+      "audioRediarizeStatsRetriedWindows": "{{count}} 個低音量片段已增強後重試"
     },
     "bulkExport": {
       "select": "選擇",
