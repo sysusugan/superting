@@ -69,6 +69,7 @@ import {
   getTranscriptSeekSeconds,
   shouldApplyMediaSeekNow,
 } from "../../utils/recordingTime";
+import { MAX_SPEAKER_COUNT } from "../../constants/speakerDetection.json";
 import { parseTranscriptSegments } from "../../utils/parseTranscriptSegments";
 import {
   getFindMatches,
@@ -1897,7 +1898,7 @@ export default function NoteEditor({
     } else {
       onRediarizeAudio({
         speakerMode: "fixed",
-        expectedCount: Math.max(1, Math.min(8, Math.floor(rediarizeExpectedCount))),
+        expectedCount: Math.max(1, Math.min(MAX_SPEAKER_COUNT, Math.floor(rediarizeExpectedCount))),
       });
     }
     setIsRediarizeDialogOpen(false);
@@ -2702,11 +2703,11 @@ export default function NoteEditor({
                     <input
                       type="number"
                       min={1}
-                      max={8}
+                      max={MAX_SPEAKER_COUNT}
                       value={rediarizeExpectedCount}
                       onChange={(event) =>
                         setRediarizeExpectedCount(
-                          Math.max(1, Math.min(8, Number(event.target.value) || 1))
+                          Math.max(1, Math.min(MAX_SPEAKER_COUNT, Number(event.target.value) || 1))
                         )
                       }
                       className="h-8 rounded-md border border-border bg-background px-2 text-sm text-foreground outline-none focus:border-ring/50"

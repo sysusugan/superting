@@ -127,13 +127,14 @@ test("diarizeAdaptive windows long audio and offsets successful window segments"
 
 test("mergeWithTranscript caps diarization speakers before exposing transcript speakers", () => {
   const manager = new DiarizationManager();
-  const transcriptSegments = Array.from({ length: 12 }, (_, index) => ({
+  const speakerCount = MAX_SPEAKER_COUNT + 2;
+  const transcriptSegments = Array.from({ length: speakerCount }, (_, index) => ({
     id: `seg-${index}`,
     text: `text ${index}`,
     source: "system",
     timestamp: index * 3,
   }));
-  const diarizationSegments = Array.from({ length: 12 }, (_, index) => ({
+  const diarizationSegments = Array.from({ length: speakerCount }, (_, index) => ({
     start: index * 3,
     end: index * 3 + 2,
     speaker: `speaker_${index}`,
@@ -143,16 +144,10 @@ test("mergeWithTranscript caps diarization speakers before exposing transcript s
   const speakers = new Set(merged.map((segment) => segment.speaker).filter(Boolean));
 
   assert.equal(speakers.size, MAX_SPEAKER_COUNT);
-  assert.deepEqual([...speakers].sort(), [
-    "speaker_0",
-    "speaker_1",
-    "speaker_2",
-    "speaker_3",
-    "speaker_4",
-    "speaker_5",
-    "speaker_6",
-    "speaker_7",
-  ]);
+  assert.deepEqual(
+    [...speakers].sort(),
+    Array.from({ length: MAX_SPEAKER_COUNT }, (_, index) => `speaker_${index}`).sort()
+  );
 });
 
 test("mergeWithTranscript filters empty fragments and merges adjacent same-speaker segments", () => {
@@ -344,4 +339,22 @@ test("stabilizeSpeakerClusters applies a hard cap after noise merging", () => {
   const speakers = new Set(stabilized.map((segment) => segment.speaker));
 
   assert.equal(speakers.size, 2);
+});
+
+test("capSpeakerClusters folds excess speakers into the nearest retained speaker", () => {
+  const manager = new DiarizationManager();
+  const capped = manager.capSpeakerClusters(
+    [
+      { start: 0, end: 10, speaker: "speaker_0" },
+      { start: 20, end: 28, speaker: "speaker_1" },
+      { start: 28.2, end: 29, speaker: "speaker_2" },
+    ],
+    2
+  );
+
+  assert.deepEqual(capped, [
+    { start: 0, end: 10, speaker: "speaker_0" },
+    { start: 20, end: 28, speaker: "speaker_1" },
+    { start: 28.2, end: 29, speaker: "speaker_1" },
+  ]);
 });

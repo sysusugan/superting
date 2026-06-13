@@ -41,6 +41,7 @@ const { downsample24kTo16k, pcm16ToWav } = require("../utils/audioUtils");
 const postMigrationDetector = require("./postMigrationDetector");
 const {
   DEFAULT_EXPECTED_SPEAKER_COUNT,
+  MAX_AUTOMATIC_SPEAKER_TARGET,
   MAX_SPEAKER_COUNT,
 } = require("../constants/speakerDetection.json");
 const {
@@ -151,7 +152,7 @@ function resolveSpeakerExpectation({
 
   const attendeeTarget =
     Array.isArray(attendees) && attendees.length >= 2
-      ? Math.min(attendees.length, MAX_SPEAKER_COUNT)
+      ? Math.min(attendees.length, MAX_AUTOMATIC_SPEAKER_TARGET)
       : null;
   const observedTarget =
     observedSpeakerIds?.size >= 2 ? Math.min(observedSpeakerIds.size, MAX_SPEAKER_COUNT) : null;
@@ -162,6 +163,24 @@ function resolveSpeakerExpectation({
     softTarget: attendeeTarget ?? observedTarget ?? DEFAULT_EXPECTED_SPEAKER_COUNT,
     locked: false,
   };
+}
+
+function resolveDiarizationSpeakerOptions(expectation = {}, options = {}) {
+  const numSpeakers = Number(expectation.numSpeakers);
+  if (Number.isFinite(numSpeakers) && numSpeakers > 0) {
+    return { numSpeakers: clampExpectedSpeakerCount(numSpeakers) };
+  }
+
+  const softTarget = Number(expectation.softTarget);
+  if (
+    options.useSoftTarget !== false &&
+    Number.isFinite(softTarget) &&
+    softTarget > DEFAULT_EXPECTED_SPEAKER_COUNT
+  ) {
+    return { numSpeakers: clampExpectedSpeakerCount(softTarget) };
+  }
+
+  return {};
 }
 
 const MISTRAL_TRANSCRIPTION_URL = "https://api.mistral.ai/v1/audio/transcriptions";
@@ -8265,14 +8284,14 @@ class IPCHandlers {
           });
         }
 
-        const { numSpeakers, cap } = this._resolveSpeakerExpectation({
+        const speakerExpectation = this._resolveSpeakerExpectation({
           sessionConfig,
           noteId,
           observedSpeakerIds,
         });
         const adaptiveResult = await this.diarizationManager.diarizeAdaptive(tmpWav, {
-          ...(numSpeakers > 0 ? { numSpeakers } : {}),
-          stabilizeOptions: { cap },
+          ...resolveDiarizationSpeakerOptions(speakerExpectation),
+          stabilizeOptions: { cap: speakerExpectation.cap },
         });
         const diarizationSegments = adaptiveResult.segments || [];
 
@@ -8553,7 +8572,7 @@ class IPCHandlers {
         speakerMode === "fixed"
           ? clampExpectedSpeakerCount(options?.expectedCount)
           : note.expected_speaker_count;
-      const { numSpeakers, cap } = this._resolveSpeakerExpectation({
+      const speakerExpectation = this._resolveSpeakerExpectation({
         sessionConfig: {
           enabled: true,
           expectedCount: fixedExpectedCount,
@@ -8564,9 +8583,13 @@ class IPCHandlers {
       });
 
       const stabilizeOptions =
-        speakerMode === "more" ? { cap, minNoiseDuration: 0, minNoiseSegments: 1 } : { cap };
+        speakerMode === "more"
+          ? { cap: speakerExpectation.cap, minNoiseDuration: 0, minNoiseSegments: 1 }
+          : { cap: speakerExpectation.cap };
       const adaptiveResult = await this.diarizationManager.diarizeAdaptive(tmpWav, {
-        ...(numSpeakers > 0 ? { numSpeakers } : {}),
+        ...resolveDiarizationSpeakerOptions(speakerExpectation, {
+          useSoftTarget: speakerMode !== "more",
+        }),
         stabilizeOptions,
       });
       const diarizationSegments = adaptiveResult.segments || [];
@@ -8697,4 +8720,5 @@ class IPCHandlers {
 }
 
 module.exports = IPCHandlers;
+module.exports.resolveDiarizationSpeakerOptions = resolveDiarizationSpeakerOptions;
 module.exports.resolveSpeakerExpectation = resolveSpeakerExpectation;

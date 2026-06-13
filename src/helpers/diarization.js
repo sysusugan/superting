@@ -582,7 +582,34 @@ class DiarizationManager {
     const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]);
     const keep = new Set(ranked.slice(0, cap).map(([sp]) => sp));
     const primary = ranked[0][0];
-    return segments.map((s) => (keep.has(s.speaker) ? s : { ...s, speaker: primary }));
+    const keptSegments = segments.filter((s) => keep.has(s.speaker));
+
+    const distanceBetween = (a, b) => {
+      if (a.end >= b.start && b.end >= a.start) return 0;
+      return a.end < b.start ? b.start - a.end : a.start - b.end;
+    };
+
+    const nearestKeptSpeaker = (segment) => {
+      let bestSpeaker = primary;
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      for (const keptSegment of keptSegments) {
+        const distance = distanceBetween(segment, keptSegment);
+        if (
+          distance < bestDistance ||
+          (distance === bestDistance && keptSegment.speaker.localeCompare(bestSpeaker) < 0)
+        ) {
+          bestDistance = distance;
+          bestSpeaker = keptSegment.speaker;
+        }
+      }
+
+      return bestSpeaker;
+    };
+
+    return segments.map((s) =>
+      keep.has(s.speaker) ? { ...s } : { ...s, speaker: nearestKeptSpeaker(s) }
+    );
   }
 
   stabilizeSpeakerClusters(

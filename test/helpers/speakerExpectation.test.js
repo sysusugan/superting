@@ -7,7 +7,7 @@ const {
   MAX_SPEAKER_COUNT,
 } = require("../../src/constants/speakerDetection.json");
 
-const { resolveSpeakerExpectation } = IPCHandlers;
+const { resolveDiarizationSpeakerOptions, resolveSpeakerExpectation } = IPCHandlers;
 
 test("default expected speaker count is a soft hint, not a fixed diarization count", () => {
   const result = resolveSpeakerExpectation({
@@ -59,4 +59,46 @@ test("automatic mode uses attendees and observed speakers only as a soft target"
   assert.equal(result.cap, MAX_SPEAKER_COUNT);
   assert.equal(result.softTarget, 3);
   assert.equal(result.locked, false);
+});
+
+test("automatic mode can represent fifteen active speakers in larger in-room meetings", () => {
+  const result = resolveSpeakerExpectation({
+    sessionConfig: null,
+    attendees: Array.from({ length: 30 }, () => ({})),
+    observedSpeakerIds: new Set(),
+  });
+
+  assert.ok(result.cap >= 15);
+  assert.equal(result.softTarget, 15);
+  assert.equal(result.locked, false);
+});
+
+test("active attendee soft target is passed to diarization clustering", () => {
+  const expectation = resolveSpeakerExpectation({
+    sessionConfig: null,
+    attendees: Array.from({ length: 30 }, () => ({})),
+    observedSpeakerIds: new Set(),
+  });
+
+  assert.deepEqual(resolveDiarizationSpeakerOptions(expectation), { numSpeakers: 15 });
+});
+
+test("default two-speaker soft target does not force diarization clustering", () => {
+  const expectation = resolveSpeakerExpectation({
+    sessionConfig: { enabled: true, expectedCount: 2, expectedCountLocked: false },
+    attendees: [],
+    observedSpeakerIds: new Set(),
+  });
+
+  assert.deepEqual(resolveDiarizationSpeakerOptions(expectation), {});
+});
+
+test("more-speakers mode can ignore soft target clustering", () => {
+  const expectation = resolveSpeakerExpectation({
+    sessionConfig: null,
+    attendees: Array.from({ length: 10 }, () => ({})),
+    observedSpeakerIds: new Set(),
+  });
+
+  assert.deepEqual(resolveDiarizationSpeakerOptions(expectation, { useSoftTarget: false }), {});
 });

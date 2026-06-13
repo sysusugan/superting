@@ -67,6 +67,53 @@ test("mergeWindowSegments offsets local window segments into the global timeline
   assert.deepEqual(merged, [{ start: 310, end: 320, speaker: "speaker_0" }]);
 });
 
+test("mergeWindowSegments does not reuse local speaker labels across unrelated windows", () => {
+  const merged = mergeWindowSegments([
+    {
+      startSeconds: 0,
+      analysis: { activeRatio: 0.7, maxVolumeDb: -8 },
+      profile: DIARIZATION_PROFILES.normal,
+      segments: [{ start: 10, end: 20, speaker: "speaker_0" }],
+    },
+    {
+      startSeconds: 270,
+      analysis: { activeRatio: 0.7, maxVolumeDb: -8 },
+      profile: DIARIZATION_PROFILES.normal,
+      segments: [{ start: 60, end: 70, speaker: "speaker_0" }],
+    },
+  ]);
+
+  assert.deepEqual(merged, [
+    { start: 10, end: 20, speaker: "speaker_0" },
+    { start: 330, end: 340, speaker: "speaker_1" },
+  ]);
+});
+
+test("mergeWindowSegments maps local speakers through overlapping window evidence", () => {
+  const merged = mergeWindowSegments([
+    {
+      startSeconds: 0,
+      analysis: { activeRatio: 0.7, maxVolumeDb: -8 },
+      profile: DIARIZATION_PROFILES.normal,
+      segments: [{ start: 285, end: 290, speaker: "speaker_0" }],
+    },
+    {
+      startSeconds: 270,
+      analysis: { activeRatio: 0.7, maxVolumeDb: -8 },
+      profile: DIARIZATION_PROFILES.normal,
+      segments: [
+        { start: 15, end: 20, speaker: "speaker_7" },
+        { start: 40, end: 50, speaker: "speaker_7" },
+      ],
+    },
+  ]);
+
+  assert.deepEqual(merged, [
+    { start: 285, end: 290, speaker: "speaker_0" },
+    { start: 310, end: 320, speaker: "speaker_0" },
+  ]);
+});
+
 test("mergeWindowSegments keeps higher scoring segments in overlapping windows", () => {
   const quietScore = scoreDiarizationWindow(
     { activeRatio: 0.08, maxVolumeDb: -28 },
@@ -94,5 +141,5 @@ test("mergeWindowSegments keeps higher scoring segments in overlapping windows",
     },
   ]);
 
-  assert.deepEqual(merged, [{ start: 282, end: 295, speaker: "speaker_1" }]);
+  assert.deepEqual(merged, [{ start: 282, end: 295, speaker: "speaker_0" }]);
 });
