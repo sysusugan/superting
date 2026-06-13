@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { analyzePreviewPcmSpeech } = require("../../src/helpers/dictationPreviewGate");
+const {
+  analyzePreviewPcmSpeech,
+  isUsablePreviewTranscript,
+} = require("../../src/helpers/dictationPreviewGate");
 
 function pcmFromSamples(samples) {
   const pcm = Buffer.alloc(samples.length * 2);
@@ -45,4 +48,15 @@ test("allows speech-like preview chunks through", () => {
 
   assert.equal(decision.shouldTranscribe, true);
   assert.equal(decision.reason, "speech_detected");
+});
+
+test("rejects source-code hallucinations from realtime preview chunks", () => {
+  const text =
+    "if (hostname === entry.hostname) { return false } else { // Don't proxy if the hostname ends with the no_proxy host. if (hostname.endsWith(entry.hostname.replace(/^\\*/, ''))) { return false } } return true } #parseNoProxy () { const noProxyValue = this.#opts.noProxy ?? this.#noProxyEnv";
+
+  assert.equal(isUsablePreviewTranscript(text), false);
+});
+
+test("allows normal dictated preview text", () => {
+  assert.equal(isUsablePreviewTranscript("Please send the meeting notes after lunch."), true);
 });

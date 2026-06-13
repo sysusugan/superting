@@ -6,6 +6,9 @@ import { withRetry, createApiRetryStrategy } from "../../../utils/retry";
 import logger from "../../../utils/logger";
 import { getConfiguredOpenAIBase } from "../openaiBase";
 import { applyThinkingSuppression } from "../thinkingSuppression";
+import openAiCompatibleErrors from "../openaiCompatibleErrors.js";
+
+const { formatOpenAiCompatibleError } = openAiCompatibleErrors;
 
 const OPENAI_ENDPOINT_PREF_STORAGE_KEY = "openAiEndpointPreference";
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -214,8 +217,13 @@ export const openaiProvider: InferenceProvider = {
 
           if (!res.ok) {
             const errorData = await res.json().catch(() => ({ error: res.statusText }));
-            const errorMessage =
+            const fallbackMessage =
               errorData.error?.message || errorData.message || `OpenAI API error: ${res.status}`;
+            const errorMessage = formatOpenAiCompatibleError({
+              status: res.status,
+              fallbackMessage,
+              isCustomProvider,
+            });
 
             const isUnsupportedEndpoint =
               (res.status === 404 || res.status === 405) && type === "responses";

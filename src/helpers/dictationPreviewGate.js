@@ -59,4 +59,28 @@ function analyzePreviewPcmSpeech(pcm) {
   };
 }
 
-module.exports = { analyzePreviewPcmSpeech };
+function isUsablePreviewTranscript(text) {
+  const value = typeof text === "string" ? text.trim() : "";
+  if (!value) return false;
+
+  const codeIndicators = [
+    /\bconst\s+\w+\s*=/,
+    /\bif\s*\([^)]{3,}\)\s*\{/,
+    /\breturn\s+(?:true|false|null|undefined|\w+)/,
+    /=>/,
+    /#\w+/,
+    /\/\/\s*\w+/,
+    /\bthis\.\s*#?\w+|\bthis\.#\w+/,
+    /\bhostname\b.*\bno[_-]?proxy\b/i,
+  ];
+  const indicatorCount = codeIndicators.reduce(
+    (count, pattern) => count + (pattern.test(value) ? 1 : 0),
+    0
+  );
+  const punctuationCount = (value.match(/[{}()[\];=]/g) || []).length;
+  const punctuationRatio = punctuationCount / Math.max(value.length, 1);
+
+  return !(indicatorCount >= 3 && punctuationRatio > 0.035);
+}
+
+module.exports = { analyzePreviewPcmSpeech, isUsablePreviewTranscript };

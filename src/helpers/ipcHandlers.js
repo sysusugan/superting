@@ -49,7 +49,7 @@ const {
   sanitizeWhisperVadConfig,
   resolveContextSileroEnabled,
 } = require("./whisperVadConfig");
-const { analyzePreviewPcmSpeech } = require("./dictationPreviewGate");
+const { analyzePreviewPcmSpeech, isUsablePreviewTranscript } = require("./dictationPreviewGate");
 const { DiarizationTaskTracker } = require("./diarizationTaskTracker");
 const { convertToWav, throwIfAborted } = require("./ffmpegUtils");
 const { LOCAL_STT_PRIORITY, LocalSttScheduler } = require("./localSttScheduler");
@@ -4911,7 +4911,15 @@ class IPCHandlers {
         }
 
         if (result?.success && result.text?.trim()) {
-          this.windowManager.appendTranscriptionPreview(result.text.trim());
+          const previewText = result.text.trim();
+          if (!isUsablePreviewTranscript(previewText)) {
+            debugLogger.warn("Dictation preview chunk rejected suspicious transcript", {
+              provider: dictationPreviewProvider,
+              textLength: previewText.length,
+            });
+            return;
+          }
+          this.windowManager.appendTranscriptionPreview(previewText);
         } else if (result && !result.success) {
           debugLogger.warn("Dictation preview chunk returned failure", {
             error: result.error || result.message,
