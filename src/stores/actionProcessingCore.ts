@@ -88,6 +88,10 @@ function applyWriteMode(
   return current ? `${current}\n\n${next}` : next;
 }
 
+export function hasGeneratedActionContent(content: string): boolean {
+  return content.trim().length > 0;
+}
+
 export function buildActionOutputUpdates({
   outputTarget,
   writeMode,
@@ -97,6 +101,8 @@ export function buildActionOutputUpdates({
   actionPrompt,
   contentHash,
 }: ActionOutputInput): Record<string, string | null> {
+  if (!hasGeneratedActionContent(generatedContent)) return {};
+
   const target = normalizeOutputTarget(outputTarget);
   const mode = normalizeWriteMode(writeMode);
 

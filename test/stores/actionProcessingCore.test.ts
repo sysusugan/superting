@@ -78,6 +78,21 @@ test("action output updates append to note content without touching enhanced met
   );
 });
 
+test("action output updates do not overwrite note content with blank generated content", () => {
+  assert.deepEqual(
+    buildActionOutputUpdates({
+      outputTarget: "content",
+      writeMode: "overwrite",
+      generatedContent: "  \n  ",
+      existingContent: "existing note",
+      existingEnhancedContent: null,
+      actionPrompt: "Summarize",
+      contentHash: "13-existing",
+    }),
+    {}
+  );
+});
+
 test("chat answer writes append to enhanced content without action metadata", () => {
   assert.deepEqual(
     buildWriteNoteContentUpdates({

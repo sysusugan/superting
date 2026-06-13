@@ -12,6 +12,7 @@ import { buildNoteActionInput } from "../components/notes/noteActionInput";
 import {
   applyActionTitleDatePrefix,
   buildActionOutputUpdates,
+  hasGeneratedActionContent,
   shouldGenerateTitleForExplicitAction,
 } from "./actionProcessingCore";
 
@@ -89,6 +90,9 @@ export async function runNoteActionOnce({
     null,
     reasoningConfig
   );
+  if (!hasGeneratedActionContent(generatedContent)) {
+    throw new Error("Action generated empty content");
+  }
 
   const updates = buildActionOutputUpdates({
     outputTarget: action.output_target,
