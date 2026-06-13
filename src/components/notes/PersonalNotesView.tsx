@@ -80,6 +80,7 @@ import { normalizeDbDate } from "../../utils/dateFormatting";
 import { parseTranscriptSegments } from "../../utils/parseTranscriptSegments";
 import { buildNoteActionInput, makeActionContentHash } from "./noteActionInput";
 import { getAudioBulkAction, getAudioBulkAvailability } from "./audioManagement";
+import { deleteNoteAndRefresh } from "./deleteNoteFlow";
 import { serializeTranscriptSegments } from "../../utils/transcriptSpeakerState";
 import {
   offsetAppendedTranscriptSegments,
@@ -789,8 +790,12 @@ export default function PersonalNotesView({
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
       }
-      await window.electronAPI.deleteNote(id);
-      loadFolders();
+      await deleteNoteAndRefresh({
+        noteId: id,
+        deleteNote: window.electronAPI.deleteNote,
+        removeNote,
+        loadFolders,
+      });
     },
     [loadFolders]
   );
