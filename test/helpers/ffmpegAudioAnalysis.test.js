@@ -4,8 +4,13 @@ const test = require("node:test");
 const {
   _buildExtractWindowArgs,
   _buildPeakNormalizeArgs,
+  analyzeAudioFile,
   parseAudioAnalysis,
 } = require("../../src/helpers/ffmpegUtils");
+
+test("exports analyzeAudioFile for adaptive diarization", () => {
+  assert.equal(typeof analyzeAudioFile, "function");
+});
 
 test("parseAudioAnalysis extracts volume and active ratio from ffmpeg stderr", () => {
   const analysis = parseAudioAnalysis(`

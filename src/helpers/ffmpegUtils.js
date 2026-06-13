@@ -873,6 +873,7 @@ module.exports = {
   isWavFormat,
   convertToWav,
   splitAudioFile,
+  analyzeAudioFile,
   extractAudioWindowToWav,
   normalizeAudioPeak,
   wavToFloat32Samples,
