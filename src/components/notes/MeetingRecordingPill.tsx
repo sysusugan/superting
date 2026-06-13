@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Square } from "lucide-react";
 import { stopRecording, useMeetingRecordingStore } from "../../stores/meetingRecordingStore";
 import { cn } from "../lib/utils";
+import {
+  clampMeetingRecordingPillPosition,
+  getDefaultMeetingRecordingPillPosition,
+  MEETING_RECORDING_PILL_POSITION_KEY,
+  parseMeetingRecordingPillPosition,
+  type MeetingRecordingPillPosition,
+} from "./meetingRecordingPillPosition";
 
 interface MeetingRecordingPillProps {
   activeView: string;
@@ -13,6 +20,16 @@ interface MeetingRecordingPillProps {
 
 const BAR_COUNT = 4;
 const BAR_FLOOR = 12;
+const DRAG_THRESHOLD_PX = 4;
+
+interface DragState {
+  pointerId: number;
+  startClientX: number;
+  startClientY: number;
+  originX: number;
+  originY: number;
+  hasMoved: boolean;
+}
 
 const isControlPanelWindow = () => {
   if (typeof window === "undefined") return false;
@@ -43,9 +60,88 @@ export default function MeetingRecordingPill({
   const recordingNoteTitle = useMeetingRecordingStore((s) => s.recordingNoteTitle);
   const micLevel = useMeetingRecordingStore((s) => s.currentMicLevel);
   const [isStopping, setIsStopping] = useState(false);
+  const [position, setPosition] = useState<MeetingRecordingPillPosition | null>(null);
+  const pillRef = useRef<HTMLDivElement | null>(null);
+  const positionRef = useRef<MeetingRecordingPillPosition | null>(null);
+  const dragStateRef = useRef<DragState | null>(null);
+  const suppressReturnClickRef = useRef(false);
 
   const isViewingRecordingNote =
     activeView === "personal-notes" && activeNoteId === recordingNoteId;
+
+  const getMeasuredBounds = useCallback(() => {
+    const rect = pillRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+
+    return {
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      pillWidth: rect.width,
+      pillHeight: rect.height,
+    };
+  }, []);
+
+  const persistPosition = useCallback((nextPosition: MeetingRecordingPillPosition) => {
+    try {
+      window.localStorage.setItem(
+        MEETING_RECORDING_PILL_POSITION_KEY,
+        JSON.stringify(nextPosition)
+      );
+    } catch {
+      // Persisting a drag position is best-effort; the pill should remain movable.
+    }
+  }, []);
+
+  const setMeasuredPosition = useCallback(
+    (nextPosition: MeetingRecordingPillPosition, shouldPersist = false) => {
+      positionRef.current = nextPosition;
+      setPosition(nextPosition);
+      if (shouldPersist) persistPosition(nextPosition);
+    },
+    [persistPosition]
+  );
+
+  const resolveInitialPosition = useCallback(() => {
+    const bounds = getMeasuredBounds();
+    if (!bounds) return;
+
+    const storedPosition = parseMeetingRecordingPillPosition(
+      window.localStorage.getItem(MEETING_RECORDING_PILL_POSITION_KEY)
+    );
+    const nextPosition = storedPosition
+      ? clampMeetingRecordingPillPosition(storedPosition, bounds)
+      : getDefaultMeetingRecordingPillPosition(bounds);
+
+    setMeasuredPosition(nextPosition, !!storedPosition);
+  }, [getMeasuredBounds, setMeasuredPosition]);
+
+  useEffect(() => {
+    if (!isRecording || isViewingRecordingNote || !isControlPanelWindow()) return;
+
+    const frame = window.requestAnimationFrame(resolveInitialPosition);
+    const handleResize = () => {
+      const bounds = getMeasuredBounds();
+      const currentPosition = positionRef.current;
+      if (!bounds || !currentPosition) return;
+
+      setMeasuredPosition(clampMeetingRecordingPillPosition(currentPosition, bounds), true);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", handleResize);
+      dragStateRef.current = null;
+      suppressReturnClickRef.current = false;
+    };
+  }, [
+    getMeasuredBounds,
+    isRecording,
+    isViewingRecordingNote,
+    resolveInitialPosition,
+    setMeasuredPosition,
+  ]);
 
   if (!isRecording || isViewingRecordingNote || !isControlPanelWindow()) {
     return null;
@@ -65,11 +161,91 @@ export default function MeetingRecordingPill({
   const returnLabel = t("notes.meetingPill.returnToNote");
   const stopLabel = t("notes.editor.stop");
 
+  const getCurrentPosition = () => {
+    if (positionRef.current) return positionRef.current;
+
+    const bounds = getMeasuredBounds();
+    if (!bounds) return { x: 0, y: 8 };
+
+    const nextPosition = getDefaultMeetingRecordingPillPosition(bounds);
+    setMeasuredPosition(nextPosition);
+    return nextPosition;
+  };
+
+  const handleDragPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+
+    const currentPosition = getCurrentPosition();
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      originX: currentPosition.x,
+      originY: currentPosition.y,
+      hasMoved: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleDragPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - dragState.startClientX;
+    const deltaY = event.clientY - dragState.startClientY;
+    const distance = Math.hypot(deltaX, deltaY);
+
+    if (!dragState.hasMoved && distance < DRAG_THRESHOLD_PX) return;
+
+    dragState.hasMoved = true;
+    suppressReturnClickRef.current = true;
+
+    const bounds = getMeasuredBounds();
+    if (!bounds) return;
+
+    setMeasuredPosition(
+      clampMeetingRecordingPillPosition(
+        {
+          x: dragState.originX + deltaX,
+          y: dragState.originY + deltaY,
+        },
+        bounds
+      )
+    );
+  };
+
+  const handleDragPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+    dragStateRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    if (dragState.hasMoved && positionRef.current) {
+      persistPosition(positionRef.current);
+    }
+  };
+
+  const handleReturnClick = () => {
+    if (suppressReturnClickRef.current) {
+      suppressReturnClickRef.current = false;
+      return;
+    }
+
+    onReturnToNote();
+  };
+
   return createPortal(
     <div
-      className="fixed top-2 left-1/2 -translate-x-1/2 z-30"
+      ref={pillRef}
+      className="fixed z-30"
       style={
         {
+          top: position ? position.y : 8,
+          left: position ? position.x : "50%",
+          transform: position ? undefined : "translateX(-50%)",
           WebkitAppRegion: "no-drag",
           animation: "grow-to-bar 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
         } as React.CSSProperties
@@ -83,13 +259,24 @@ export default function MeetingRecordingPill({
           "shadow-lg"
         )}
       >
-        <button
-          type="button"
-          onClick={onReturnToNote}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={handleReturnClick}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onReturnToNote();
+            }
+          }}
+          onPointerDown={handleDragPointerDown}
+          onPointerMove={handleDragPointerMove}
+          onPointerUp={handleDragPointerEnd}
+          onPointerCancel={handleDragPointerEnd}
           aria-label={returnLabel}
           title={returnLabel}
           className={cn(
-            "flex items-center gap-3 px-1 -mx-1 rounded-md",
+            "flex items-center gap-3 px-1 -mx-1 rounded-md cursor-grab active:cursor-grabbing select-none touch-none",
             "transition-colors",
             "hover:bg-foreground/[0.06] active:bg-foreground/[0.1]",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/30"
@@ -107,7 +294,7 @@ export default function MeetingRecordingPill({
           <span className="text-xs font-medium text-foreground/80 truncate max-w-[12rem]">
             {title}
           </span>
-        </button>
+        </div>
 
         <button
           type="button"
