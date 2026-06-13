@@ -287,6 +287,56 @@ test("normalizes transcription results after dictionary correction", () => {
   ]);
 });
 
+test("normalizes final dictation display text to the preferred Chinese script", () => {
+  const result = normalizeTranscriptionResult(
+    {
+      success: true,
+      rawText: "是說由這個 Agent 去理解了企業的各種",
+      text: "是說由這個 Agent 去理解了企業的各種",
+      source: "openai",
+    },
+    { mode: "dictation", language: "zh-CN" }
+  );
+
+  assert.equal(result.rawText, "是說由這個 Agent 去理解了企業的各種");
+  assert.equal(result.displayText, "是说由这个 Agent 去理解了企业的各种");
+  assert.equal(result.text, "是说由这个 Agent 去理解了企业的各种");
+});
+
+test("uses normalizationLanguage when STT language is a base Chinese code", () => {
+  const result = normalizeTranscriptionResult(
+    {
+      success: true,
+      rawText: "是說由這個 Agent 去理解了企業的各種",
+      text: "是說由這個 Agent 去理解了企業的各種",
+      source: "openai",
+    },
+    { mode: "dictation", language: "zh", normalizationLanguage: "zh-CN" }
+  );
+
+  assert.equal(result.language, "zh");
+  assert.equal(result.rawText, "是說由這個 Agent 去理解了企業的各種");
+  assert.equal(result.displayText, "是说由这个 Agent 去理解了企业的各种");
+});
+
+test("normalizes final dictation display text to Simplified Chinese without overwriting raw text", () => {
+  const result = normalizeTranscriptionResult(
+    {
+      success: true,
+      rawText: "是說由這個 Agent 去理解了企業的各種",
+      text: "是說由這個 Agent 去理解了企業的各種。",
+      source: "openai",
+    },
+    { mode: "dictation", language: "zh-CN" }
+  );
+
+  assert.equal(result.rawText, "是說由這個 Agent 去理解了企業的各種");
+  assert.equal(result.displayText, "是说由这个 Agent 去理解了企业的各种。");
+  assert.equal(result.text, "是说由这个 Agent 去理解了企业的各种。");
+  assert.equal(result.processingMetadata.voiceFlow.rawText, result.rawText);
+  assert.equal(result.processingMetadata.voiceFlow.displayText, result.displayText);
+});
+
 test("normalizes meeting transcription segments without treating partials as errors", () => {
   const partial = normalizeMeetingSegment(
     { text: "hello", source: "mic", type: "partial", timestamp: 123 },
@@ -308,6 +358,22 @@ test("normalizes meeting transcription segments without treating partials as err
   assert.equal(retracted.partial, false);
 });
 
+test("normalizes meeting final segments to Simplified Chinese after dictionary corrections", () => {
+  const final = normalizeMeetingSegment(
+    { text: "Antibus 是說由這個 Agent 去理解了企業的各種", source: "system", type: "final" },
+    {
+      language: "zh-CN",
+      customDictionary: ["EntVerse"],
+      customDictionaryAliases: [{ from: "Antibus", to: "EntVerse" }],
+    }
+  );
+
+  assert.equal(final.rawText, "Antibus 是說由這個 Agent 去理解了企業的各種");
+  assert.equal(final.text, "EntVerse 是说由这个 Agent 去理解了企业的各种");
+  assert.equal(final.displayText, "EntVerse 是说由这个 Agent 去理解了企业的各种");
+  assert.equal(final.warning, "dictionary_corrected");
+});
+
 test("normalizes meeting final segments with dictionary corrections", () => {
   const final = normalizeMeetingSegment(
     { text: "Antibus uses openwhispr.", source: "system", type: "final", timestamp: 456 },
@@ -327,6 +393,22 @@ test("normalizes meeting final segments with dictionary corrections", () => {
     { from: "Antibus", to: "EntVerse", kind: "alias" },
     { from: "openwhispr", to: "OpenWhispr", kind: "case" },
   ]);
+});
+
+test("normalizes meeting final segments to the preferred Chinese script", () => {
+  const final = normalizeMeetingSegment(
+    {
+      text: "是說由這個 Agent 去理解了企業的各種",
+      source: "system",
+      type: "final",
+      timestamp: 456,
+    },
+    { language: "zh-CN" }
+  );
+
+  assert.equal(final.rawText, "是說由這個 Agent 去理解了企業的各種");
+  assert.equal(final.text, "是说由这个 Agent 去理解了企业的各种");
+  assert.equal(final.displayText, "是说由这个 Agent 去理解了企业的各种");
 });
 
 test("does not rewrite meeting partial segments", () => {
@@ -360,4 +442,37 @@ test("normalizes full meeting transcripts with voice flow metadata", () => {
     { from: "Antibus", to: "EntVerse", kind: "alias" },
     { from: "openwhispr", to: "OpenWhispr", kind: "case" },
   ]);
+});
+
+test("normalizes full meeting transcripts to Simplified Chinese for summary input", () => {
+  const result = normalizeMeetingTranscript("是說由這個 Agent 去理解了企業的各種", {
+    language: "zh-CN",
+  });
+
+  assert.equal(result.rawText, "是說由這個 Agent 去理解了企業的各種");
+  assert.equal(result.displayText, "是说由这个 Agent 去理解了企业的各种");
+  assert.equal(result.text, "是说由这个 Agent 去理解了企业的各种");
+  assert.equal(result.processingMetadata.voiceFlow.displayText, result.displayText);
+});
+
+test("normalizes full meeting transcripts before summaries consume display text", () => {
+  const result = normalizeMeetingTranscript("他说由这个 Agent 去理解了企业的各种", {
+    language: "zh-TW",
+  });
+
+  assert.equal(result.rawText, "他说由这个 Agent 去理解了企业的各种");
+  assert.equal(result.displayText, "他說由這個 Agent 去理解了企業的各種");
+  assert.equal(result.text, "他說由這個 Agent 去理解了企業的各種");
+  assert.equal(result.processingMetadata.voiceFlow.displayText, "他說由這個 Agent 去理解了企業的各種");
+});
+
+test("uses scriptLanguage for Chinese script normalization when STT language is base zh", () => {
+  const result = normalizeMeetingTranscript("是說由這個 Agent 去理解了企業的各種", {
+    language: "zh",
+    scriptLanguage: "zh-CN",
+  });
+
+  assert.equal(result.language, "zh");
+  assert.equal(result.scriptLanguage, "zh-CN");
+  assert.equal(result.displayText, "是说由这个 Agent 去理解了企业的各种");
 });

@@ -1226,6 +1226,7 @@ class IPCHandlers {
           provider: retryProvider,
           model: retryModel,
           language,
+          scriptLanguage: preferredLanguage,
           customDictionary: settings?.customDictionary,
           customDictionaryAliases: settings?.customDictionaryAliases,
         });
@@ -2567,6 +2568,7 @@ class IPCHandlers {
             provider,
             model,
             language,
+            scriptLanguage: options.preferredLanguage,
             customDictionary: options.customDictionary,
             customDictionaryAliases: options.customDictionaryAliases,
           });
@@ -4757,6 +4759,7 @@ class IPCHandlers {
                 mode: "upload",
                 provider: "byok",
                 model: model || "whisper-1",
+                scriptLanguage: options.preferredLanguage,
                 customDictionary,
                 customDictionaryAliases,
               }
@@ -5033,6 +5036,7 @@ class IPCHandlers {
       provider: meetingLocalMode ? meetingLocalProvider : meetingRealtimeProvider,
       model: meetingLocalMode ? meetingLocalModel : meetingRealtimeModel,
       language: meetingLocalMode ? meetingLocalLanguage : meetingRealtimeLanguage,
+      scriptLanguage: meetingNormalizationLanguage,
       customDictionary: meetingCustomDictionary,
       customDictionaryAliases: meetingCustomDictionaryAliases,
     });
@@ -5696,6 +5700,7 @@ class IPCHandlers {
     let meetingRealtimeProvider = null;
     let meetingRealtimeModel = null;
     let meetingRealtimeLanguage = null;
+    let meetingNormalizationLanguage = null;
     let meetingCustomDictionary = [];
     let meetingCustomDictionaryAliases = [];
     let meetingLocalTranscribing = false;
@@ -6314,6 +6319,7 @@ class IPCHandlers {
       meetingRealtimeProvider = null;
       meetingRealtimeModel = null;
       meetingRealtimeLanguage = null;
+      meetingNormalizationLanguage = null;
       meetingCustomDictionary = [];
       meetingCustomDictionaryAliases = [];
       meetingLocalTranscribing = false;
@@ -6466,6 +6472,8 @@ class IPCHandlers {
 
       meetingTranscriptionStartInProgress = true;
       meetingStartedAt = Date.now();
+      meetingNormalizationLanguage =
+        options.scriptLanguage || options.normalizationLanguage || options.language || null;
       meetingCustomDictionary = Array.isArray(options.customDictionary)
         ? options.customDictionary.slice()
         : [];
@@ -6718,6 +6726,7 @@ class IPCHandlers {
       provider,
       model,
       language,
+      scriptLanguage,
       customDictionary = meetingCustomDictionary,
       customDictionaryAliases = meetingCustomDictionaryAliases,
     }) => {
@@ -6725,6 +6734,7 @@ class IPCHandlers {
         provider,
         model,
         language,
+        scriptLanguage,
         customDictionary,
         customDictionaryAliases,
       });
@@ -6800,6 +6810,7 @@ class IPCHandlers {
             provider: meetingLocalProvider,
             model: meetingLocalModel,
             language: meetingLocalLanguage,
+            scriptLanguage: meetingNormalizationLanguage,
             customDictionary: meetingCustomDictionary,
             customDictionaryAliases: meetingCustomDictionaryAliases,
           };
@@ -6845,6 +6856,7 @@ class IPCHandlers {
           provider: meetingRealtimeProvider,
           model: meetingRealtimeModel,
           language: meetingRealtimeLanguage,
+          scriptLanguage: meetingNormalizationLanguage,
           customDictionary: meetingCustomDictionary,
           customDictionaryAliases: meetingCustomDictionaryAliases,
         };

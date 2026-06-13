@@ -1,4 +1,5 @@
 const { applyDictionaryCorrections } = require("../utils/dictionaryCorrectionCore.cjs");
+const { normalizeChineseScript } = require("../utils/chineseScriptNormalizationCore.cjs");
 
 function normalizeDurationMs(metadata = {}) {
   if (Number.isFinite(metadata.durationMs)) return Math.round(metadata.durationMs);
@@ -89,6 +90,7 @@ function normalizeProcessingMetadata(result, normalized, corrections, metadata =
       provider: normalized.provider,
       model: normalized.model,
       language: normalized.language,
+      scriptLanguage: normalized.scriptLanguage,
       rawText: normalized.rawText,
       refinedText: normalized.refinedText,
       displayText: normalized.displayText,
@@ -111,6 +113,11 @@ function normalizeTranscriptionResult(result = {}, metadata = {}) {
   const corrected = correctResultText(rawText, refinedText, displayText, metadata);
   const hasDictionaryCorrections = corrected.corrections.length > 0;
   const cleanupError = normalizeCleanupError(result.cleanupError ?? metadata.cleanupError);
+  const language = metadata.language ?? result.language ?? null;
+  const scriptLanguage =
+    metadata.scriptLanguage ?? result.scriptLanguage ?? metadata.normalizationLanguage ?? language;
+  const normalizedRefinedText = normalizeChineseScript(corrected.refinedText, scriptLanguage);
+  const normalizedDisplayText = normalizeChineseScript(corrected.displayText, scriptLanguage);
 
   const normalized = {
     ...result,
@@ -118,12 +125,13 @@ function normalizeTranscriptionResult(result = {}, metadata = {}) {
     mode: metadata.mode ?? result.mode ?? "transcription",
     stage: success ? "complete" : "error",
     rawText: corrected.rawText,
-    refinedText: corrected.refinedText,
-    displayText: corrected.displayText,
-    text: corrected.displayText,
+    refinedText: normalizedRefinedText,
+    displayText: normalizedDisplayText,
+    text: normalizedDisplayText,
     provider: metadata.provider ?? result.provider ?? result.source ?? null,
     model: metadata.model ?? result.model ?? null,
-    language: metadata.language ?? result.language ?? null,
+    language,
+    scriptLanguage,
     audioDurationMs: normalizeDurationMs(metadata) ?? result.audioDurationMs ?? null,
     timings: result.timings ?? metadata.timings ?? null,
     warning: pickDictationWarning(
@@ -263,21 +271,28 @@ function normalizeMeetingSegment(segment = {}, metadata = {}) {
           aliases: metadata.customDictionaryAliases,
         });
   const hasDictionaryCorrections = corrected.replacements.length > 0;
+  const language = metadata.language ?? segment.language ?? null;
+  const scriptLanguage =
+    metadata.scriptLanguage ?? segment.scriptLanguage ?? metadata.normalizationLanguage ?? language;
+  const displayText = partial || type === "retract"
+    ? corrected.text
+    : normalizeChineseScript(corrected.text, scriptLanguage);
 
   return {
     ...segment,
     mode: "meeting",
     stage: type,
-    text: corrected.text,
+    text: displayText,
     rawText: text,
     refinedText: "",
-    displayText: corrected.text,
+    displayText,
     source: segment.source ?? metadata.source ?? null,
     type,
     timestamp: segment.timestamp ?? metadata.timestamp ?? null,
     provider: metadata.provider ?? segment.provider ?? null,
     model: metadata.model ?? segment.model ?? null,
-    language: metadata.language ?? segment.language ?? null,
+    language,
+    scriptLanguage,
     warning: pickDictationWarning(
       segment.warning ?? metadata.warning ?? null,
       hasDictionaryCorrections ? "dictionary_corrected" : null

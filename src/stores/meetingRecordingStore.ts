@@ -105,6 +105,10 @@ const getMeetingTranscriptionOptions = () => {
   const state = getSettings();
   const resolved = selectResolvedMeetingTranscription(state);
   const language = getBaseLanguageCode(state.preferredLanguage);
+  const scriptLanguage =
+    state.preferredLanguage && state.preferredLanguage !== "auto"
+      ? state.preferredLanguage
+      : undefined;
 
   if (resolved.useLocalWhisper) {
     return {
@@ -115,6 +119,7 @@ const getMeetingTranscriptionOptions = () => {
           ? resolved.parakeetModel || "parakeet-tdt-0.6b-v3"
           : resolved.whisperModel || "base",
       language,
+      scriptLanguage,
       dataRetentionEnabled: state.dataRetentionEnabled,
       audioRetentionDays: state.audioRetentionDays,
       customDictionary: state.customDictionary,
@@ -137,6 +142,8 @@ const getMeetingTranscriptionOptions = () => {
       provider: "openai-realtime" as const,
       model: "gpt-4o-mini-transcribe",
       mode,
+      language,
+      scriptLanguage,
       dataRetentionEnabled: state.dataRetentionEnabled,
       audioRetentionDays: state.audioRetentionDays,
       customDictionary: state.customDictionary,
@@ -151,6 +158,8 @@ const getMeetingTranscriptionOptions = () => {
     provider: `${provider.id}-realtime` as const,
     model,
     mode,
+    language,
+    scriptLanguage,
     dataRetentionEnabled: state.dataRetentionEnabled,
     audioRetentionDays: state.audioRetentionDays,
     customDictionary: state.customDictionary,

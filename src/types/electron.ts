@@ -1470,6 +1470,7 @@ declare global {
         provider?: string;
         model?: string;
         language?: string;
+        scriptLanguage?: string;
         dataRetentionEnabled?: boolean;
         audioRetentionDays?: number;
         customDictionary?: string[];
@@ -1479,6 +1480,7 @@ declare global {
         provider?: string;
         model?: string;
         language?: string;
+        scriptLanguage?: string;
         noteId?: number | null;
         dataRetentionEnabled?: boolean;
         audioRetentionDays?: number;
