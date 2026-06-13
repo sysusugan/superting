@@ -49,6 +49,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { useToast } from "../ui/useToast";
 import { cn } from "../lib/utils";
 import type {
+  DiarizationTaskStatus,
   NoteAudioFile,
   NoteItem,
   FolderItem,
@@ -587,6 +588,7 @@ interface NoteEditorProps {
   hasDownloadableAudio?: boolean;
   noteAudioFiles?: NoteAudioFile[];
   audioActionKey?: string | null;
+  diarizationTaskStatus?: DiarizationTaskStatus | null;
   onMergeAudioFiles?: () => Promise<NoteAudioFile | null>;
   enhancement?: Enhancement;
   actionPicker?: React.ReactNode;
@@ -626,6 +628,7 @@ export default function NoteEditor({
   hasDownloadableAudio = !!note.source_file,
   noteAudioFiles = [],
   audioActionKey,
+  diarizationTaskStatus,
   onMergeAudioFiles,
   enhancement,
   actionPicker,
@@ -657,6 +660,7 @@ export default function NoteEditor({
   const [recordedDateInput, setRecordedDateInput] = useState("");
   const [isSavingRecordedDate, setIsSavingRecordedDate] = useState(false);
   const [isDiarizing, setIsDiarizing] = useState(false);
+  const [diarizationNow, setDiarizationNow] = useState(() => Date.now());
   const [isTranscriptEditing, setIsTranscriptEditing] = useState(false);
   const [isTranscriptSaving, setIsTranscriptSaving] = useState(false);
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
@@ -731,9 +735,42 @@ export default function NoteEditor({
 
   const hasMeetingTranscript = !isRecording && !!effectiveTranscript;
   const isRediarizingAudio = audioActionKey?.startsWith("rediarize-") ?? false;
+  const displayedDiarizationTask = diarizationTaskStatus?.task || null;
+  const isCurrentNoteDiarizing = displayedDiarizationTask?.noteId === note.id;
   const rediarizeButtonLabel = isRediarizingAudio
     ? t("notes.editor.rediarizingAudio")
     : t("notes.editor.rediarizeAudio");
+  const diarizationEtaLabel = useMemo(() => {
+    if (!displayedDiarizationTask) return null;
+
+    const estimatedTotal =
+      Number.isFinite(displayedDiarizationTask.audioDurationSeconds) &&
+      displayedDiarizationTask.audioDurationSeconds != null
+        ? displayedDiarizationTask.audioDurationSeconds * 0.164
+        : null;
+    const elapsed = Math.max(0, (diarizationNow - displayedDiarizationTask.startedAt) / 1000);
+    const remaining =
+      estimatedTotal == null
+        ? displayedDiarizationTask.estimatedRemainingSeconds
+        : Math.max(0, estimatedTotal - elapsed);
+
+    if (!Number.isFinite(remaining)) {
+      return t("notes.editor.diarizationEtaCalculating");
+    }
+    if ((remaining || 0) < 60) {
+      return t("notes.editor.diarizationEtaLessThanMinute");
+    }
+    return t("notes.editor.diarizationEtaMinutes", {
+      count: Math.ceil((remaining || 0) / 60),
+    });
+  }, [diarizationNow, displayedDiarizationTask, t]);
+  const rediarizeTooltip = displayedDiarizationTask
+    ? t("notes.editor.diarizationRunningTooltip", {
+        title:
+          displayedDiarizationTask.noteTitle?.trim() || t("notes.editor.diarizationUnknownNote"),
+        eta: diarizationEtaLabel || t("notes.editor.diarizationEtaCalculating"),
+      })
+    : rediarizeButtonLabel;
   const transcriptAudioDurationSeconds = useMemo(() => {
     const total = noteAudioFiles.reduce((sum, file) => {
       const duration = Number(file.duration_seconds);
@@ -741,6 +778,13 @@ export default function NoteEditor({
     }, 0);
     return total > 0 ? total : null;
   }, [noteAudioFiles]);
+
+  useEffect(() => {
+    if (!displayedDiarizationTask) return;
+    setDiarizationNow(Date.now());
+    const interval = window.setInterval(() => setDiarizationNow(Date.now()), 30_000);
+    return () => window.clearInterval(interval);
+  }, [displayedDiarizationTask]);
 
   const filteredFolders = useMemo(
     () =>
@@ -2280,20 +2324,24 @@ export default function NoteEditor({
                   </DropdownMenu>
                 )}
                 {onRediarizeAudio && (
-                  <button
-                    type="button"
-                    onClick={() => setIsRediarizeDialogOpen(true)}
-                    disabled={!hasDownloadableAudio || audioActionKey !== null}
-                    className="shrink-0 h-6 w-6 flex items-center justify-center rounded-md bg-foreground/4 dark:bg-white/5 text-foreground/50 dark:text-foreground/40 hover:text-foreground/70 hover:bg-foreground/8 dark:hover:text-foreground/60 dark:hover:bg-white/8 disabled:pointer-events-none disabled:opacity-40 transition-colors duration-150"
-                    aria-label={rediarizeButtonLabel}
-                    title={rediarizeButtonLabel}
-                  >
-                    {isRediarizingAudio ? (
-                      <Loader2 size={11} className="animate-spin" />
-                    ) : (
-                      <RotateCw size={11} />
-                    )}
-                  </button>
+                  <Tooltip content={rediarizeTooltip}>
+                    <button
+                      type="button"
+                      onClick={() => setIsRediarizeDialogOpen(true)}
+                      disabled={
+                        !hasDownloadableAudio || audioActionKey !== null || isCurrentNoteDiarizing
+                      }
+                      className="shrink-0 h-6 w-6 flex items-center justify-center rounded-md bg-foreground/4 dark:bg-white/5 text-foreground/50 dark:text-foreground/40 hover:text-foreground/70 hover:bg-foreground/8 dark:hover:text-foreground/60 dark:hover:bg-white/8 disabled:pointer-events-none disabled:opacity-40 transition-colors duration-150"
+                      aria-label={rediarizeButtonLabel}
+                      title={rediarizeTooltip}
+                    >
+                      {isRediarizingAudio || isCurrentNoteDiarizing ? (
+                        <Loader2 size={11} className="animate-spin" />
+                      ) : (
+                        <RotateCw size={11} />
+                      )}
+                    </button>
+                  </Tooltip>
                 )}
                 {viewMode === "transcript" &&
                   hasTranscriptEditControls &&

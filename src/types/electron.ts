@@ -27,6 +27,20 @@ export type DiarizationDiagnostics = {
   }>;
 };
 
+export type DiarizationTask = {
+  taskId: string;
+  noteId: number;
+  noteTitle: string;
+  audioDurationSeconds: number | null;
+  startedAt: number;
+  estimatedRemainingSeconds: number | null;
+};
+
+export type DiarizationTaskStatus = {
+  activeTaskCount: number;
+  task: DiarizationTask | null;
+};
+
 export type TranscriptionErrorCode =
   | "TIMEOUT"
   | "NETWORK"
@@ -698,6 +712,10 @@ declare global {
         lockedSegmentCount?: number;
         diarizationDiagnostics?: DiarizationDiagnostics;
       }>;
+      getDiarizationTaskStatus?: (
+        preferredNoteId?: number | null
+      ) => Promise<DiarizationTaskStatus>;
+      onDiarizationTaskStatus?: (callback: (status: DiarizationTaskStatus) => void) => () => void;
       downloadNoteAudio: (
         noteId: number,
         audioFileId?: number | null

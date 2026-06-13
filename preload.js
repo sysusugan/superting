@@ -113,6 +113,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("attach-upload-audio-to-note", noteId, filePath, options),
   rediarizeNoteAudio: (noteId, audioFileId, options) =>
     ipcRenderer.invoke("rediarize-note-audio", noteId, audioFileId, options),
+  getDiarizationTaskStatus: (preferredNoteId) =>
+    ipcRenderer.invoke("get-diarization-task-status", preferredNoteId),
+  onDiarizationTaskStatus: registerListener(
+    "diarization-task-status",
+    (callback) => (_event, data) => callback(data)
+  ),
   downloadNoteAudio: (noteId, audioFileId) =>
     ipcRenderer.invoke("download-note-audio", noteId, audioFileId),
   showNoteAudioInFolder: (noteId, audioFileId) =>

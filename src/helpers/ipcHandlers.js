@@ -49,6 +49,7 @@ const {
   resolveContextSileroEnabled,
 } = require("./whisperVadConfig");
 const { analyzePreviewPcmSpeech } = require("./dictationPreviewGate");
+const { DiarizationTaskTracker } = require("./diarizationTaskTracker");
 const { convertToWav, throwIfAborted } = require("./ffmpegUtils");
 const { LOCAL_STT_PRIORITY, LocalSttScheduler } = require("./localSttScheduler");
 const {
@@ -437,6 +438,7 @@ class IPCHandlers {
     this._textEditHandler = null;
     this._activeRecordingPipeline = null;
     this.localSttScheduler = new LocalSttScheduler();
+    this.diarizationTaskTracker = new DiarizationTaskTracker();
     this.uploadTranscriptionCoordinator = new UploadTranscriptionCoordinator();
     this.audioStorageManager = new AudioStorageManager();
     this._audioCleanupInterval = null;
@@ -497,6 +499,20 @@ class IPCHandlers {
 
   _runLocalSttTask(options, worker) {
     return this.localSttScheduler.run(options, worker);
+  }
+
+  _getDiarizationTaskStatus(preferredNoteId = null) {
+    const noteId =
+      preferredNoteId == null
+        ? null
+        : Number.isFinite(Number(preferredNoteId))
+          ? Number(preferredNoteId)
+          : null;
+    return this.diarizationTaskTracker.getStatus({ preferredNoteId: noteId });
+  }
+
+  _broadcastDiarizationTaskStatus() {
+    this.broadcastToWindows("diarization-task-status", this._getDiarizationTaskStatus());
   }
 
   _asyncVectorUpsert(note) {
@@ -2314,6 +2330,10 @@ class IPCHandlers {
         }
       }
     );
+
+    ipcMain.handle("get-diarization-task-status", async (_event, preferredNoteId = null) => {
+      return this._getDiarizationTaskStatus(preferredNoteId);
+    });
 
     ipcMain.handle("download-note-audio", async (_event, noteId, audioFileId = null) => {
       try {
@@ -8498,7 +8518,15 @@ class IPCHandlers {
     }
 
     let tmpWav = null;
+    let trackedTask = null;
     try {
+      trackedTask = this.diarizationTaskTracker.startTask({
+        noteId,
+        noteTitle: note.title,
+        audioDurationSeconds: Number(audioFile.duration_seconds),
+      });
+      this._broadcastDiarizationTaskStatus();
+
       tmpWav = await this._prepareAudioForDiarization(audioPath);
       const observedSpeakerIds = new Set(
         transcriptSegments
@@ -8597,6 +8625,10 @@ class IPCHandlers {
     } catch (error) {
       return { ...createRediarizeFailure(error), audioFile };
     } finally {
+      if (trackedTask) {
+        this.diarizationTaskTracker.finishTask(trackedTask.taskId);
+        this._broadcastDiarizationTaskStatus();
+      }
       if (tmpWav) {
         try {
           fs.unlinkSync(tmpWav);

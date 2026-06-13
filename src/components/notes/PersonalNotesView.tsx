@@ -106,6 +106,7 @@ import {
 import { useNotesOnboarding } from "../../hooks/useNotesOnboarding";
 import NotesOnboarding from "./NotesOnboarding";
 import type {
+  DiarizationTaskStatus,
   NoteAudioFile,
   NoteExportField,
   NoteExportFormat,
@@ -255,6 +256,9 @@ export default function PersonalNotesView({
   const [showBulkExportDialog, setShowBulkExportDialog] = useState(false);
   const [noteSortBy, setNoteSortByState] = useState<NoteSortBy>(readNoteSortBy);
   const [noteAudioFiles, setNoteAudioFiles] = useState<NoteAudioFile[]>([]);
+  const [diarizationTaskStatus, setDiarizationTaskStatus] = useState<DiarizationTaskStatus | null>(
+    null
+  );
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isMiddlePaneCollapsed, setIsMiddlePaneCollapsed] = useState(false);
   const [notesSidebarWidth, setNotesSidebarWidth] = useState(() => {
@@ -268,6 +272,38 @@ export default function PersonalNotesView({
     "enhanced_content",
   ]);
   const [exportFormat, setExportFormat] = useState<NoteExportFormat>("md");
+
+  const refreshDiarizationTaskStatus = useCallback(async () => {
+    try {
+      const status = await window.electronAPI.getDiarizationTaskStatus?.(activeNoteId ?? null);
+      if (status) {
+        setDiarizationTaskStatus(status);
+      }
+    } catch (error) {
+      logger.warn("Failed to refresh diarization task status", error);
+    }
+  }, [activeNoteId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    window.electronAPI
+      .getDiarizationTaskStatus?.(activeNoteId ?? null)
+      .then((status) => {
+        if (!cancelled && status) {
+          setDiarizationTaskStatus(status);
+        }
+      })
+      .catch((error) => logger.warn("Failed to load diarization task status", error));
+
+    const unsubscribe = window.electronAPI.onDiarizationTaskStatus?.(() => {
+      void refreshDiarizationTaskStatus();
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [activeNoteId, refreshDiarizationTaskStatus]);
   const [isBulkExporting, setIsBulkExporting] = useState(false);
   const [newNoteFolderId, setNewNoteFolderId] = useState<string>("");
   const [isCreatingNewNoteFolder, setIsCreatingNewNoteFolder] = useState(false);
@@ -1650,6 +1686,7 @@ export default function PersonalNotesView({
               hasDownloadableAudio={noteAudioFiles.length > 0}
               noteAudioFiles={noteAudioFiles}
               audioActionKey={audioActionKey}
+              diarizationTaskStatus={diarizationTaskStatus}
               onMergeAudioFiles={() => mergeAudioFiles()}
               enhancement={
                 localEnhancedContent
