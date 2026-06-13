@@ -269,6 +269,7 @@ const DiarizationManager = require("./src/helpers/diarization");
 const TrayManager = require("./src/helpers/tray");
 const IPCHandlers = require("./src/helpers/ipcHandlers");
 const CliBridge = require("./src/helpers/cliBridge");
+const McpServerManager = require("./src/helpers/mcpServerManager");
 const UpdateManager = require("./src/updater");
 const GlobeKeyManager = require("./src/helpers/globeKeyManager");
 const DevServerManager = require("./src/helpers/devServerManager");
@@ -311,6 +312,7 @@ let meetingAecManager = null;
 let qdrantManager = null;
 let ipcHandlers = null;
 let cliBridge = null;
+let mcpServerManager = null;
 let globeKeyAlertShown = false;
 let authBridgeServer = null;
 
@@ -414,6 +416,9 @@ function initializeCoreManagers() {
     oauthProtocolRegistered: protocolRegistered,
     oauthProtocol: OAUTH_PROTOCOL,
   });
+
+  mcpServerManager = new McpServerManager(ipcHandlers);
+  ipcHandlers.mcpServerManager = mcpServerManager;
 }
 
 function registerSidecars() {
@@ -704,6 +709,12 @@ async function startApp() {
     debugLogger.error("CLI bridge failed to start", { error: err.message });
     cliBridge = null;
   });
+
+  if (mcpServerManager?.enabled) {
+    mcpServerManager.start().catch((err) => {
+      debugLogger.error("MCP server failed to start", { error: err.message });
+    });
+  }
 
   await migrateCookieToBearerToken();
 
@@ -1543,6 +1554,10 @@ function performSyncTeardown() {
   if (cliBridge) {
     cliBridge.stop().catch(() => {});
     cliBridge = null;
+  }
+  if (mcpServerManager) {
+    mcpServerManager.stop().catch(() => {});
+    mcpServerManager = null;
   }
   if (windowManager && isLiveWindow(windowManager.agentWindow)) {
     windowManager.agentWindow.destroy();

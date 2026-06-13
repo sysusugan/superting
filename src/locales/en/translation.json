@@ -2135,7 +2135,26 @@
     "title": "Integrations",
     "description": "Connect services to supercharge your workflow",
     "sections": {
-      "cli": "CLI"
+      "cli": "CLI",
+      "mcp": "MCP"
+    },
+    "mcp": {
+      "title": "Local MCP access",
+      "description": "Let local agents read and update your OpenWhispr notes through Model Context Protocol.",
+      "urlLabel": "Server URL",
+      "tokenLabel": "Bearer token",
+      "codexConfigLabel": "Codex config",
+      "securityNote": "Loopback only. Raw audio is not exposed.",
+      "disabledState": "Enable MCP to generate a local server URL and token.",
+      "status": {
+        "running": "Running",
+        "off": "Off"
+      },
+      "actions": {
+        "enable": "Enable",
+        "disable": "Disable",
+        "rotateToken": "Rotate token"
+      }
     },
     "cli": {
       "title": "Command-line access",

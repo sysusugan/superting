@@ -58,6 +58,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setDictionary: (words) => ipcRenderer.invoke("db-set-dictionary", words),
   getDictionaryAliases: () => ipcRenderer.invoke("db-get-dictionary-aliases"),
   setDictionaryAliases: (aliases) => ipcRenderer.invoke("db-set-dictionary-aliases", aliases),
+  getMcpServerStatus: () => ipcRenderer.invoke("mcp-get-server-status"),
+  setMcpServerEnabled: (enabled) => ipcRenderer.invoke("mcp-set-server-enabled", enabled),
+  rotateMcpServerToken: () => ipcRenderer.invoke("mcp-rotate-token"),
   onDictionaryUpdated: (callback) => {
     const listener = (_event, words) => callback?.(words);
     ipcRenderer.on("dictionary-updated", listener);

@@ -2134,7 +2134,26 @@
     "title": "Intégrations",
     "description": "Connectez des services pour booster votre productivité",
     "sections": {
-      "cli": "CLI"
+      "cli": "CLI",
+      "mcp": "MCP"
+    },
+    "mcp": {
+      "title": "Accès MCP local",
+      "description": "Autorisez les agents locaux à lire et modifier vos notes OpenWhispr avec Model Context Protocol.",
+      "urlLabel": "URL du serveur",
+      "tokenLabel": "Bearer token",
+      "codexConfigLabel": "Configuration Codex",
+      "securityNote": "Loopback uniquement. L'audio brut n'est pas exposé.",
+      "disabledState": "Activez MCP pour générer une URL locale et un token.",
+      "status": {
+        "running": "En cours",
+        "off": "Désactivé"
+      },
+      "actions": {
+        "enable": "Activer",
+        "disable": "Désactiver",
+        "rotateToken": "Renouveler le token"
+      }
     },
     "cli": {
       "title": "Accès en ligne de commande",

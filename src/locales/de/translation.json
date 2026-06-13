@@ -2135,7 +2135,26 @@
     "title": "Integrationen",
     "description": "Verbinde Dienste, um deinen Workflow zu verbessern",
     "sections": {
-      "cli": "CLI"
+      "cli": "CLI",
+      "mcp": "MCP"
+    },
+    "mcp": {
+      "title": "Lokaler MCP-Zugriff",
+      "description": "Erlaube lokalen Agenten, OpenWhispr-Notizen über Model Context Protocol zu lesen und zu ändern.",
+      "urlLabel": "Server-URL",
+      "tokenLabel": "Bearer token",
+      "codexConfigLabel": "Codex-Konfiguration",
+      "securityNote": "Nur Loopback. Roh-Audio wird nicht freigegeben.",
+      "disabledState": "Aktiviere MCP, um lokale Server-URL und Token zu erzeugen.",
+      "status": {
+        "running": "Läuft",
+        "off": "Aus"
+      },
+      "actions": {
+        "enable": "Aktivieren",
+        "disable": "Deaktivieren",
+        "rotateToken": "Token rotieren"
+      }
     },
     "cli": {
       "title": "Kommandozeilen-Zugriff",

@@ -2134,7 +2134,26 @@
     "title": "整合",
     "description": "連接服務以增強您的工作流程",
     "sections": {
-      "cli": "CLI"
+      "cli": "CLI",
+      "mcp": "MCP"
+    },
+    "mcp": {
+      "title": "本機 MCP 存取",
+      "description": "讓本機智慧代理透過 Model Context Protocol 讀取和更新你的 OpenWhispr 筆記。",
+      "urlLabel": "服務 URL",
+      "tokenLabel": "Bearer token",
+      "codexConfigLabel": "Codex 設定",
+      "securityNote": "僅限本機回環存取，不開放原始音訊。",
+      "disabledState": "啟用 MCP 後會產生本機服務 URL 和 token。",
+      "status": {
+        "running": "執行中",
+        "off": "已關閉"
+      },
+      "actions": {
+        "enable": "啟用",
+        "disable": "停用",
+        "rotateToken": "輪換 token"
+      }
     },
     "cli": {
       "title": "命令列存取",

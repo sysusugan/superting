@@ -1402,6 +1402,44 @@ class IPCHandlers {
       return this.databaseManager.getDictionaryAliases();
     });
 
+    ipcMain.handle("mcp-get-server-status", async () => {
+      if (!this.mcpServerManager) {
+        return {
+          enabled: false,
+          running: false,
+          url: null,
+          port: null,
+          hasToken: false,
+          token: null,
+          metadataPath: null,
+        };
+      }
+      return this.mcpServerManager.getConnectionInfo();
+    });
+
+    ipcMain.handle("mcp-set-server-enabled", async (_event, enabled) => {
+      if (!this.mcpServerManager) {
+        return { success: false, error: "MCP server manager is not initialized" };
+      }
+      try {
+        await this.mcpServerManager.setEnabled(!!enabled);
+        return { success: true, status: this.mcpServerManager.getConnectionInfo() };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle("mcp-rotate-token", async () => {
+      if (!this.mcpServerManager) {
+        return { success: false, error: "MCP server manager is not initialized" };
+      }
+      try {
+        return { success: true, status: await this.mcpServerManager.rotateToken() };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    });
+
     ipcMain.handle("db-set-dictionary-aliases", async (_event, aliases) => {
       if (!Array.isArray(aliases)) {
         throw new Error("aliases must be an array");

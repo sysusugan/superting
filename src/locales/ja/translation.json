@@ -2134,7 +2134,26 @@
     "title": "連携",
     "description": "サービスを接続してワークフローを強化",
     "sections": {
-      "cli": "CLI"
+      "cli": "CLI",
+      "mcp": "MCP"
+    },
+    "mcp": {
+      "title": "ローカル MCP アクセス",
+      "description": "ローカルエージェントが Model Context Protocol 経由で OpenWhispr のメモを読み書きできます。",
+      "urlLabel": "サーバー URL",
+      "tokenLabel": "Bearer token",
+      "codexConfigLabel": "Codex 設定",
+      "securityNote": "ループバック限定。元の音声は公開されません。",
+      "disabledState": "MCP を有効にするとローカル URL と token が生成されます。",
+      "status": {
+        "running": "実行中",
+        "off": "オフ"
+      },
+      "actions": {
+        "enable": "有効化",
+        "disable": "無効化",
+        "rotateToken": "token を更新"
+      }
     },
     "cli": {
       "title": "コマンドラインアクセス",

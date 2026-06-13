@@ -2136,7 +2136,26 @@
     "title": "Интеграции",
     "description": "Подключите сервисы для улучшения рабочего процесса",
     "sections": {
-      "cli": "CLI"
+      "cli": "CLI",
+      "mcp": "MCP"
+    },
+    "mcp": {
+      "title": "Локальный доступ MCP",
+      "description": "Разрешите локальным агентам читать и обновлять заметки OpenWhispr через Model Context Protocol.",
+      "urlLabel": "URL сервера",
+      "tokenLabel": "Bearer token",
+      "codexConfigLabel": "Конфигурация Codex",
+      "securityNote": "Только loopback. Исходное аудио не раскрывается.",
+      "disabledState": "Включите MCP, чтобы создать локальный URL и token.",
+      "status": {
+        "running": "Запущен",
+        "off": "Выкл."
+      },
+      "actions": {
+        "enable": "Включить",
+        "disable": "Отключить",
+        "rotateToken": "Обновить token"
+      }
     },
     "cli": {
       "title": "Доступ через командную строку",

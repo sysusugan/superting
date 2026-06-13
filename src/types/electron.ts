@@ -540,6 +540,43 @@ declare global {
       onCorrectionsLearned?: (callback: (words: string[]) => void) => () => void;
       undoLearnedCorrections?: (words: string[]) => Promise<{ success: boolean }>;
 
+      // Local MCP server
+      getMcpServerStatus?: () => Promise<{
+        enabled: boolean;
+        running: boolean;
+        url: string | null;
+        port: number | null;
+        hasToken: boolean;
+        token?: string | null;
+        metadataPath?: string | null;
+      }>;
+      setMcpServerEnabled?: (enabled: boolean) => Promise<{
+        success: boolean;
+        error?: string;
+        status?: {
+          enabled: boolean;
+          running: boolean;
+          url: string | null;
+          port: number | null;
+          hasToken: boolean;
+          token?: string | null;
+          metadataPath?: string | null;
+        };
+      }>;
+      rotateMcpServerToken?: () => Promise<{
+        success: boolean;
+        error?: string;
+        status?: {
+          enabled: boolean;
+          running: boolean;
+          url: string | null;
+          port: number | null;
+          hasToken: boolean;
+          token?: string | null;
+          metadataPath?: string | null;
+        };
+      }>;
+
       // Note operations
       saveNote: (
         title: string,

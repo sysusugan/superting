@@ -2138,7 +2138,26 @@
     "title": "集成",
     "description": "连接服务以增强您的工作流程",
     "sections": {
-      "cli": "CLI"
+      "cli": "CLI",
+      "mcp": "MCP"
+    },
+    "mcp": {
+      "title": "本地 MCP 访问",
+      "description": "让本地智能体通过 Model Context Protocol 读取和更新你的 OpenWhispr 笔记。",
+      "urlLabel": "服务 URL",
+      "tokenLabel": "Bearer token",
+      "codexConfigLabel": "Codex 配置",
+      "securityNote": "仅限本机回环访问，不开放原始音频。",
+      "disabledState": "启用 MCP 后会生成本地服务 URL 和 token。",
+      "status": {
+        "running": "运行中",
+        "off": "已关闭"
+      },
+      "actions": {
+        "enable": "启用",
+        "disable": "停用",
+        "rotateToken": "轮换 token"
+      }
     },
     "cli": {
       "title": "命令行访问",
