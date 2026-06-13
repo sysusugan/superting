@@ -224,6 +224,13 @@ export type SystemAudioStrategy =
   | "browser-portal"
   | "portal-helper"
   | "unsupported";
+export type MeetingAecMode = "enabled" | "fallback" | "unavailable";
+export type MeetingAecReason =
+  | "system-audio-missing"
+  | "system-audio-start-failed"
+  | "helper-unavailable"
+  | "helper-error"
+  | "unsupported-platform";
 
 export interface SystemAudioAccessResult {
   granted: boolean;
@@ -1491,6 +1498,8 @@ declare global {
         error?: string;
         systemAudioMode?: SystemAudioMode;
         systemAudioStrategy?: SystemAudioStrategy;
+        aecMode?: MeetingAecMode;
+        aecReason?: MeetingAecReason | null;
         oneOnOneAttendee?: { displayName: string; email: string | null } | null;
         audioPath?: string;
       }>;

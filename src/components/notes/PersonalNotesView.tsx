@@ -107,6 +107,8 @@ import { useNotesOnboarding } from "../../hooks/useNotesOnboarding";
 import NotesOnboarding from "./NotesOnboarding";
 import type {
   DiarizationTaskStatus,
+  MeetingAecMode,
+  MeetingAecReason,
   NoteAudioFile,
   NoteExportField,
   NoteExportFormat,
@@ -217,6 +219,31 @@ function formatRediarizeDiagnostics(
     parts.push(t("notes.editor.audioRediarizeStatsRetriedWindows", { count: retriedWindows }));
   }
   return parts.join(" · ");
+}
+
+function getMeetingEchoCancellationMessage(
+  mode: MeetingAecMode | null,
+  reason: MeetingAecReason | null,
+  t: (key: string) => string
+) {
+  if (mode === "enabled") {
+    return t("notes.recording.echoCancellation.enabled");
+  }
+  if (reason === "system-audio-missing") {
+    return t("notes.recording.echoCancellation.systemAudioMissing");
+  }
+  if (reason === "system-audio-start-failed") {
+    return t("notes.recording.echoCancellation.systemAudioFailed");
+  }
+  if (reason === "helper-unavailable" || reason === "unsupported-platform") {
+    return t("notes.recording.echoCancellation.helperUnavailable");
+  }
+  if (reason === "helper-error") {
+    return t("notes.recording.echoCancellation.helperError");
+  }
+  return mode === "fallback" || mode === "unavailable"
+    ? t("notes.recording.echoCancellation.fallback")
+    : null;
 }
 
 interface PersonalNotesViewProps {
@@ -351,6 +378,8 @@ export default function PersonalNotesView({
   const recordingStartedAt = useMeetingRecordingStore((s) => s.recordingStartedAt);
   const micPartial = useMeetingRecordingStore((s) => s.micPartial);
   const systemPartial = useMeetingRecordingStore((s) => s.systemPartial);
+  const recordingAecMode = useMeetingRecordingStore((s) => s.aecMode);
+  const recordingAecReason = useMeetingRecordingStore((s) => s.aecReason);
   const diarizationSessionId = useMeetingRecordingStore((s) => s.diarizationSessionId);
   const recordingNoteId = useMeetingRecordingStore((s) => s.recordingNoteId);
   const recordingError = useMeetingRecordingStore((s) => s.error);
@@ -814,6 +843,9 @@ export default function PersonalNotesView({
   } = useActionProcessing(activeNoteId ?? null);
 
   const isActiveNoteRecording = isTranscribing && recordingNoteId === activeNote?.id;
+  const echoCancellationMessage = isActiveNoteRecording
+    ? getMeetingEchoCancellationMessage(recordingAecMode, recordingAecReason, t)
+    : null;
   const resolvedActiveTranscript = resolveNoteActionTranscript({
     isActiveNoteRecording,
     realtimeTranscript,
@@ -1667,6 +1699,19 @@ export default function PersonalNotesView({
       <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {editorNote ? (
           <>
+            {echoCancellationMessage && (
+              <div
+                role="status"
+                className={cn(
+                  "mx-4 mt-3 rounded-md border px-3 py-2 text-xs leading-snug",
+                  recordingAecMode === "enabled"
+                    ? "border-success/20 bg-success/8 text-success"
+                    : "border-warning/20 bg-warning/8 text-warning"
+                )}
+              >
+                {echoCancellationMessage}
+              </div>
+            )}
             <NoteEditor
               key={editorNote.id}
               note={editorNote}

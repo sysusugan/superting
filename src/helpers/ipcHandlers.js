@@ -27,6 +27,10 @@ const liveSpeakerIdentifier = require("./liveSpeakerIdentifier");
 const MeetingEchoLeakDetector = require("./meetingEchoLeakDetector");
 const MeetingRetainedAudioWriter = require("./meetingRetainedAudioWriter");
 const {
+  resolveMeetingAecStartStatus,
+  resolveMeetingAecSystemAudioFailure,
+} = require("./meetingAecStatus");
+const {
   transcriptsOverlap,
   transcriptsLooselyOverlap,
   buildMergedCandidates,
@@ -5901,8 +5905,18 @@ class IPCHandlers {
 
     const startMeetingAec = async (systemAudioMode) => {
       meetingAecEnabled = false;
-      if (systemAudioMode === "unsupported" || !this.meetingAecManager?.isAvailable()) {
-        return false;
+      const helperSupported = this.meetingAecManager?.isSupported?.() ?? false;
+      const helperAvailable = this.meetingAecManager?.isAvailable?.() ?? false;
+
+      if (systemAudioMode === "unsupported" || !helperSupported || !helperAvailable) {
+        const status = resolveMeetingAecStartStatus({
+          systemAudioMode,
+          helperSupported,
+          helperAvailable,
+          started: false,
+        });
+        debugLogger.info("Meeting AEC unavailable", status, "meeting");
+        return status;
       }
 
       const started = await this.meetingAecManager
@@ -5925,10 +5939,22 @@ class IPCHandlers {
         });
 
       meetingAecEnabled = !!started;
+      const status = resolveMeetingAecStartStatus({
+        systemAudioMode,
+        helperSupported,
+        helperAvailable,
+        started,
+      });
       if (meetingAecEnabled) {
-        debugLogger.info("Meeting AEC helper started", { systemAudioMode }, "meeting");
+        debugLogger.info("Meeting AEC helper started", { systemAudioMode, ...status }, "meeting");
+      } else {
+        debugLogger.warn(
+          "Meeting AEC helper did not start",
+          { systemAudioMode, ...status },
+          "meeting"
+        );
       }
-      return meetingAecEnabled;
+      return status;
     };
 
     const flushPendingMeetingMicChunks = (force = false) => {
@@ -6511,6 +6537,10 @@ class IPCHandlers {
       try {
         const systemAudioPlan = await getMeetingSystemAudioPlan();
         let { mode: systemAudioMode, strategy: systemAudioStrategy } = systemAudioPlan;
+        let meetingAecStatus = {
+          aecMode: "unavailable",
+          aecReason: "system-audio-missing",
+        };
         meetingEchoLeakDetector.reset();
         meetingOneOnOneAttendee = resolveOneOnOneAttendeeForNote(options.noteId);
         meetingOneOnOneProfileBound = false;
@@ -6531,17 +6561,23 @@ class IPCHandlers {
           if (systemAudioMode !== "unsupported") {
             attachMeetingStreamingHandlers(this._meetingSystemStreaming, win, "system");
           }
-          await startMeetingAec(systemAudioMode);
+          meetingAecStatus = await startMeetingAec(systemAudioMode);
+          const priorSystemAudioMode = systemAudioMode;
           ({ systemAudioMode, systemAudioStrategy } = await startMeetingSystemAudio(
             event,
             systemAudioMode,
             systemAudioStrategy,
             "during warm-start reuse"
           ));
+          if (priorSystemAudioMode !== "unsupported" && systemAudioMode === "unsupported") {
+            await stopMeetingAec();
+            meetingAecStatus = resolveMeetingAecSystemAudioFailure();
+          }
           return {
             success: true,
             systemAudioMode,
             systemAudioStrategy,
+            ...meetingAecStatus,
             oneOnOneAttendee: meetingOneOnOneAttendee,
           };
         }
@@ -6555,29 +6591,36 @@ class IPCHandlers {
           meetingLocalBuffers = { mic: [], system: [] };
           meetingLocalTranscript = "";
 
-          await startMeetingAec(systemAudioMode);
+          meetingAecStatus = await startMeetingAec(systemAudioMode);
 
           meetingLocalTimer = setInterval(() => {
             transcribeAllLocalBuffers();
           }, 5000);
 
+          const priorSystemAudioMode = systemAudioMode;
           ({ systemAudioMode, systemAudioStrategy } = await startMeetingSystemAudio(
             event,
             systemAudioMode,
             systemAudioStrategy,
             "in local meeting mode"
           ));
+          if (priorSystemAudioMode !== "unsupported" && systemAudioMode === "unsupported") {
+            await stopMeetingAec();
+            meetingAecStatus = resolveMeetingAecSystemAudioFailure();
+          }
 
           debugLogger.debug("Meeting transcription started in local mode", {
             provider: meetingLocalProvider,
             systemAudioMode,
             systemAudioStrategy,
+            ...meetingAecStatus,
           });
 
           return {
             success: true,
             systemAudioMode,
             systemAudioStrategy,
+            ...meetingAecStatus,
             oneOnOneAttendee: meetingOneOnOneAttendee,
           };
         }
@@ -6587,17 +6630,23 @@ class IPCHandlers {
         }
 
         await connectRealtimeStreaming(event, options);
-        await startMeetingAec(systemAudioMode);
+        meetingAecStatus = await startMeetingAec(systemAudioMode);
+        const priorSystemAudioMode = systemAudioMode;
         ({ systemAudioMode, systemAudioStrategy } = await startMeetingSystemAudio(
           event,
           systemAudioMode,
           systemAudioStrategy,
           "in realtime mode"
         ));
+        if (priorSystemAudioMode !== "unsupported" && systemAudioMode === "unsupported") {
+          await stopMeetingAec();
+          meetingAecStatus = resolveMeetingAecSystemAudioFailure();
+        }
         return {
           success: true,
           systemAudioMode,
           systemAudioStrategy,
+          ...meetingAecStatus,
           oneOnOneAttendee: meetingOneOnOneAttendee,
         };
       } catch (error) {

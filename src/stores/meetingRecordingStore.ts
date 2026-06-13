@@ -3,7 +3,12 @@ import { getSettings, selectResolvedMeetingTranscription } from "./settingsStore
 import { useStreamingProvidersStore } from "./streamingProvidersStore";
 import { isBuiltInMicrophone } from "../utils/audioDeviceUtils";
 import { getBaseLanguageCode } from "../utils/languageSupport";
-import type { SystemAudioAccessResult, SystemAudioStrategy } from "../types/electron";
+import type {
+  MeetingAecMode,
+  MeetingAecReason,
+  SystemAudioAccessResult,
+  SystemAudioStrategy,
+} from "../types/electron";
 import {
   DEFAULT_SYSTEM_AUDIO_ACCESS,
   getDisplayCaptureModeForStrategy,
@@ -70,6 +75,8 @@ interface MeetingRecordingState {
   systemPartial: string;
   systemPartialSpeakerId: string | null;
   systemPartialSpeakerName: string | null;
+  aecMode: MeetingAecMode | null;
+  aecReason: MeetingAecReason | null;
   diarizationSessionId: string | null;
   sessionDiarizationEnabled: boolean;
   sessionExpectedCount: number;
@@ -438,6 +445,8 @@ export const useMeetingRecordingStore = create<MeetingRecordingState>()(() => ({
   systemPartial: "",
   systemPartialSpeakerId: null,
   systemPartialSpeakerName: null,
+  aecMode: null,
+  aecReason: null,
   diarizationSessionId: null,
   sessionDiarizationEnabled:
     (getSettings() as { speakerDiarizationEnabled?: boolean }).speakerDiarizationEnabled ?? true,
@@ -656,6 +665,8 @@ export async function startRecording(args: StartRecordingArgs): Promise<void> {
     systemPartial: "",
     systemPartialSpeakerId: null,
     systemPartialSpeakerName: null,
+    aecMode: null,
+    aecReason: null,
     diarizationSessionId: null,
     error: null,
   });
@@ -749,6 +760,10 @@ export async function startRecording(args: StartRecordingArgs): Promise<void> {
 
     const systemAudioMode = startResult.systemAudioMode || initialSystemAudioAccess.mode;
     const systemAudioStrategy = startResult.systemAudioStrategy || initialSystemAudioStrategy;
+    useMeetingRecordingStore.setState({
+      aecMode: startResult.aecMode ?? null,
+      aecReason: startResult.aecReason ?? null,
+    });
     systemCaptureResult = await ensureRendererSystemAudioCapture({
       initialDisplayCaptureStrategy,
       systemAudioStrategy,
@@ -1037,6 +1052,8 @@ export async function startRecording(args: StartRecordingArgs): Promise<void> {
       isRecording: false,
       isTranscribing: false,
       recordingStartedAt: null,
+      aecMode: null,
+      aecReason: null,
     });
     isRecordingFlag = false;
     isStartingFlag = false;
@@ -1058,6 +1075,8 @@ export async function stopRecording(): Promise<StopRecordingResult> {
   useMeetingRecordingStore.setState({
     isRecording: false,
     isTranscribing: false,
+    aecMode: null,
+    aecReason: null,
   });
 
   await cleanup();

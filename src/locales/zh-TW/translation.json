@@ -1764,7 +1764,15 @@
       "back": "返回"
     },
     "recording": {
-      "errorTitle": "無法開始錄製"
+      "errorTitle": "無法開始錄製",
+      "echoCancellation": {
+        "enabled": "回音消除已啟用。",
+        "systemAudioMissing": "缺少系統音訊權限，揚聲器回音消除無法使用。請授權系統音訊或使用耳機。",
+        "systemAudioFailed": "系統音訊擷取失敗，揚聲器回音消除無法啟動。使用耳機可獲得最乾淨的錄音。",
+        "helperUnavailable": "此裝置上無法使用揚聲器回音消除。使用耳機可獲得最乾淨的錄音。",
+        "helperError": "揚聲器回音消除無法啟動。使用耳機可獲得最乾淨的錄音。",
+        "fallback": "揚聲器回音消除能力受限。使用耳機可獲得最乾淨的錄音。"
+      }
     },
     "meetingPill": {
       "returnToNote": "返回到錄音"

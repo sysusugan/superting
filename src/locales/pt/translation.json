@@ -1764,7 +1764,15 @@
       "back": "Voltar"
     },
     "recording": {
-      "errorTitle": "Não foi possível iniciar a gravação"
+      "errorTitle": "Não foi possível iniciar a gravação",
+      "echoCancellation": {
+        "enabled": "O cancelamento de eco está ativo.",
+        "systemAudioMissing": "O cancelamento de eco do alto-falante está indisponível porque falta acesso ao áudio do sistema. Conceda acesso ao áudio do sistema ou use fones de ouvido.",
+        "systemAudioFailed": "O cancelamento de eco do alto-falante não pôde iniciar porque a captura do áudio do sistema falhou. Use fones de ouvido para a gravação mais limpa.",
+        "helperUnavailable": "O cancelamento de eco do alto-falante não está disponível neste dispositivo. Use fones de ouvido para a gravação mais limpa.",
+        "helperError": "O cancelamento de eco do alto-falante não pôde iniciar. Use fones de ouvido para a gravação mais limpa.",
+        "fallback": "O cancelamento de eco do alto-falante está limitado. Use fones de ouvido para a gravação mais limpa."
+      }
     },
     "meetingPill": {
       "returnToNote": "Voltar à gravação"

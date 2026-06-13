@@ -1764,7 +1764,15 @@
       "back": "Indietro"
     },
     "recording": {
-      "errorTitle": "Impossibile avviare la registrazione"
+      "errorTitle": "Impossibile avviare la registrazione",
+      "echoCancellation": {
+        "enabled": "La cancellazione dell'eco e attiva.",
+        "systemAudioMissing": "La cancellazione dell'eco degli altoparlanti non e disponibile perche manca l'accesso all'audio di sistema. Concedi l'accesso all'audio di sistema o usa le cuffie.",
+        "systemAudioFailed": "La cancellazione dell'eco degli altoparlanti non si e avviata perche la cattura dell'audio di sistema non e riuscita. Usa le cuffie per una registrazione piu pulita.",
+        "helperUnavailable": "La cancellazione dell'eco degli altoparlanti non e disponibile su questo dispositivo. Usa le cuffie per una registrazione piu pulita.",
+        "helperError": "La cancellazione dell'eco degli altoparlanti non si e avviata. Usa le cuffie per una registrazione piu pulita.",
+        "fallback": "La cancellazione dell'eco degli altoparlanti e limitata. Usa le cuffie per una registrazione piu pulita."
+      }
     },
     "meetingPill": {
       "returnToNote": "Torna alla registrazione"

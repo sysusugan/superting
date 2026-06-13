@@ -1805,7 +1805,15 @@
       "back": "Retour"
     },
     "recording": {
-      "errorTitle": "Impossible de démarrer l'enregistrement"
+      "errorTitle": "Impossible de démarrer l'enregistrement",
+      "echoCancellation": {
+        "enabled": "L'annulation d'echo est active.",
+        "systemAudioMissing": "L'annulation d'echo du haut-parleur est indisponible car l'acces a l'audio systeme est manquant. Autorisez l'audio systeme ou utilisez un casque.",
+        "systemAudioFailed": "L'annulation d'echo du haut-parleur n'a pas pu demarrer car la capture de l'audio systeme a echoue. Utilisez un casque pour l'enregistrement le plus propre.",
+        "helperUnavailable": "L'annulation d'echo du haut-parleur est indisponible sur cet appareil. Utilisez un casque pour l'enregistrement le plus propre.",
+        "helperError": "L'annulation d'echo du haut-parleur n'a pas pu demarrer. Utilisez un casque pour l'enregistrement le plus propre.",
+        "fallback": "L'annulation d'echo du haut-parleur est limitee. Utilisez un casque pour l'enregistrement le plus propre."
+      }
     },
     "meetingPill": {
       "returnToNote": "Revenir à l'enregistrement"

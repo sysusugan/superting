@@ -1806,7 +1806,15 @@
       "back": "Back"
     },
     "recording": {
-      "errorTitle": "Could not start recording"
+      "errorTitle": "Could not start recording",
+      "echoCancellation": {
+        "enabled": "Echo cancellation is active.",
+        "systemAudioMissing": "Speaker echo cancellation is unavailable because system audio access is missing. Grant system audio access or use headphones.",
+        "systemAudioFailed": "Speaker echo cancellation could not start because system audio capture failed. Use headphones for the cleanest recording.",
+        "helperUnavailable": "Speaker echo cancellation is unavailable on this device. Use headphones for the cleanest recording.",
+        "helperError": "Speaker echo cancellation could not start. Use headphones for the cleanest recording.",
+        "fallback": "Speaker echo cancellation is limited. Use headphones for the cleanest recording."
+      }
     },
     "meetingPill": {
       "returnToNote": "Return to recording"

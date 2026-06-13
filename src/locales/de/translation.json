@@ -1765,7 +1765,15 @@
       "back": "Zurück"
     },
     "recording": {
-      "errorTitle": "Aufnahme konnte nicht gestartet werden"
+      "errorTitle": "Aufnahme konnte nicht gestartet werden",
+      "echoCancellation": {
+        "enabled": "Echounterdrueckung ist aktiv.",
+        "systemAudioMissing": "Die Lautsprecher-Echounterdrueckung ist nicht verfuegbar, weil der Zugriff auf Systemaudio fehlt. Erlaube Systemaudio oder verwende Kopfhoerer.",
+        "systemAudioFailed": "Die Lautsprecher-Echounterdrueckung konnte nicht starten, weil die Systemaudio-Erfassung fehlgeschlagen ist. Verwende Kopfhoerer fuer die sauberste Aufnahme.",
+        "helperUnavailable": "Die Lautsprecher-Echounterdrueckung ist auf diesem Geraet nicht verfuegbar. Verwende Kopfhoerer fuer die sauberste Aufnahme.",
+        "helperError": "Die Lautsprecher-Echounterdrueckung konnte nicht starten. Verwende Kopfhoerer fuer die sauberste Aufnahme.",
+        "fallback": "Die Lautsprecher-Echounterdrueckung ist eingeschraenkt. Verwende Kopfhoerer fuer die sauberste Aufnahme."
+      }
     },
     "meetingPill": {
       "returnToNote": "Zurück zur Aufnahme"

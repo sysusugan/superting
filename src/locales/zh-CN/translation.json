@@ -1768,7 +1768,15 @@
       "back": "返回"
     },
     "recording": {
-      "errorTitle": "无法开始录制"
+      "errorTitle": "无法开始录制",
+      "echoCancellation": {
+        "enabled": "回声消除已启用。",
+        "systemAudioMissing": "缺少系统音频权限，扬声器回声消除不可用。请授权系统音频或使用耳机。",
+        "systemAudioFailed": "系统音频采集失败，扬声器回声消除无法启动。使用耳机可获得最干净的录音。",
+        "helperUnavailable": "此设备上扬声器回声消除不可用。使用耳机可获得最干净的录音。",
+        "helperError": "扬声器回声消除无法启动。使用耳机可获得最干净的录音。",
+        "fallback": "扬声器回声消除能力受限。使用耳机可获得最干净的录音。"
+      }
     },
     "meetingPill": {
       "returnToNote": "返回到录音"
