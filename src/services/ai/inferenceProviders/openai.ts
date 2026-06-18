@@ -11,7 +11,7 @@ import openAiCompatibleErrors from "../openaiCompatibleErrors.js";
 const { formatOpenAiCompatibleError } = openAiCompatibleErrors;
 
 const OPENAI_ENDPOINT_PREF_STORAGE_KEY = "openAiEndpointPreference";
-const REQUEST_TIMEOUT_MS = 30_000;
+const REQUEST_TIMEOUT_MS = 90_000;
 const PROBE_TIMEOUT_MS = 2_000;
 
 const endpointPreferenceCache = new Map<string, "responses" | "chat">();
@@ -245,7 +245,7 @@ export const openaiProvider: InferenceProvider = {
           return res.json();
         } catch (error) {
           if ((error as Error).name === "AbortError") {
-            throw new Error("Request timed out after 30s");
+            throw new Error("Request timed out after 90s");
           }
           lastError = error as Error;
           if (type === "responses") {

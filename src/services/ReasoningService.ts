@@ -38,6 +38,7 @@ export type AgentStreamChunk =
 
 class ReasoningService extends BaseReasoningService {
   private apiKeyCache: SecureCache<string>;
+  private static readonly REQUEST_TIMEOUT_MS = 90_000;
   private static readonly MAX_TOOL_STEPS = 20;
   private cacheCleanupStop: (() => void) | undefined;
   private streamAbortController: AbortController | null = null;
@@ -186,7 +187,10 @@ class ReasoningService extends BaseReasoningService {
 
     const response = await withRetry(async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        ReasoningService.REQUEST_TIMEOUT_MS
+      );
       try {
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
@@ -241,7 +245,7 @@ class ReasoningService extends BaseReasoningService {
         return jsonResponse;
       } catch (error) {
         if ((error as Error).name === "AbortError") {
-          throw new Error("Request timed out after 30s");
+          throw new Error("Request timed out after 90s");
         }
         throw error;
       } finally {

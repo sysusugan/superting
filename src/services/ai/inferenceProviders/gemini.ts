@@ -11,6 +11,8 @@ interface GeminiResponse {
   usageMetadata?: { totalTokenCount?: number };
 }
 
+const REQUEST_TIMEOUT_MS = 90_000;
+
 export const geminiProvider: InferenceProvider = {
   id: "gemini",
   async call({ text, model, agentName, config, ctx }) {
@@ -47,7 +49,7 @@ export const geminiProvider: InferenceProvider = {
       });
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
       try {
         const res = await fetch(`${API_ENDPOINTS.GEMINI}/models/${model}:generateContent`, {
           method: "POST",
@@ -91,7 +93,7 @@ export const geminiProvider: InferenceProvider = {
         return jsonResponse;
       } catch (error) {
         if ((error as Error).name === "AbortError") {
-          throw new Error("Request timed out after 30s");
+          throw new Error("Request timed out after 90s");
         }
         throw error;
       } finally {

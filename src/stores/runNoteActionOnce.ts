@@ -9,11 +9,13 @@ import {
 import { buildNoteActionSystemPrompt } from "./noteActionPrompt";
 import { generateNoteTitle } from "../utils/generateTitle";
 import { buildNoteActionInput } from "../components/notes/noteActionInput";
+import { modelRegistry } from "../models/ModelRegistry";
 import {
   applyActionTitleDatePrefix,
   buildActionOutputUpdates,
   hasGeneratedActionContent,
   shouldGenerateTitleForExplicitAction,
+  shouldUseChunkedActionInput,
   splitActionContentIntoChunks,
 } from "./actionProcessingCore";
 
@@ -37,6 +39,11 @@ interface RunNoteActionOnceInput {
 export interface RunNoteActionOnceResult {
   generatedContent: string;
   updates: Record<string, string | null>;
+}
+
+interface PreparedActionContent {
+  content: string;
+  usedChunking: boolean;
 }
 
 function buildChunkSummaryPrompt(actionPrompt: string, chunkIndex: number, totalChunks: number) {
@@ -64,16 +71,42 @@ function buildMergedSummaryInput(summaries: string[]) {
   ].join("\n\n");
 }
 
+function getLocalModelContextLength(modelId: string): number | undefined {
+  return modelRegistry.getModel(modelId)?.model.contextLength;
+}
+
+function isLongActionRetryableError(error: unknown): boolean {
+  const message = String((error as Error)?.message || error || "").toLowerCase();
+  return (
+    message.includes("timeout") ||
+    message.includes("timed out") ||
+    message.includes("context") ||
+    message.includes("token") ||
+    message.includes("too large") ||
+    message.includes("too long") ||
+    message.includes("maximum")
+  );
+}
+
 async function prepareActionContentForGeneration(
   content: string,
   actionPrompt: string,
   selectedModel: string,
-  reasoningConfig: ReasoningConfig
-): Promise<string> {
-  if (content.length <= LONG_ACTION_CONTENT_THRESHOLD) return content;
+  reasoningConfig: ReasoningConfig,
+  options: { forceChunking?: boolean } = {}
+): Promise<PreparedActionContent> {
+  const contextLength = getLocalModelContextLength(selectedModel);
+  const shouldChunk =
+    options.forceChunking ||
+    shouldUseChunkedActionInput({
+      content,
+      contextLength,
+    });
+
+  if (!shouldChunk) return { content, usedChunking: false };
 
   const chunks = splitActionContentIntoChunks(content, LONG_ACTION_CHUNK_SIZE);
-  if (chunks.length <= 1) return content;
+  if (chunks.length <= 1) return { content, usedChunking: false };
 
   const summaries: string[] = [];
   for (let index = 0; index < chunks.length; index += 1) {
@@ -87,7 +120,7 @@ async function prepareActionContentForGeneration(
     summaries.push(summary.trim());
   }
 
-  return buildMergedSummaryInput(summaries);
+  return { content: buildMergedSummaryInput(summaries), usedChunking: true };
 }
 
 export async function runNoteActionOnce({
@@ -139,19 +172,44 @@ export async function runNoteActionOnce({
     throw new Error("No AI model selected");
   }
 
-  const generationInput = await prepareActionContentForGeneration(
+  let generationInput = await prepareActionContentForGeneration(
     actionInput.content,
     action.prompt,
     selectedModel,
     reasoningConfig
   );
 
-  const generatedContent = await reasoningService.processText(
-    generationInput,
-    selectedModel,
-    null,
-    reasoningConfig
-  );
+  let generatedContent: string;
+  try {
+    generatedContent = await reasoningService.processText(
+      generationInput.content,
+      selectedModel,
+      null,
+      reasoningConfig
+    );
+  } catch (error) {
+    if (
+      generationInput.usedChunking ||
+      actionInput.content.length <= LONG_ACTION_CONTENT_THRESHOLD ||
+      !isLongActionRetryableError(error)
+    ) {
+      throw error;
+    }
+
+    generationInput = await prepareActionContentForGeneration(
+      actionInput.content,
+      action.prompt,
+      selectedModel,
+      reasoningConfig,
+      { forceChunking: true }
+    );
+    generatedContent = await reasoningService.processText(
+      generationInput.content,
+      selectedModel,
+      null,
+      reasoningConfig
+    );
+  }
   if (!hasGeneratedActionContent(generatedContent)) {
     throw new Error("Action generated empty content");
   }

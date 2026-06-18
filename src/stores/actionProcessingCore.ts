@@ -176,6 +176,34 @@ export function splitActionContentIntoChunks(content: string, maxChunkLength = 2
   return chunks;
 }
 
+const LONG_ACTION_CONTENT_THRESHOLD = 36_000;
+const UNKNOWN_CONTEXT_DIRECT_CHAR_LIMIT = 220_000;
+const OUTPUT_TOKEN_RESERVE = 12_000;
+const ESTIMATED_CHARS_PER_TOKEN = 1.33;
+
+interface ChunkDecisionInput {
+  content: string;
+  contextLength?: number | null;
+}
+
+function estimateInputTokens(content: string): number {
+  return Math.ceil(String(content || "").length / ESTIMATED_CHARS_PER_TOKEN);
+}
+
+export function shouldUseChunkedActionInput({
+  content,
+  contextLength,
+}: ChunkDecisionInput): boolean {
+  const length = String(content || "").length;
+  if (length <= LONG_ACTION_CONTENT_THRESHOLD) return false;
+
+  if (typeof contextLength === "number" && contextLength > 0) {
+    return estimateInputTokens(content) + OUTPUT_TOKEN_RESERVE > contextLength;
+  }
+
+  return length > UNKNOWN_CONTEXT_DIRECT_CHAR_LIMIT;
+}
+
 export function validateActionUpdateResult(
   result: unknown,
   fallbackMessage = "Action result was not saved"

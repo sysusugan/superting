@@ -6,6 +6,7 @@ import {
   buildActionOutputUpdates,
   buildWriteNoteContentUpdates,
   formatActionTitleDatePrefix,
+  shouldUseChunkedActionInput,
   splitActionContentIntoChunks,
   shouldAutoGenerateActionTitle,
   shouldGenerateTitleForExplicitAction,
@@ -124,6 +125,35 @@ test("long note action content is split into bounded chunks", () => {
     true
   );
   assert.equal(chunks.join("\n\n").includes("段落8"), true);
+});
+
+test("large-context models receive 180k-character note actions directly", () => {
+  assert.equal(
+    shouldUseChunkedActionInput({
+      content: "内容".repeat(92_500),
+      contextLength: 262_144,
+    }),
+    false
+  );
+});
+
+test("small-context models still use chunked note actions for long transcripts", () => {
+  assert.equal(
+    shouldUseChunkedActionInput({
+      content: "内容".repeat(92_500),
+      contextLength: 32_768,
+    }),
+    true
+  );
+});
+
+test("unknown-context models try moderately long note actions directly before fallback", () => {
+  assert.equal(
+    shouldUseChunkedActionInput({
+      content: "内容".repeat(92_500),
+    }),
+    false
+  );
 });
 
 test("note action writes must fail when the note update did not persist", () => {
