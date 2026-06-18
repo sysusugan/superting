@@ -27,3 +27,12 @@ declare module "*.gif" {
   const src: string;
   export default src;
 }
+
+declare module "mammoth/mammoth.browser.js" {
+  export interface MammothResult {
+    value: string;
+    messages: unknown[];
+  }
+
+  export function extractRawText(input: { arrayBuffer: ArrayBuffer }): Promise<MammothResult>;
+}

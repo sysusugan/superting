@@ -85,6 +85,11 @@ import {
 } from "../../utils/transcriptSpeakerState";
 import { parseImportedTranscriptTxt } from "../../utils/importTranscriptTxt";
 import {
+  isSupportedTranscriptImportFileName,
+  readImportedTranscriptFileText,
+  TRANSCRIPT_IMPORT_ACCEPT,
+} from "../../utils/importTranscriptFile";
+import {
   assignSpeakerGroupName,
   filterTranscriptSegmentsBySpeaker,
   getTranscriptSpeakerFilterOptions,
@@ -1494,15 +1499,23 @@ export default function NoteEditor({
 
   const importTranscriptFile = useCallback(
     async (file: File) => {
-      const name = file.name.toLowerCase();
-      if (!name.endsWith(".txt") && !name.endsWith(".md") && !name.endsWith(".markdown")) {
+      if (!isSupportedTranscriptImportFileName(file.name)) {
         toast({
           title: t("notes.editor.transcriptImportUnsupported"),
           variant: "destructive",
         });
         return;
       }
-      await importTranscriptText(await file.text());
+
+      try {
+        await importTranscriptText(await readImportedTranscriptFileText(file));
+      } catch (error) {
+        toast({
+          title: t("notes.editor.transcriptImportFailed"),
+          description: error instanceof Error ? error.message : undefined,
+          variant: "destructive",
+        });
+      }
     },
     [importTranscriptText, t, toast]
   );
@@ -2155,7 +2168,7 @@ export default function NoteEditor({
                   type="file"
                   accept={
                     queuedImportTarget === "transcript"
-                      ? ".txt,.md,.markdown,text/plain,text/markdown"
+                      ? TRANSCRIPT_IMPORT_ACCEPT
                       : ".txt,.md,.markdown,.docx,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   }
                   className="hidden"
