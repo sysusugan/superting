@@ -6,8 +6,6 @@ import {
   buildActionOutputUpdates,
   buildWriteNoteContentUpdates,
   formatActionTitleDatePrefix,
-  shouldUseChunkedActionInput,
-  splitActionContentIntoChunks,
   shouldAutoGenerateActionTitle,
   shouldGenerateTitleForExplicitAction,
   validateActionUpdateResult,
@@ -108,51 +106,6 @@ test("chat answer writes append to enhanced content without action metadata", ()
     {
       enhanced_content: "existing enhanced\n\nAI answer",
     }
-  );
-});
-
-test("long note action content is split into bounded chunks", () => {
-  const content = Array.from(
-    { length: 9 },
-    (_, index) => `段落${index} ${"内容".repeat(6000)}`
-  ).join("\n\n");
-
-  const chunks = splitActionContentIntoChunks(content, 20_000);
-
-  assert.equal(chunks.length > 1, true);
-  assert.equal(
-    chunks.every((chunk) => chunk.length <= 20_000),
-    true
-  );
-  assert.equal(chunks.join("\n\n").includes("段落8"), true);
-});
-
-test("large-context models receive 180k-character note actions directly", () => {
-  assert.equal(
-    shouldUseChunkedActionInput({
-      content: "内容".repeat(92_500),
-      contextLength: 262_144,
-    }),
-    false
-  );
-});
-
-test("small-context models still use chunked note actions for long transcripts", () => {
-  assert.equal(
-    shouldUseChunkedActionInput({
-      content: "内容".repeat(92_500),
-      contextLength: 32_768,
-    }),
-    true
-  );
-});
-
-test("unknown-context models try moderately long note actions directly before fallback", () => {
-  assert.equal(
-    shouldUseChunkedActionInput({
-      content: "内容".repeat(92_500),
-    }),
-    false
   );
 });
 
