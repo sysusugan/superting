@@ -763,10 +763,10 @@ export function MeetingTranscriptChat({
       <div className="h-full relative">
         <div
           ref={scrollRef}
-          className="h-full overflow-y-auto bg-slate-50/40 px-8 pt-6 pb-24 agent-chat-scroll"
+          className="h-full overflow-y-auto bg-slate-50/40 px-8 pt-4 pb-20 agent-chat-scroll"
           data-transcript-mode="live"
         >
-          <div className="mx-auto flex max-w-5xl flex-col gap-7">
+          <div className="mx-auto flex max-w-5xl flex-col gap-4">
             {liveItems.map((item) => {
               const timestampLabel =
                 !item.pending && item.timestamp != null
@@ -785,13 +785,13 @@ export function MeetingTranscriptChat({
                   data-live-transcript-pending={item.pending ? "true" : undefined}
                 >
                   {timestampLabel && (
-                    <div className="mb-3 text-xs tabular-nums leading-none text-slate-400">
+                    <div className="mb-1.5 text-xs tabular-nums leading-none text-slate-400">
                       {timestampLabel}
                     </div>
                   )}
                   <p
                     className={cn(
-                      "whitespace-pre-wrap text-sm leading-7 tracking-normal text-slate-900",
+                      "whitespace-pre-wrap text-sm leading-6 tracking-normal text-slate-900",
                       item.pending && "text-slate-500"
                     )}
                   >
@@ -828,10 +828,10 @@ export function MeetingTranscriptChat({
       )}
       <div
         ref={scrollRef}
-        className="h-full overflow-y-auto bg-white px-8 pt-4 pb-20 agent-chat-scroll"
+        className="h-full overflow-y-auto bg-white px-8 pt-3 pb-16 agent-chat-scroll"
         data-transcript-mode="final"
       >
-        <div className="mx-auto flex max-w-5xl flex-col gap-3">
+        <div className="mx-auto flex max-w-5xl flex-col gap-2">
           {(isEditing ? segments : speakerBlocks).map((item, i) => {
             const blockSegments = "segments" in item ? item.segments : [item];
             const segment = blockSegments[0];
@@ -935,7 +935,7 @@ export function MeetingTranscriptChat({
                   .filter(Boolean)
                   .join(" ")}
                 className={cn(
-                  "group grid grid-cols-[10px_minmax(0,1fr)] gap-3 border-l-2 border-transparent px-2 py-1.5 transition-colors",
+                  "group grid grid-cols-[10px_minmax(0,1fr)] gap-3 border-l-2 border-transparent px-2 py-1 transition-colors",
                   onSeekToSegment && "cursor-pointer hover:bg-slate-50/80",
                   isActiveSegment && "border-l-indigo-500 bg-indigo-50/70"
                 )}
@@ -978,7 +978,7 @@ export function MeetingTranscriptChat({
                   ) : (
                     <div
                       className={cn(
-                        "mt-1 whitespace-pre-wrap text-[13px] leading-[1.65] text-slate-950 transition-colors",
+                        "mt-0.5 whitespace-pre-wrap text-[13px] leading-6 text-slate-950 transition-colors",
                         isActiveSegment && "bg-indigo-50/50"
                       )}
                     >
