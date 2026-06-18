@@ -136,3 +136,53 @@ export function buildWriteNoteContentUpdates({
 
   return outputTarget === "content" ? { content: nextContent } : { enhanced_content: nextContent };
 }
+
+export function splitActionContentIntoChunks(content: string, maxChunkLength = 24_000): string[] {
+  const normalized = String(content || "").trim();
+  if (!normalized) return [];
+  if (normalized.length <= maxChunkLength) return [normalized];
+
+  const chunks: string[] = [];
+  let current = "";
+
+  const pushCurrent = () => {
+    const trimmed = current.trim();
+    if (trimmed) chunks.push(trimmed);
+    current = "";
+  };
+
+  for (const paragraph of normalized.split(/\n{2,}/)) {
+    const trimmed = paragraph.trim();
+    if (!trimmed) continue;
+
+    if (trimmed.length > maxChunkLength) {
+      pushCurrent();
+      for (let index = 0; index < trimmed.length; index += maxChunkLength) {
+        chunks.push(trimmed.slice(index, index + maxChunkLength));
+      }
+      continue;
+    }
+
+    const candidate = current ? `${current}\n\n${trimmed}` : trimmed;
+    if (candidate.length > maxChunkLength) {
+      pushCurrent();
+      current = trimmed;
+    } else {
+      current = candidate;
+    }
+  }
+
+  pushCurrent();
+  return chunks;
+}
+
+export function validateActionUpdateResult(
+  result: unknown,
+  fallbackMessage = "Action result was not saved"
+): void {
+  const value = result as { success?: boolean; note?: unknown; error?: string } | null | undefined;
+  if (value?.success && value.note) return;
+
+  const detail = value?.error ? `: ${value.error}` : "";
+  throw new Error(`${fallbackMessage}${detail}`);
+}

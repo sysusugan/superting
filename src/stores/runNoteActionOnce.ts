@@ -14,7 +14,11 @@ import {
   buildActionOutputUpdates,
   hasGeneratedActionContent,
   shouldGenerateTitleForExplicitAction,
+  splitActionContentIntoChunks,
 } from "./actionProcessingCore";
+
+const LONG_ACTION_CONTENT_THRESHOLD = 36_000;
+const LONG_ACTION_CHUNK_SIZE = 12_000;
 
 interface RunNoteActionOnceInput {
   note: Pick<
@@ -33,6 +37,57 @@ interface RunNoteActionOnceInput {
 export interface RunNoteActionOnceResult {
   generatedContent: string;
   updates: Record<string, string | null>;
+}
+
+function buildChunkSummaryPrompt(actionPrompt: string, chunkIndex: number, totalChunks: number) {
+  return [
+    "你是一名会议转写内容整理助手。",
+    "当前输入是一段超长会议转写的其中一部分。请只基于本段内容提炼事实，不要补充未出现的信息。",
+    "请保留关键议题、结论、待办、负责人、时间节点、风险和可用于最终会议纪要的细节。",
+    "如果本段有时间戳，请保留时间线线索。",
+    "输出要精炼但信息密度高，供后续合并成完整会议纪要。",
+    "",
+    `分段：${chunkIndex + 1}/${totalChunks}`,
+    "",
+    "最终用户动作要求如下，分段摘要应服务于该目标：",
+    actionPrompt,
+  ].join("\n");
+}
+
+function buildMergedSummaryInput(summaries: string[]) {
+  return [
+    "## 分段会议事实摘要",
+    "",
+    "以下内容来自同一场超长会议转写的分段事实摘要。请基于这些摘要完成用户要求的最终输出；不要编造摘要中没有的信息。",
+    "",
+    ...summaries.map((summary, index) => `### 分段 ${index + 1}\n${summary.trim()}`),
+  ].join("\n\n");
+}
+
+async function prepareActionContentForGeneration(
+  content: string,
+  actionPrompt: string,
+  selectedModel: string,
+  reasoningConfig: ReasoningConfig
+): Promise<string> {
+  if (content.length <= LONG_ACTION_CONTENT_THRESHOLD) return content;
+
+  const chunks = splitActionContentIntoChunks(content, LONG_ACTION_CHUNK_SIZE);
+  if (chunks.length <= 1) return content;
+
+  const summaries: string[] = [];
+  for (let index = 0; index < chunks.length; index += 1) {
+    const summary = await reasoningService.processText(chunks[index], selectedModel, null, {
+      ...reasoningConfig,
+      systemPrompt: buildChunkSummaryPrompt(actionPrompt, index, chunks.length),
+    });
+    if (!hasGeneratedActionContent(summary)) {
+      throw new Error(`Action generated empty summary for chunk ${index + 1}`);
+    }
+    summaries.push(summary.trim());
+  }
+
+  return buildMergedSummaryInput(summaries);
 }
 
 export async function runNoteActionOnce({
@@ -84,8 +139,15 @@ export async function runNoteActionOnce({
     throw new Error("No AI model selected");
   }
 
-  const generatedContent = await reasoningService.processText(
+  const generationInput = await prepareActionContentForGeneration(
     actionInput.content,
+    action.prompt,
+    selectedModel,
+    reasoningConfig
+  );
+
+  const generatedContent = await reasoningService.processText(
+    generationInput,
     selectedModel,
     null,
     reasoningConfig
@@ -112,7 +174,8 @@ export async function runNoteActionOnce({
       settings.uiLanguage,
       reasoningConfig
     );
-    if (title) updates.title = applyActionTitleDatePrefix(title, note.recorded_at || note.created_at);
+    if (title)
+      updates.title = applyActionTitleDatePrefix(title, note.recorded_at || note.created_at);
   }
 
   return { generatedContent, updates };

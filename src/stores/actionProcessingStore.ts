@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { ActionItem } from "../types/electron";
-import { type ActionOutputTarget } from "./actionProcessingCore";
+import { type ActionOutputTarget, validateActionUpdateResult } from "./actionProcessingCore";
 import { runNoteActionOnce } from "./runNoteActionOnce";
 
 export type ActionProcessingStatus = "idle" | "processing" | "success";
@@ -120,7 +120,8 @@ export function runBackgroundAction(
 
       if (cancelledFlags.get(noteId)) return;
 
-      await window.electronAPI.updateNote(noteId, updates);
+      const updateResult = await window.electronAPI.updateNote(noteId, updates);
+      validateActionUpdateResult(updateResult, labels.actionFailed);
 
       setNoteState(noteId, { status: "success", actionName: action.name });
 
