@@ -11,7 +11,7 @@ import {
 import { cn } from "../lib/utils";
 import logger from "../../utils/logger";
 
-const PROJECT_URL = "https://github.com/sysusugan/openwhispr";
+const PROJECT_URL = "https://github.com/sysusugan/superting";
 const PROJECT_DOCS_URL = `${PROJECT_URL}#readme`;
 const PROJECT_DISCUSSIONS_URL = `${PROJECT_URL}/discussions`;
 const PROJECT_ISSUES_URL = `${PROJECT_URL}/issues`;

@@ -16,9 +16,9 @@ configured release repository:
 - `windows-key-listener.exe`: `scripts/download-windows-key-listener.js`
 - `windows-mic-listener.exe`: `scripts/download-windows-mic-listener.js`
 
-During the pre-rename cutover, the default release repository is
-`sysusugan/openwhispr`. Override it with `SUPERTING_RELEASE_REPO`. After the
-GitHub repository is renamed, change the default to `sysusugan/superting`.
+SuperTing release artifacts are downloaded from `sysusugan/superting` by
+default. Override the default with `SUPERTING_RELEASE_REPO` when testing a
+fork or pinning to a different release.
 
 ## Whisper Server Runtime
 

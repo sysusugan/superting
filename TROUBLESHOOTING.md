@@ -173,7 +173,7 @@ For detailed diagnostics, see [DEBUG.md](DEBUG.md).
 
 1. Enable debug mode and reproduce the issue
 2. Collect diagnostic output from commands above
-3. Open an issue at https://github.com/sysusugan/openwhispr/issues with:
+3. Open an issue at https://github.com/sysusugan/superting/issues with:
    - OS version
    - SuperTing version
    - Relevant log sections

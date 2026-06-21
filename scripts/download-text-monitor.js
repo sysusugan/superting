@@ -16,7 +16,7 @@ const {
   setExecutable,
 } = require("./lib/download-utils");
 
-const REPO = process.env.SUPERTING_RELEASE_REPO || "sysusugan/openwhispr";
+const REPO = process.env.SUPERTING_RELEASE_REPO || "sysusugan/superting";
 const BIN_DIR = path.join(__dirname, "..", "resources", "bin");
 
 const PLATFORM_CONFIG = {
