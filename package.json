@@ -30,7 +30,7 @@
     "prebuild": "npm run compile:native && npm run download:whisper-cpp && npm run download:llama-server && npm run download:sherpa-onnx && npm run download:qdrant && npm run download:meeting-aec-helper && npm run download:whisper-vad-model && npm run download:embedding-model -- --for-build && npm run download:diarization-models -- --output-dir resources/bin/diarization-models",
     "build": "cd src && vite build && cd .. && electron-builder",
     "clean:pack-output": "node scripts/clean-pack-output.js",
-    "rebuild:electron-native": "electron-builder install-app-deps",
+    "rebuild:electron-native": "node scripts/sqlite-abi.js rebuild-electron && electron-builder install-app-deps",
     "verify:electron-native": "node scripts/verify-electron-native-deps.js",
     "verify:packaged-native": "node scripts/verify-electron-native-deps.js --packaged",
     "postinstall": "npm run rebuild:electron-native",
@@ -77,7 +77,10 @@
     "quality-check": "npm run format:check && npm run typecheck",
     "i18n:check": "node scripts/check-i18n.js",
     "preview": "cd src && vite preview",
-    "clean": "node cleanup.js"
+    "clean": "node cleanup.js",
+    "test": "node scripts/sqlite-abi.js check && node --test \"test/**/*.test.js\" \"test/**/*.test.mjs\" \"test/**/*.test.ts\"",
+    "rebuild:node-native": "node scripts/sqlite-abi.js rebuild",
+    "check:sqlite-abi": "node scripts/sqlite-abi.js status"
   },
   "keywords": [
     "dictation",
