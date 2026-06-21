@@ -1034,8 +1034,11 @@ class DatabaseManager {
       if (fields.length === 0) return { success: false };
       fields.push("updated_at = CURRENT_TIMESTAMP");
       values.push(id);
-      const stmt = this.db.prepare(`UPDATE notes SET ${fields.join(", ")} WHERE id = ?`);
-      stmt.run(...values);
+      const stmt = this.db.prepare(
+        `UPDATE notes SET ${fields.join(", ")} WHERE id = ? AND deleted_at IS NULL`
+      );
+      const result = stmt.run(...values);
+      if (result.changes === 0) return { success: false };
       const fetchStmt = this.db.prepare("SELECT * FROM notes WHERE id = ?");
       const note = fetchStmt.get(id);
       return { success: true, note };

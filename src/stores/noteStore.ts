@@ -103,6 +103,10 @@ export function addNote(note: NoteItem): void {
 
 export function updateNoteInStore(note: NoteItem): void {
   if (!note) return;
+  if (note.deleted_at) {
+    removeNote(note.id);
+    return;
+  }
   const { notes, activeFolderId } = useNoteStore.getState();
   if (activeFolderId && note.folder_id !== activeFolderId) return;
   const hasExisting = notes.some((existing) => existing.id === note.id);

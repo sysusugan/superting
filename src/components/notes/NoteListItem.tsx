@@ -5,6 +5,7 @@ import {
   FolderOpen,
   Trash2,
   Check,
+  Loader2,
   Plus,
   Search,
   ExternalLink,
@@ -23,6 +24,7 @@ import {
 import { cn } from "../lib/utils";
 import type { NoteItem, FolderItem } from "../../types/electron";
 import { normalizeDbDate } from "../../utils/dateFormatting";
+import { useActionProcessingStore } from "../../stores/actionProcessingStore";
 
 const RE_HEADING = /#{1,6}\s+/g;
 const RE_EMPHASIS = /[*_~`]+/g;
@@ -102,6 +104,8 @@ export default function NoteListItem({
 }: NoteListItemProps) {
   const { t } = useTranslation();
   const preview = stripMarkdown(note.content);
+  const actionState = useActionProcessingStore((state) => state.noteStates[note.id] ?? null);
+  const isProcessingAction = actionState?.status === "processing";
   const [folderSearch, setFolderSearch] = useState("");
   const [newFolderName, setNewFolderName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -326,11 +330,18 @@ export default function NoteListItem({
               )}
             </div>
           </div>
-          {preview && (
+          {isProcessingAction ? (
+            <p className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden truncate text-xs text-primary">
+              <Loader2 size={10} className="shrink-0 animate-spin" />
+              <span className="truncate">
+                {actionState.actionName || t("notes.editor.processing")}
+              </span>
+            </p>
+          ) : preview ? (
             <p className="mt-0.5 min-w-0 overflow-hidden truncate text-xs text-muted-foreground">
               {preview}
             </p>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

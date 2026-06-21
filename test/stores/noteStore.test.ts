@@ -60,3 +60,23 @@ test("initial note loads do not overwrite a newer note update that arrived while
   assert.equal(getNotesValue()[0]?.content, savedNote.content);
   assert.equal(getNotesValue()[0]?.updated_at, savedNote.updated_at);
 });
+
+test("deleted note update removes the note instead of re-adding it", async () => {
+  Object.defineProperty(globalThis, "window", {
+    value: {
+      addEventListener: () => {},
+      electronAPI: {
+        getNotes: async () => [createNote()],
+      },
+    },
+    configurable: true,
+  });
+
+  const { initializeNotes, updateNoteInStore, getNotesValue } =
+    await import("../../src/stores/noteStore.ts");
+
+  await initializeNotes(null, 50, 1);
+  updateNoteInStore(createNote({ deleted_at: "2026-06-21 10:00:00" }));
+
+  assert.deepEqual(getNotesValue(), []);
+});

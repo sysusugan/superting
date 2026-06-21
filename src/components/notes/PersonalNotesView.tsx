@@ -889,12 +889,25 @@ export default function PersonalNotesView({
         clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = null;
       }
-      await deleteNoteAndRefresh({
+      if (enhancedSaveTimeoutRef.current) {
+        clearTimeout(enhancedSaveTimeoutRef.current);
+        enhancedSaveTimeoutRef.current = null;
+      }
+      const result = await deleteNoteAndRefresh({
         noteId: id,
         deleteNote: window.electronAPI.deleteNote,
         removeNote,
         loadFolders,
       });
+      if (result.success && id === activeNoteRef.current) {
+        markNoteAsSynced(null);
+        setLocalTitle("");
+        setLocalContent("");
+        setLocalEnhancedContent(null);
+        localTitleRef.current = "";
+        localContentRef.current = "";
+        localEnhancedContentRef.current = null;
+      }
     },
     [loadFolders]
   );

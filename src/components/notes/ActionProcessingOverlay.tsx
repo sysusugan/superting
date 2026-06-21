@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Check } from "lucide-react";
 import { cn } from "../lib/utils";
 import type { ActionProcessingState } from "../../hooks/useActionProcessing";
+import { shouldShowActionProcessingOverlay } from "./actionProcessingOverlayState";
 
 interface ActionProcessingOverlayProps {
   state: ActionProcessingState;
@@ -14,26 +15,27 @@ export default function ActionProcessingOverlay({
   actionName,
 }: ActionProcessingOverlayProps) {
   const { t } = useTranslation();
-  const [visible, setVisible] = useState(false);
-  const [prevState, setPrevState] = useState(state);
-
-  if (state !== prevState) {
-    setPrevState(state);
-    if (state === "processing" || state === "success") {
-      setVisible(true);
-    }
-  }
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const wasActiveRef = useRef(state === "processing" || state === "success");
 
   useEffect(() => {
-    if (state !== "idle") return;
-    const id = setTimeout(() => setVisible(false), 300);
+    if (state !== "idle") {
+      wasActiveRef.current = true;
+      setIsFadingOut(false);
+      return;
+    }
+    if (!wasActiveRef.current) return;
+    setIsFadingOut(true);
+    const id = setTimeout(() => {
+      wasActiveRef.current = false;
+      setIsFadingOut(false);
+    }, 300);
     return () => clearTimeout(id);
   }, [state]);
 
-  if (!visible) return null;
+  if (!shouldShowActionProcessingOverlay(state, isFadingOut)) return null;
 
   const isSuccess = state === "success";
-  const isFadingOut = state === "idle";
 
   return (
     <div
