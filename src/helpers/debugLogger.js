@@ -11,6 +11,8 @@ const LOG_LEVELS = {
   fatal: 60,
 };
 
+const ALWAYS_LOG_SCOPES = new Set(["note-actions"]);
+
 const normalizeLevel = (value) => {
   if (!value) return null;
   const lower = String(value).toLowerCase();
@@ -201,10 +203,15 @@ class DebugLogger {
 
   write(level, message, meta, scope, source) {
     const normalized = normalizeLevel(level) || "info";
-    if (!this.shouldLog(normalized)) return;
+    const shouldAlwaysLog = scope && ALWAYS_LOG_SCOPES.has(String(scope));
+    if (!this.shouldLog(normalized) && !shouldAlwaysLog) return;
 
     // Try to initialize file logging if pending and app is ready
     if (this.fileLoggingPending && !this.fileLoggingEnabled) {
+      this.initializeFileLogging();
+    }
+
+    if (shouldAlwaysLog && !this.fileLoggingEnabled) {
       this.initializeFileLogging();
     }
 

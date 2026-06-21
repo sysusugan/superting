@@ -1550,8 +1550,48 @@ class IPCHandlers {
     });
 
     ipcMain.handle("db-update-note", async (event, id, updates) => {
+      const noteContentWriteFields = [
+        "title",
+        "content",
+        "enhanced_content",
+        "enhancement_prompt",
+        "enhanced_at_content_hash",
+      ].filter((field) => Object.prototype.hasOwnProperty.call(updates || {}, field));
+      if (noteContentWriteFields.length > 0) {
+        debugLogger.info(
+          "NOTE_UPDATE_WRITE_REQUEST",
+          {
+            noteId: id,
+            fields: noteContentWriteFields,
+            lengths: Object.fromEntries(
+              noteContentWriteFields.map((field) => [field, String(updates[field] ?? "").length])
+            ),
+          },
+          "note-actions",
+          "main"
+        );
+      }
       const result = this.databaseManager.updateNote(id, updates);
       if (result?.success && result?.note) {
+        if (noteContentWriteFields.length > 0) {
+          debugLogger.info(
+            "NOTE_UPDATE_WRITE_RESPONSE",
+            {
+              noteId: id,
+              fields: noteContentWriteFields,
+              note: {
+                id: result.note.id,
+                title: result.note.title,
+                contentLength: String(result.note.content ?? "").length,
+                enhancedContentLength: String(result.note.enhanced_content ?? "").length,
+                transcriptLength: String(result.note.transcript ?? "").length,
+                updatedAt: result.note.updated_at,
+              },
+            },
+            "note-actions",
+            "main"
+          );
+        }
         setImmediate(() => this.broadcastToWindows("note-updated", result.note));
         this._asyncVectorUpsert(result.note);
         this._asyncMirrorWrite(result.note);

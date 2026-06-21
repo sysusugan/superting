@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { ActionItem } from "../types/electron";
 import { type ActionOutputTarget, validateActionUpdateResult } from "./actionProcessingCore";
+import { loggableText, logNoteAction, makeNoteActionOperationId } from "./noteActionLogger";
 import { runNoteActionOnce } from "./runNoteActionOnce";
 
 export type ActionProcessingStatus = "idle" | "processing" | "success";
@@ -85,13 +86,56 @@ export function runBackgroundAction(
   options: RunActionOptions,
   labels: RunActionLabels
 ): void {
-  if (processingFlags.get(noteId)) return;
+  const operationId = makeNoteActionOperationId(noteId, action.id);
+  if (processingFlags.get(noteId)) {
+    logNoteAction(
+      "NOTE_ACTION_SKIPPED_ALREADY_PROCESSING",
+      {
+        operationId,
+        noteId,
+        actionId: action.id,
+        actionName: action.name,
+      },
+      "warn"
+    );
+    return;
+  }
 
   const modelId = options.modelId;
   if (!modelId && !options.isCloudMode) {
+    logNoteAction(
+      "NOTE_ACTION_SKIPPED_NO_MODEL",
+      {
+        operationId,
+        noteId,
+        actionId: action.id,
+        actionName: action.name,
+        isCloudMode: options.isCloudMode,
+      },
+      "error"
+    );
     pushErrorEvent({ noteId, message: labels.noModel });
     return;
   }
+
+  logNoteAction("NOTE_ACTION_START", {
+    operationId,
+    noteId,
+    actionId: action.id,
+    actionName: action.name,
+    outputTarget: action.output_target,
+    writeMode: action.write_mode,
+    modelId,
+    isCloudMode: options.isCloudMode,
+    currentTitle: options.currentTitle ?? null,
+    noteContentLength: noteContent.length,
+    contentHash,
+    currentContentLength: String(options.currentContent ?? "").length,
+    currentEnhancedContentLength: String(options.currentEnhancedContent ?? "").length,
+    currentTranscriptLength: String(options.currentTranscript ?? "").length,
+    currentRecordedAt: options.currentRecordedAt ?? null,
+    currentCreatedAt: options.currentCreatedAt ?? null,
+  });
 
   cancelledFlags.set(noteId, false);
   processingFlags.set(noteId, true);
@@ -103,7 +147,8 @@ export function runBackgroundAction(
 
   (async () => {
     try {
-      const { updates } = await runNoteActionOnce({
+      const { generatedContent, updates } = await runNoteActionOnce({
+        noteId,
         note: {
           title: options.currentTitle ?? "",
           content: options.currentContent ?? noteContent,
@@ -115,15 +160,51 @@ export function runBackgroundAction(
         action,
         modelId,
         isCloudMode: options.isCloudMode,
+        operationId,
         speakerLabels: options.speakerLabels ?? { you: "You", them: "Them" },
       });
 
-      if (cancelledFlags.get(noteId)) return;
+      if (cancelledFlags.get(noteId)) {
+        logNoteAction(
+          "NOTE_ACTION_CANCELLED_AFTER_MODEL_RESPONSE",
+          {
+            operationId,
+            noteId,
+            actionId: action.id,
+            actionName: action.name,
+            generatedContent: loggableText(generatedContent),
+            updates,
+          },
+          "warn"
+        );
+        return;
+      }
 
+      logNoteAction("NOTE_ACTION_DB_UPDATE_START", {
+        operationId,
+        noteId,
+        actionId: action.id,
+        actionName: action.name,
+        generatedContent: loggableText(generatedContent),
+        updates,
+      });
       const updateResult = await window.electronAPI.updateNote(noteId, updates);
+      logNoteAction("NOTE_ACTION_DB_UPDATE_RESPONSE", {
+        operationId,
+        noteId,
+        actionId: action.id,
+        actionName: action.name,
+        updateResult,
+      });
       validateActionUpdateResult(updateResult, labels.actionFailed);
 
       setNoteState(noteId, { status: "success", actionName: action.name });
+      logNoteAction("NOTE_ACTION_SUCCESS", {
+        operationId,
+        noteId,
+        actionId: action.id,
+        actionName: action.name,
+      });
 
       const timer = setTimeout(() => {
         processingFlags.set(noteId, false);
@@ -132,10 +213,35 @@ export function runBackgroundAction(
       }, 600);
       successTimers.set(noteId, timer);
     } catch (err) {
-      if (cancelledFlags.get(noteId)) return;
+      if (cancelledFlags.get(noteId)) {
+        logNoteAction(
+          "NOTE_ACTION_CANCELLED_AFTER_ERROR",
+          {
+            operationId,
+            noteId,
+            actionId: action.id,
+            actionName: action.name,
+            error: err instanceof Error ? err.message : String(err),
+          },
+          "warn"
+        );
+        return;
+      }
       processingFlags.set(noteId, false);
       clearNoteState(noteId);
       const message = err instanceof Error ? err.message : labels.actionFailed;
+      logNoteAction(
+        "NOTE_ACTION_ERROR",
+        {
+          operationId,
+          noteId,
+          actionId: action.id,
+          actionName: action.name,
+          error: message,
+          stack: err instanceof Error ? err.stack : undefined,
+        },
+        "error"
+      );
       pushErrorEvent({ noteId, message });
     } finally {
       cancelledFlags.delete(noteId);

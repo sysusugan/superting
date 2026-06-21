@@ -15,8 +15,10 @@ import {
   hasGeneratedActionContent,
   shouldGenerateTitleForExplicitAction,
 } from "./actionProcessingCore";
+import { loggableText, logNoteAction, makeNoteActionOperationId } from "./noteActionLogger";
 
 interface RunNoteActionOnceInput {
+  noteId?: number;
   note: Pick<
     NoteItem,
     "title" | "content" | "enhanced_content" | "transcript" | "recorded_at" | "created_at"
@@ -24,6 +26,7 @@ interface RunNoteActionOnceInput {
   action: ActionItem;
   modelId: string;
   isCloudMode: boolean;
+  operationId?: string;
   speakerLabels: {
     you: string;
     them: string;
@@ -36,18 +39,35 @@ export interface RunNoteActionOnceResult {
 }
 
 export async function runNoteActionOnce({
+  noteId,
   note,
   action,
   modelId,
   isCloudMode,
+  operationId,
   speakerLabels,
 }: RunNoteActionOnceInput): Promise<RunNoteActionOnceResult> {
+  const effectiveNoteId = noteId ?? -1;
+  const effectiveOperationId =
+    operationId ?? makeNoteActionOperationId(effectiveNoteId, action.id);
   const actionInput = buildNoteActionInput({
     noteContent: note.content,
     rawTranscript: note.transcript,
     speakerLabels,
   });
   if (!actionInput) {
+    logNoteAction(
+      "NOTE_ACTION_INPUT_EMPTY",
+      {
+        operationId: effectiveOperationId,
+        noteId: effectiveNoteId,
+        actionId: action.id,
+        actionName: action.name,
+        noteContentLength: String(note.content ?? "").length,
+        transcriptLength: String(note.transcript ?? "").length,
+      },
+      "warn"
+    );
     throw new Error("No note content or transcript available");
   }
 
@@ -81,8 +101,42 @@ export async function runNoteActionOnce({
   }
 
   if (!selectedModel && !reasoningConfig.lanUrl) {
+    logNoteAction(
+      "NOTE_ACTION_NO_MODEL",
+      {
+        operationId: effectiveOperationId,
+        noteId: effectiveNoteId,
+        actionId: action.id,
+        actionName: action.name,
+        resolvedMode: resolvedFormatting.mode,
+        provider: resolvedFormatting.provider || null,
+      },
+      "error"
+    );
     throw new Error("No AI model selected");
   }
+
+  logNoteAction("NOTE_ACTION_MODEL_REQUEST", {
+    operationId: effectiveOperationId,
+    noteId: effectiveNoteId,
+    actionId: action.id,
+    actionName: action.name,
+    outputTarget: action.output_target,
+    writeMode: action.write_mode,
+    selectedModel,
+    resolvedMode: resolvedFormatting.mode,
+    provider: resolvedFormatting.provider || null,
+    isCloudMode,
+    isHostedMode,
+    isMeetingNote: actionInput.isMeetingNote,
+    contentHash: actionInput.contentHash,
+    actionInputLength: actionInput.content.length,
+    noteContentLength: String(note.content ?? "").length,
+    transcriptLength: String(note.transcript ?? "").length,
+    enhancedContentLength: String(note.enhanced_content ?? "").length,
+    systemPromptLength: systemPrompt.length,
+    actionPrompt: action.prompt,
+  });
 
   const generatedContent = await reasoningService.processText(
     actionInput.content,
@@ -90,7 +144,27 @@ export async function runNoteActionOnce({
     null,
     reasoningConfig
   );
+  logNoteAction("NOTE_ACTION_MODEL_RESPONSE", {
+    operationId: effectiveOperationId,
+    noteId: effectiveNoteId,
+    actionId: action.id,
+    actionName: action.name,
+    selectedModel,
+    generatedContent: loggableText(generatedContent),
+  });
   if (!hasGeneratedActionContent(generatedContent)) {
+    logNoteAction(
+      "NOTE_ACTION_EMPTY_RESPONSE",
+      {
+        operationId: effectiveOperationId,
+        noteId: effectiveNoteId,
+        actionId: action.id,
+        actionName: action.name,
+        selectedModel,
+        generatedContent: loggableText(generatedContent),
+      },
+      "error"
+    );
     throw new Error("Action generated empty content");
   }
 
@@ -103,8 +177,23 @@ export async function runNoteActionOnce({
     actionPrompt: action.prompt,
     contentHash: actionInput.contentHash,
   });
+  logNoteAction("NOTE_ACTION_UPDATE_PAYLOAD", {
+    operationId: effectiveOperationId,
+    noteId: effectiveNoteId,
+    actionId: action.id,
+    actionName: action.name,
+    updates,
+  });
 
   if (shouldGenerateTitleForExplicitAction(note.title)) {
+    logNoteAction("NOTE_ACTION_TITLE_REQUEST", {
+      operationId: effectiveOperationId,
+      noteId: effectiveNoteId,
+      actionId: action.id,
+      actionName: action.name,
+      selectedModel,
+      generatedContentLength: generatedContent.length,
+    });
     const title = await generateNoteTitle(
       generatedContent,
       selectedModel,
@@ -112,9 +201,25 @@ export async function runNoteActionOnce({
       settings.uiLanguage,
       reasoningConfig
     );
+    logNoteAction("NOTE_ACTION_TITLE_RESPONSE", {
+      operationId: effectiveOperationId,
+      noteId: effectiveNoteId,
+      actionId: action.id,
+      actionName: action.name,
+      title,
+    });
     if (title)
       updates.title = applyActionTitleDatePrefix(title, note.recorded_at || note.created_at);
   }
+
+  logNoteAction("NOTE_ACTION_RESULT", {
+    operationId: effectiveOperationId,
+    noteId: effectiveNoteId,
+    actionId: action.id,
+    actionName: action.name,
+    generatedContent: loggableText(generatedContent),
+    updates,
+  });
 
   return { generatedContent, updates };
 }
