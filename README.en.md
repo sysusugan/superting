@@ -49,7 +49,7 @@ SuperTing turns your voice into text, notes, and actions from your desktop. Pres
 
 ```bash
 git clone https://github.com/sysusugan/superting.git
-cd openwhispr
+cd superting
 npm install
 npm run dev
 ```
