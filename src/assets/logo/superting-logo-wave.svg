@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="SuperTing Logo">
+  <title>SuperTing — Soundwave Ring</title>
+  <defs>
+    <linearGradient id="waveGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0f62fe"/>
+      <stop offset="100%" stop-color="#4589ff"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle (focus ring) -->
+  <circle cx="128" cy="128" r="112" fill="none" stroke="#0f62fe" stroke-width="6" opacity="0.18"/>
+  <circle cx="128" cy="128" r="92" fill="#0f62fe" opacity="0.06"/>
+
+  <!-- Soundwave bars, symmetric across vertical axis through center -->
+  <!-- Heights from outer to inner: 50, 78, 100, 78, 50 -->
+  <g stroke="url(#waveGrad)" stroke-width="10" stroke-linecap="round" fill="none">
+    <line x1="56"  y1="128" x2="56"  y2="178"/>
+    <line x1="86"  y1="128" x2="86"  y2="206"/>
+    <line x1="128" y1="118" x2="128" y2="138"/>
+    <line x1="170" y1="128" x2="170" y2="206"/>
+    <line x1="200" y1="128" x2="200" y2="178"/>
+  </g>
+
+  <!-- Top and bottom small dots to balance composition -->
+  <circle cx="128" cy="46"  r="4" fill="#0f62fe" opacity="0.5"/>
+  <circle cx="128" cy="210" r="4" fill="#0f62fe" opacity="0.5"/>
+</svg>
