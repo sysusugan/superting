@@ -51,7 +51,7 @@ test("local chat providers require at least 4B parameters for agent tools", () =
   );
 });
 
-test("OpenWhispr cloud agent always enables agent tools", () => {
+test("SuperTing cloud agent always enables agent tools", () => {
   assert.equal(
     shouldEnableChatTools({
       isCloudAgent: true,

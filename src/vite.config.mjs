@@ -24,7 +24,7 @@ const parseDevServerPort = (rawPort) => {
 export default defineConfig(({ mode }) => {
   const envDir = path.resolve(__dirname, "..");
   const env = loadEnv(mode, envDir, "");
-  const rawPort = env.VITE_DEV_SERVER_PORT || env.OPENWHISPR_DEV_SERVER_PORT;
+  const rawPort = env.VITE_DEV_SERVER_PORT || env.SUPERTING_DEV_SERVER_PORT;
   const devServerPort = parseDevServerPort(rawPort);
 
   return {
@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
         name: "write-runtime-env",
         writeBundle() {
           const runtimeEnv = {
-            VITE_OPENWHISPR_API_URL: env.VITE_OPENWHISPR_API_URL || "",
+            VITE_SUPERTING_API_URL: env.VITE_SUPERTING_API_URL || "",
             VITE_AUTH_URL: env.VITE_AUTH_URL || "",
           };
           fs.writeFileSync(

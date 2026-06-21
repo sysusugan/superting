@@ -79,7 +79,7 @@ const ALLOWED_MEETING_PROVIDERS = new Set([
   "assemblyai-realtime",
   "deepgram-realtime",
 ]);
-const NOTE_AUDIO_PROTOCOL = "openwhispr-note-audio";
+const NOTE_AUDIO_PROTOCOL = "superting-note-audio";
 
 function buildRuntimeDictionaryPrompt(words) {
   if (!Array.isArray(words) || words.length === 0) return null;
@@ -208,7 +208,7 @@ const CLOUD_CHUNK_CONCURRENCY = 5;
 const CLOUD_CHUNK_SEGMENT_SECONDS = 240;
 
 function buildMultipartBody(fileBuffer, fileName, contentType, fields = {}) {
-  const boundary = `----OpenWhispr${Date.now()}`;
+  const boundary = `----SuperTing${Date.now()}`;
   const parts = [];
 
   parts.push(
@@ -445,7 +445,7 @@ class IPCHandlers {
     this.linuxPortalAudioManager = managers.linuxPortalAudioManager;
     this.meetingAecManager = managers.meetingAecManager;
     this.oauthProtocolRegistered = managers.oauthProtocolRegistered === true;
-    this.oauthProtocol = managers.oauthProtocol || "openwhispr";
+    this.oauthProtocol = managers.oauthProtocol || "superting";
     this.sessionId = crypto.randomUUID();
     this.assemblyAiStreaming = null;
     this.deepgramStreaming = null;
@@ -1110,7 +1110,7 @@ class IPCHandlers {
                 })
             );
           }
-        } else if (settings?.cloudTranscriptionMode === "openwhispr") {
+        } else if (settings?.cloudTranscriptionMode === "superting") {
           const win = BrowserWindow.fromWebContents(event.sender);
           const authHeader = win ? await getAuthHeaderFromWindow(win) : {};
           const apiUrl = getApiUrl();
@@ -1136,7 +1136,7 @@ class IPCHandlers {
               authHeader,
               multipartFields,
             });
-            result = { text, source: "openwhispr", model: "cloud" };
+            result = { text, source: "superting", model: "cloud" };
           } else {
             const { body, boundary } = buildMultipartBody(
               buffer,
@@ -1153,7 +1153,7 @@ class IPCHandlers {
             const responseData = interpretTranscribeResponse(data);
             result = {
               text: responseData.text,
-              source: "openwhispr",
+              source: "superting",
               model: "cloud",
             };
           }
@@ -1229,8 +1229,8 @@ class IPCHandlers {
             ? settings.localTranscriptionProvider === "nvidia"
               ? "nvidia"
               : "whisper"
-            : settings?.cloudTranscriptionMode === "openwhispr"
-              ? "openwhispr"
+            : settings?.cloudTranscriptionMode === "superting"
+              ? "superting"
               : settings?.cloudTranscriptionProvider || "openai");
         const retryModel =
           result.model ||
@@ -1238,7 +1238,7 @@ class IPCHandlers {
             ? settings.localTranscriptionProvider === "nvidia"
               ? settings.parakeetModel || process.env.PARAKEET_MODEL || "parakeet-tdt-0.6b-v3"
               : settings.whisperModel
-            : settings?.cloudTranscriptionMode === "openwhispr"
+            : settings?.cloudTranscriptionMode === "superting"
               ? "cloud"
               : this._resolveByokModel(
                   settings?.cloudTranscriptionProvider || "openai",
@@ -2089,7 +2089,7 @@ class IPCHandlers {
         if (format === "pdf") {
           const markdown = inlineNoteAssetsForHtml(exportContent, this.databaseManager);
           const html = markdownToHtml(markdown, note.title);
-          const tempPath = path.join(os.tmpdir(), `openwhispr-note-${Date.now()}.html`);
+          const tempPath = path.join(os.tmpdir(), `superting-note-${Date.now()}.html`);
           const win = new BrowserWindow({
             show: false,
             webPreferences: {
@@ -2243,7 +2243,7 @@ class IPCHandlers {
             const html = markdownToHtml(markdown, note.title);
             const tempPath = path.join(
               os.tmpdir(),
-              `openwhispr-selected-note-${note.id}-${Date.now()}.html`
+              `superting-selected-note-${note.id}-${Date.now()}.html`
             );
             const win = new BrowserWindow({
               show: false,
@@ -3219,7 +3219,7 @@ class IPCHandlers {
 
       // Delete downloaded models
       try {
-        const whisperDir = path.join(os.homedir(), ".cache", "openwhispr", "whisper-models");
+        const whisperDir = path.join(os.homedir(), ".cache", "superting", "whisper-models");
         if (fs.existsSync(whisperDir)) fs.rmSync(whisperDir, { recursive: true, force: true });
       } catch (e) {
         errors.push(`Whisper models: ${e.message}`);
@@ -4604,7 +4604,7 @@ class IPCHandlers {
 
     ipcMain.handle(
       "auth-get-token",
-      () => tokenStore.get() || process.env.OPENWHISPR_API_TOKEN || ""
+      () => tokenStore.get() || process.env.SUPERTING_API_TOKEN || ""
     );
     ipcMain.handle("auth-set-token", (_event, token) => {
       if (typeof token === "string" && token) {
@@ -4633,9 +4633,9 @@ class IPCHandlers {
 
     const getApiUrl = () =>
       normalizeSelfHostedApiUrl(
-        process.env.OPENWHISPR_API_URL ||
-          process.env.VITE_OPENWHISPR_API_URL ||
-          runtimeEnv.VITE_OPENWHISPR_API_URL ||
+        process.env.SUPERTING_API_URL ||
+          process.env.VITE_SUPERTING_API_URL ||
+          runtimeEnv.VITE_SUPERTING_API_URL ||
           ""
       );
 
@@ -4681,7 +4681,7 @@ class IPCHandlers {
     };
 
     const getAuthHeaderFromWindow = async (win) => {
-      const token = tokenStore.get() || process.env.OPENWHISPR_API_TOKEN || "";
+      const token = tokenStore.get() || process.env.SUPERTING_API_TOKEN || "";
       if (token) return { Authorization: "Bearer " + token };
       const cookieHeader = win ? await getSessionCookiesFromWindow(win) : "";
       return cookieHeader ? { Cookie: cookieHeader } : {};
@@ -5537,7 +5537,7 @@ class IPCHandlers {
       const postServerToken = async (path, body = {}) => {
         const apiUrl = getApiUrl();
         if (!apiUrl) {
-          const err = new Error("OpenWhispr API URL not configured");
+          const err = new Error("SuperTing API URL not configured");
           err.code = "NO_API";
           throw err;
         }
@@ -8572,7 +8572,7 @@ class IPCHandlers {
 
     const tmpWav = path.join(
       os.tmpdir(),
-      `openwhispr-rediarize-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.wav`
+      `superting-rediarize-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.wav`
     );
     await convertToWav(audioPath, tmpWav, { sampleRate: 16000, channels: 1 });
     return tmpWav;

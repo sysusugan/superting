@@ -7,7 +7,7 @@ const path = require("node:path");
 const DatabaseManager = require("../../src/helpers/database");
 
 function createDatabase(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-soft-delete-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-soft-delete-"));
   const db = new DatabaseManager({ dbPath: path.join(root, "transcriptions.db") });
   t.after(() => {
     db.cleanup();

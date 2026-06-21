@@ -7,7 +7,7 @@ const path = require("node:path");
 const DatabaseManager = require("../../src/helpers/database");
 
 function createDatabase(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-actions-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-actions-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const db = new DatabaseManager({ dbPath: path.join(root, "transcriptions.db") });
@@ -72,7 +72,7 @@ test("database seeds four default actions with only meeting minutes built in", (
 });
 
 test("database seeding preserves user edits to built-in meeting minutes action", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-actions-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-actions-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const dbPath = path.join(root, "transcriptions.db");
   const customPrompt = "Use my company-specific meeting minutes format.";

@@ -1,6 +1,6 @@
 # Network Allowlist
 
-Outbound hosts the OpenWhispr desktop app may contact in the open-source build.
+Outbound hosts the SuperTing desktop app may contact in the open-source build.
 All connections are client-initiated over TLS. No inbound ports are required.
 
 ## Required by default

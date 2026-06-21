@@ -29,14 +29,14 @@
 
 **macOS:**
 1. Open System Settings → Privacy & Security → Microphone
-2. Ensure OpenWhispr is listed and enabled
+2. Ensure SuperTing is listed and enabled
 3. If not listed, click "Grant Access" in the app to trigger the permission prompt
 4. You can also click "Open Microphone Privacy" button in the app
 
 **Windows:**
 1. Open Settings → Privacy → Microphone
 2. Ensure "Allow apps to access your microphone" is ON
-3. Ensure OpenWhispr is listed and enabled
+3. Ensure SuperTing is listed and enabled
 4. You can also click "Open Privacy Settings" button in the app
 
 **Linux:**
@@ -80,7 +80,7 @@
 3. If bundled binary fails, install via package manager:
    - macOS: `brew install whisper-cpp`
    - Linux: Build from source at https://github.com/ggml-org/whisper.cpp
-4. Clear model cache: `rm -rf ~/.cache/openwhispr/whisper-models`
+4. Clear model cache: `rm -rf ~/.cache/superting/whisper-models`
 5. Try cloud transcription as fallback
 
 ### Wayland Clipboard Issues (Linux)
@@ -95,9 +95,9 @@
    - Fedora/RHEL: `sudo dnf install wl-clipboard`
    - Arch: `sudo pacman -S wl-clipboard`
 2. Ensure a paste tool is installed (`xdotool` recommended, or `wtype` for Sway/Hyprland, or `ydotool` with daemon)
-3. Restart OpenWhispr after installing
+3. Restart SuperTing after installing
 
-OpenWhispr tries clipboard methods in order: `wl-copy` (most reliable) → renderer `navigator.clipboard` → X11 fallback.
+SuperTing tries clipboard methods in order: `wl-copy` (most reliable) → renderer `navigator.clipboard` → X11 fallback.
 
 ### Linux System Audio Portal Issues
 
@@ -107,14 +107,14 @@ OpenWhispr tries clipboard methods in order: `wl-copy` (most reliable) → rende
 1. Update `xdg-desktop-portal` and the matching desktop backend for your session (`xdg-desktop-portal-gnome`, `xdg-desktop-portal-kde`, `xdg-desktop-portal-wlr`, etc.)
 2. Sign out and back in after updating portal packages
 3. Re-run system audio capture and complete the chooser again
-4. Expect the chooser to appear on Linux while OpenWhispr is using the standard browser portal path; some desktops may support more persistent portal behavior later, but fallback capture should still work
+4. Expect the chooser to appear on Linux while SuperTing is using the standard browser portal path; some desktops may support more persistent portal behavior later, but fallback capture should still work
 
 ### Meeting Transcription Issues
 
 **Symptoms:** Meeting detection not working, no transcription, audio not captured
 
 **macOS:**
-1. Grant Screen Recording permission: System Settings → Privacy & Security → Screen Recording → enable OpenWhispr
+1. Grant Screen Recording permission: System Settings → Privacy & Security → Screen Recording → enable SuperTing
 2. Restart the app after granting permission
 3. Ensure Google Calendar is connected in Integrations
 
@@ -138,32 +138,32 @@ OpenWhispr tries clipboard methods in order: `wl-copy` (most reliable) → rende
 ### Windows-Specific Issues
 
 **No window appears (process running in Task Manager but invisible):**
-1. Check the system tray (click the `^` caret) for the OpenWhispr icon
-2. Run with debug logging: `OpenWhispr.exe --log-level=debug`
-3. Try disabling GPU acceleration: `OpenWhispr.exe --disable-gpu`
+1. Check the system tray (click the `^` caret) for the SuperTing icon
+2. Run with debug logging: `SuperTing.exe --log-level=debug`
+3. Try disabling GPU acceleration: `SuperTing.exe --disable-gpu`
 
 **Antivirus / Windows Defender blocking binaries:**
 
-whisper.cpp and FFmpeg may be quarantined silently. Add OpenWhispr to exclusions: Settings → Virus & threat protection → Exclusions.
+whisper.cpp and FFmpeg may be quarantined silently. Add SuperTing to exclusions: Settings → Virus & threat protection → Exclusions.
 
 **Permission errors:**
 
-Right-click OpenWhispr → Run as administrator (or set permanently in Properties → Compatibility).
+Right-click SuperTing → Run as administrator (or set permanently in Properties → Compatibility).
 
 **Firewall blocking cloud mode:**
 
-Allow OpenWhispr through Windows Firewall when using cloud transcription providers.
+Allow SuperTing through Windows Firewall when using cloud transcription providers.
 
 **Complete reset (after uninstalling):**
 
 ```batch
-rd /s /q "%APPDATA%\OpenWhispr"
-rd /s /q "%LOCALAPPDATA%\OpenWhispr"
+rd /s /q "%APPDATA%\SuperTing"
+rd /s /q "%LOCALAPPDATA%\SuperTing"
 ```
 
 Then reinstall.
 
-**Logs location:** `%APPDATA%\OpenWhispr\logs\`
+**Logs location:** `%APPDATA%\SuperTing\logs\`
 
 ## Enable Debug Mode
 
@@ -173,8 +173,8 @@ For detailed diagnostics, see [DEBUG.md](DEBUG.md).
 
 1. Enable debug mode and reproduce the issue
 2. Collect diagnostic output from commands above
-3. Open an issue at https://github.com/OpenWhispr/openwhispr/issues with:
+3. Open an issue at https://github.com/sysusugan/openwhispr/issues with:
    - OS version
-   - OpenWhispr version
+   - SuperTing version
    - Relevant log sections
    - Steps to reproduce

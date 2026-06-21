@@ -4,8 +4,8 @@ import { CopyableCommand } from "./ui/CopyableCommand";
 import { LogoTile } from "./ui/LogoTile";
 import logo from "../assets/logo.svg";
 
-const INSTALL_CMD = "npm install -g @openwhispr/cli";
-const LOCAL_EXAMPLE = "openwhispr --local notes list";
+const INSTALL_CMD = "npm install -g @superting/cli";
+const LOCAL_EXAMPLE = "superting --local notes list";
 
 export default function CliIntegrationCard() {
   const { t } = useTranslation();
@@ -13,7 +13,7 @@ export default function CliIntegrationCard() {
   return (
     <div className="rounded-md border border-border/60 bg-background p-4">
       <div className="flex items-center gap-2 mb-4">
-        <LogoTile src={logo} alt="OpenWhispr" />
+        <LogoTile src={logo} alt="SuperTing" />
         <div className="w-9 h-9 rounded-lg bg-white dark:bg-surface-raised shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none dark:border dark:border-white/5 flex items-center justify-center shrink-0">
           <Terminal className="w-4 h-4 text-foreground/70" strokeWidth={2} />
         </div>

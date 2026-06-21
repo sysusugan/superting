@@ -4,7 +4,7 @@
       "sectionTitle": "言語",
       "sectionDescription": "インターフェースと文字起こしの言語を個別に設定",
       "uiLabel": "インターフェース言語",
-      "uiDescription": "OpenWhispr のインターフェースで使用する言語を選択",
+      "uiDescription": "SuperTing のインターフェースで使用する言語を選択",
       "transcriptionLabel": "文字起こし言語",
       "transcriptionDescription": "より正確な文字起こしのために話す言語を選択"
     },
@@ -33,12 +33,12 @@
       "hide": "ディクテーションパネルを非表示"
     },
     "openControlPanel": "コントロールパネルを開く",
-    "quit": "OpenWhispr を終了",
-    "tooltip": "OpenWhispr - 音声ディクテーション"
+    "quit": "SuperTing を終了",
+    "tooltip": "SuperTing - 音声ディクテーション"
   },
   "menu": {
-    "appLabel": "OpenWhispr",
-    "quit": "OpenWhispr を終了",
+    "appLabel": "SuperTing",
+    "quit": "SuperTing を終了",
     "speech": "スピーチ",
     "settings": "設定...",
     "help": "ヘルプ",
@@ -57,8 +57,8 @@
       "message": "ブラウザでリンクを開けませんでした:\n{{url}}\n\nエラー: {{error}}"
     },
     "loadFailure": {
-      "title": "OpenWhispr の読み込みに失敗しました",
-      "message": "OpenWhispr の UI を読み込めませんでした。",
+      "title": "SuperTing の読み込みに失敗しました",
+      "message": "SuperTing の UI を読み込めませんでした。",
       "detail": {
         "window": "ウィンドウ: {{windowName}}",
         "error": "エラー {{errorCode}}: {{errorDescription}}",
@@ -69,17 +69,17 @@
   },
   "startup": {
     "error": {
-      "title": "OpenWhispr 起動エラー",
+      "title": "SuperTing 起動エラー",
       "message": "アプリケーションの起動に失敗しました:\n\n{{error}}\n\nこの問題を報告してください。"
     },
     "globeHotkey": {
       "title": "Globe ホットキーが使用できません",
-      "message": "OpenWhispr は Globe キーのホットキーを有効にできませんでした。",
+      "message": "SuperTing は Globe キーのホットキーを有効にできませんでした。",
       "details": {
         "unknown": "Globe リスナーの起動中に不明なエラーが発生しました。",
         "fallback": "Globe キーのショートカットは無効のままになります。既存のキーボードショートカットは引き続き使用できます。",
         "devHint": "`npm run compile:globe` を実行し、アプリを再ビルドしてリスナーバイナリを再生成してください。",
-        "reinstallHint": "OpenWhispr を再インストールするか、問題が解決しない場合はサポートにお問い合わせください。"
+        "reinstallHint": "SuperTing を再インストールするか、問題が解決しない場合はサポートにお問い合わせください。"
       }
     }
   },
@@ -102,9 +102,9 @@
     "systemAudio": "システムオーディオの設定はこのプラットフォームでは利用できません。"
   },
   "titleBar": {
-    "quitTitle": "OpenWhispr を終了",
-    "quitConfirmTitle": "OpenWhispr を終了しますか？",
-    "quitConfirmDescription": "OpenWhispr を終了し、バックグラウンドプロセスを停止します。",
+    "quitTitle": "SuperTing を終了",
+    "quitConfirmTitle": "SuperTing を終了しますか？",
+    "quitConfirmDescription": "SuperTing を終了し、バックグラウンドプロセスを停止します。",
     "quit": "終了",
     "cancel": "キャンセル"
   },
@@ -182,14 +182,14 @@
       "accessibilityTitle": "アクセシビリティ",
       "accessibilityDescription": "文字起こしテキストを任意のアプリに自動貼り付けします",
       "testAndGrant": "テストして許可",
-      "requiredForApp": "OpenWhispr の動作に必要です",
+      "requiredForApp": "SuperTing の動作に必要です",
       "microphoneRequired": "マイクへのアクセスが必要です",
       "openSystemSettings": "システム設定を開く",
       "systemAudioTitle": "システムオーディオ",
       "systemAudioDescription": "会議、通話、講義、ポッドキャストなど、システム音声を文字起こしします。",
       "optional": "任意",
       "recommended": "推奨",
-      "accessibilityTroubleshooting": "In System Settings -> Accessibility, switch OpenWhispr off and back on. If that does not work, remove OpenWhispr from the list and add it back."
+      "accessibilityTroubleshooting": "In System Settings -> Accessibility, switch SuperTing off and back on. If that does not work, remove SuperTing from the list and add it back."
     },
     "transcription": {
       "title": "文字起こし設定",
@@ -233,7 +233,7 @@
       "problemTitle": "アップデートで問題が発生しました",
       "problemDescription": "アップデートを完了できませんでした。後でもう一度お試しください。",
       "installTitle": "アップデートをインストール",
-      "installDescription": "OpenWhispr はアップデートを適用するために再起動します。作業中のデータは保存されます。",
+      "installDescription": "SuperTing はアップデートを適用するために再起動します。作業中のデータは保存されます。",
       "couldNotInstallTitle": "アップデートをインストールできませんでした",
       "couldNotInstallDescription": "問題が発生しました。もう一度お試しください。",
       "couldNotDownloadTitle": "アップデートをダウンロードできませんでした",
@@ -248,7 +248,7 @@
     },
     "accessibilityMissing": {
       "title": "アクセシビリティの許可が必要です",
-      "description": "OpenWhispr が正しく動作するにはアクセシビリティの許可が必要です。以下で有効にしてください。"
+      "description": "SuperTing が正しく動作するにはアクセシビリティの許可が必要です。以下で有効にしてください。"
     },
     "history": {
       "couldNotLoadTitle": "履歴を読み込めませんでした",
@@ -514,7 +514,7 @@
       "micErrors": {
         "accessFailed": "マイクへのアクセスに失敗しました。もう一度お試しください。",
         "noMicrophones": "マイクが検出されませんでした。{{settingsPath}} でマイクを接続または選択してください。",
-        "permissionDenied": "権限が拒否されました。{{privacyPath}} を開いて OpenWhispr を許可してください。",
+        "permissionDenied": "権限が拒否されました。{{privacyPath}} を開いて SuperTing を許可してください。",
         "couldNotStart": "選択したマイクを開始できませんでした。{{settingsPath}} で入力デバイスを選択してから、テストを再実行してください。",
         "noActiveInput": "アクティブな音声入力が見つかりませんでした。{{settingsPath}} でマイクを選択してください。",
         "unknown": "マイクへのアクセスに失敗しました: {{error}}。別の入力デバイスを選択してもう一度お試しください。",
@@ -543,8 +543,8 @@
         "accessibilityNeeded": "テキストの自動貼り付けを有効にするには、システム設定でアクセシビリティの権限を許可してください。",
         "windowsReady": "Windows では自動貼り付けに特別な権限は必要ありません。準備完了です！",
         "linuxReadyWithMethod": "{{method}} を使用した自動貼り付けが利用可能です。準備完了です！",
-        "waylandClipboardMode": "この Wayland セッションでは自動貼り付けが利用できません。OpenWhispr はテキストをクリップボードにコピーしますので、Ctrl+V で貼り付けてください。",
-        "optionalPasteTool": "自動貼り付けには {{tool}} をインストールしてください:\n\n{{installCmd}}{{waylandNote}}\n\nインストールしなくても OpenWhispr は使用できます。テキストがクリップボードにコピーされるので、Ctrl+V で貼り付けてください。"
+        "waylandClipboardMode": "この Wayland セッションでは自動貼り付けが利用できません。SuperTing はテキストをクリップボードにコピーしますので、Ctrl+V で貼り付けてください。",
+        "optionalPasteTool": "自動貼り付けには {{tool}} をインストールしてください:\n\n{{installCmd}}{{waylandNote}}\n\nインストールしなくても SuperTing は使用できます。テキストがクリップボードにコピーされるので、Ctrl+V で貼り付けてください。"
       },
       "alerts": {
         "accessibilityNeeded": "アクセシビリティの権限が必要です！システム設定で許可してください。"
@@ -557,7 +557,7 @@
         "defaultPasteTool": "xdotool",
         "xdotoolXwayland": "xdotool（XWayland アプリ）"
       },
-      "accessibilityTestText": "OpenWhispr アクセシビリティテスト",
+      "accessibilityTestText": "SuperTing アクセシビリティテスト",
       "warning": {
         "messages": {
           "macos": "サウンド設定で入力デバイスを確認してください",
@@ -628,10 +628,10 @@
       "continueWithApple": "Apple で続ける",
       "continueWithGoogle": "Google で続ける",
       "continueWithMicrosoft": "Microsoft で続ける",
-      "protocolUnavailable": "ブラウザでのサインインを利用できません — システムの「既定のアプリ」設定で openwhispr:// プロトコルを再登録してください。"
+      "protocolUnavailable": "ブラウザでのサインインを利用できません — システムの「既定のアプリ」設定で superting:// プロトコルを再登録してください。"
     },
     "welcomeSubtitle": "音声でどこでもディクテーション",
-    "welcomeTitle": "OpenWhispr へようこそ"
+    "welcomeTitle": "SuperTing へようこそ"
   },
   "cleanupPrompt": "クリーンアップ",
   "developerSection": {
@@ -836,10 +836,10 @@
     "recheckChecking": "確認中...",
     "title": "自動貼り付け",
     "usingMethodPrefix": "使用中:",
-    "waylandClipboardDescription": "この Wayland セッションでは自動貼り付けが利用できません。OpenWhispr はテキストをクリップボードにコピーしますので、Ctrl+V で手動で貼り付けてください。",
+    "waylandClipboardDescription": "この Wayland セッションでは自動貼り付けが利用できません。SuperTing はテキストをクリップボードにコピーしますので、Ctrl+V で手動で貼り付けてください。",
     "waylandClipboardTitle": "Wayland でのクリップボードモード",
     "windowsReady": "Windows は自動貼り付けに標準対応しています。設定は不要です！",
-    "withoutToolPrefix": "このツールがない場合、OpenWhispr はテキストをクリップボードにコピーします。Ctrl+V で手動で貼り付けてください。",
+    "withoutToolPrefix": "このツールがない場合、SuperTing はテキストをクリップボードにコピーします。Ctrl+V で手動で貼り付けてください。",
     "xwaylandAppsOnly": "自動貼り付けは XWayland アプリのみで動作します"
   },
   "promptStudio": {
@@ -970,18 +970,18 @@
         "providers": "クラウドプロバイダー",
         "local": "ローカル",
         "selfHosted": "セルフホスト",
-        "openwhisprDesc": "信頼できる精度。設定不要。",
+        "supertingDesc": "信頼できる精度。設定不要。",
         "providersDesc": "自分のAPIキーを使用。",
         "localDesc": "端末上のモデル。完全プライベート。",
         "selfHostedDesc": "自前サーバーをネットワーク上に。",
         "enterprise": "エンタープライズ",
         "enterpriseDesc": "組織のクラウドアカウントを使用 (AWS, Azure, GCP)。"
       },
-      "openwhisprCloudDescription": "信頼できる精度。設定不要。",
+      "supertingCloudDescription": "信頼できる精度。設定不要。",
       "title": "AI テキスト補正",
       "toasts": {
         "switchedCloud": {
-          "description": "テキスト補正に OpenWhispr のクラウドサービスを使用します。"
+          "description": "テキスト補正に SuperTing のクラウドサービスを使用します。"
         },
         "switchedCustom": {
           "description": "独自のプロバイダーと API キーを設定してください。",
@@ -1060,7 +1060,7 @@
       "appearance": {
         "auto": "自動",
         "dark": "ダーク",
-        "description": "OpenWhispr の外観を設定",
+        "description": "SuperTing の外観を設定",
         "light": "ライト",
         "theme": "テーマ",
         "themeDescription": "ライト、ダーク、またはシステムに合わせる",
@@ -1109,7 +1109,7 @@
       },
       "notifications": {
         "title": "通知",
-        "description": "OpenWhispr が表示できる通知を設定します",
+        "description": "SuperTing が表示できる通知を設定します",
         "disableAll": "すべての通知を無効にする",
         "disableAllDescription": "エラーメッセージ以外をすべて消音にする",
         "meetingDetection": "会議の検出",
@@ -1126,9 +1126,9 @@
       },
       "startup": {
         "launchAtLogin": "ログイン時に起動",
-        "launchAtLoginDescription": "ログイン時に OpenWhispr を自動的に起動",
+        "launchAtLoginDescription": "ログイン時に SuperTing を自動的に起動",
         "title": "起動設定",
-        "description": "OpenWhispr の起動時の動作を制御",
+        "description": "SuperTing の起動時の動作を制御",
         "startMinimized": "最小化で起動",
         "startMinimizedDescription": "コントロールパネルウィンドウを表示せずに起動"
       },
@@ -1174,7 +1174,7 @@
           "group": {
             "step1Title": "ユーザーを input グループに追加",
             "step2Title": "ログアウトして再ログイン",
-            "step2Desc": "グループの変更は新しいセッションでのみ有効になります。デスクトップからログアウトし、再ログインしてから OpenWhispr を開き直してください。"
+            "step2Desc": "グループの変更は新しいセッションでのみ有効になります。デスクトップからログアウトし、再ログインしてから SuperTing を開き直してください。"
           },
           "service": {
             "step1Title": "サービスディレクトリを作成",
@@ -1222,7 +1222,7 @@
           },
           "installUpdate": {
             "confirmText": "インストールして再起動",
-            "description": "OpenWhispr はアップデートを適用するために再起動します。",
+            "description": "SuperTing はアップデートを適用するために再起動します。",
             "title": "アップデートをインストール"
           },
           "noUpdates": {
@@ -1253,13 +1253,13 @@
     "permissions": {
       "accessibilityDescription": "文字起こし後の自動貼り付けに必要",
       "accessibilityTitle": "アクセシビリティ",
-      "description": "OpenWhispr の正常動作に必要なシステム権限をテスト・管理",
+      "description": "SuperTing の正常動作に必要なシステム権限をテスト・管理",
       "microphoneDescription": "ディクテーションと文字起こしのためにあなたの声を録音します",
       "microphoneTitle": "マイク",
       "resetAccessibility": {
-        "description": "OpenWhispr をアクセシビリティの権限から削除します。システム設定 > プライバシーとセキュリティ > アクセシビリティ で再度許可する必要があります。",
+        "description": "SuperTing をアクセシビリティの権限から削除します。システム設定 > プライバシーとセキュリティ > アクセシビリティ で再度許可する必要があります。",
         "label": "アクセシビリティの権限をリセット",
-        "rowDescription": "アプリの再インストールや再ビルド後の問題を修正するために、システム設定で OpenWhispr を削除してから再追加",
+        "rowDescription": "アプリの再インストールや再ビルド後の問題を修正するために、システム設定で SuperTing を削除してから再追加",
         "title": "アクセシビリティの権限をリセット"
       },
       "optional": "任意",
@@ -1337,21 +1337,21 @@
     "transcription": {
       "customSetup": "カスタム設定",
       "customSetupDescription": "独自のプロバイダーと API キーを使用。",
-      "description": "OpenWhispr の音声文字起こし方法を選択",
+      "description": "SuperTing の音声文字起こし方法を選択",
       "modes": {
         "providers": "クラウドプロバイダー",
         "local": "ローカル",
         "selfHosted": "セルフホスト",
-        "openwhisprDesc": "信頼できる精度。設定不要。",
+        "supertingDesc": "信頼できる精度。設定不要。",
         "providersDesc": "自分のAPIキーを使用。",
         "localDesc": "端末上のモデル。完全プライベート。",
         "selfHostedDesc": "自前サーバーをネットワーク上に。"
       },
-      "openwhisprCloudDescription": "信頼できる精度。設定不要。",
+      "supertingCloudDescription": "信頼できる精度。設定不要。",
       "title": "音声テキスト変換",
       "toasts": {
         "switchedCloud": {
-          "description": "文字起こしに OpenWhispr のクラウドサービスを使用します。"
+          "description": "文字起こしに SuperTing のクラウドサービスを使用します。"
         },
         "switchedCustom": {
           "description": "独自のプロバイダーと API キーを設定してください。",
@@ -1640,7 +1640,7 @@
       "diarizationEtaCalculating": "calculating time",
       "diarizationUnknownNote": "Untitled note",
       "rediarizeDialogTitle": "Re-identify speakers",
-      "rediarizeDialogDescription": "By default OpenWhispr detects the number of speakers automatically. Use advanced options only when the result is clearly too few or too many speakers.",
+      "rediarizeDialogDescription": "By default SuperTing detects the number of speakers automatically. Use advanced options only when the result is clearly too few or too many speakers.",
       "rediarizeModeAuto": "Auto-detect speakers",
       "rediarizeModeAutoDescription": "Recommended. Let the diarization model decide the speaker count.",
       "rediarizeAdvanced": "Advanced options",
@@ -1992,7 +1992,7 @@
     "submitBug": "バグを報告"
   },
   "postMigration": {
-    "title": "OpenWhispr へおかえりなさい",
+    "title": "SuperTing へおかえりなさい",
     "description": "ノートと設定は以前のバージョンから引き継がれています。ただし macOS はこれを新しいアプリとして扱うため、いくつかの権限を改めて付与していただく必要があります。",
     "done": "完了",
     "remindLater": "後で通知"
@@ -2034,7 +2034,7 @@
       "undo": "元に戻す",
       "accessibilityMissing": {
         "title": "アクセシビリティの許可が必要です",
-        "description": "OpenWhispr がホットキーの検出とテキストの貼り付けを行うには、アクセシビリティの許可が必要です。コントロールパネルで有効にしてください。"
+        "description": "SuperTing がホットキーの検出とテキストの貼り付けを行うには、アクセシビリティの許可が必要です。コントロールパネルで有効にしてください。"
       }
     },
     "mic": {
@@ -2057,7 +2057,7 @@
     "enabled": "Enable voice agent",
     "enabledDescription": "Dictate instructions to your agent. Activate by saying \"{{agentName}}\". Configurable below.",
     "modes": {
-      "openwhisprDesc": "Use the OpenWhispr-managed agent — no API key needed.",
+      "supertingDesc": "Use the SuperTing-managed agent — no API key needed.",
       "providers": "Bring your own key",
       "providersDesc": "Connect to OpenAI, Anthropic, Gemini, or Groq with your own API key.",
       "local": "Local",
@@ -2086,14 +2086,14 @@
         "providers": "クラウドプロバイダー",
         "local": "ローカル",
         "selfHosted": "セルフホスト",
-        "openwhisprDesc": "信頼できる精度。設定不要。",
+        "supertingDesc": "信頼できる精度。設定不要。",
         "providersDesc": "独自のAPIキーを使用。",
         "localDesc": "デバイス上のモデル。完全プライベート。",
         "selfHostedDesc": "ネットワーク上の自分のサーバー。",
         "enterprise": "エンタープライズ",
         "enterpriseDesc": "組織のクラウドアカウントを使用 (AWS, Azure, GCP)。"
       },
-      "openwhisprCloudDescription": "信頼できる精度。設定不要。",
+      "supertingCloudDescription": "信頼できる精度。設定不要。",
       "customSetup": "カスタム設定 (BYOK)",
       "customSetupDescription": "自分のAPIキーを使用してお好みのモデルを選択する"
     },
@@ -2152,7 +2152,7 @@
     },
     "mcp": {
       "title": "ローカル MCP アクセス",
-      "description": "ローカルエージェントが Model Context Protocol 経由で OpenWhispr のメモを読み書きできます。",
+      "description": "ローカルエージェントが Model Context Protocol 経由で SuperTing のメモを読み書きできます。",
       "urlLabel": "サーバー URL",
       "tokenLabel": "Bearer token",
       "codexConfigLabel": "Codex 設定",
@@ -2178,7 +2178,7 @@
       "local": {
         "label": "ローカル",
         "freeBadge": "無料",
-        "description": "ローカルのメモに直接アクセスできます。ログインや API キーは不要 — OpenWhispr の起動中に利用できます。"
+        "description": "ローカルのメモに直接アクセスできます。ログインや API キーは不要 — SuperTing の起動中に利用できます。"
       },
       "cloud": {
         "label": "クラウド",
@@ -2232,13 +2232,13 @@
     }
   },
   "updateNotification": {
-    "title": "OpenWhispr のアップデートあり",
+    "title": "SuperTing のアップデートあり",
     "body": "バージョン {{version}} がダウンロード可能です",
     "cta": "今すぐ更新"
   },
   "permissionsGate": {
     "title": "権限が必要です",
-    "description": "OpenWhispr がこのコンピュータで動作するために、いくつかの権限が必要です。",
+    "description": "SuperTing がこのコンピュータで動作するために、いくつかの権限が必要です。",
     "continue": "続行"
   },
   "embeddedChat": {

@@ -14,7 +14,7 @@ final class AudioTapCapture {
     private let config: Config
     private let targetFormat: AVAudioFormat
     private let chunkBytes: Int
-    private let ioQueue = DispatchQueue(label: "com.openwhispr.audio-tap")
+    private let ioQueue = DispatchQueue(label: "com.sysusugan.superting.audio-tap")
 
     private var tapID: AudioObjectID = 0
     private var aggregateDeviceID: AudioObjectID = 0
@@ -37,7 +37,7 @@ final class AudioTapCapture {
 
     func start() throws {
         let tapDescription = CATapDescription()
-        tapDescription.name = "openwhispr-audio-tap"
+        tapDescription.name = "superting-audio-tap"
         tapDescription.uuid = UUID()
         tapDescription.processes = []
         tapDescription.isMono = true
@@ -100,8 +100,8 @@ final class AudioTapCapture {
 
     private func createAggregateDevice(tapUID: String) throws {
         let description: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "OpenWhispr Audio Tap",
-            kAudioAggregateDeviceUIDKey: "com.openwhispr.audio-tap.\(UUID().uuidString)",
+            kAudioAggregateDeviceNameKey: "SuperTing Audio Tap",
+            kAudioAggregateDeviceUIDKey: "com.sysusugan.superting.audio-tap.\(UUID().uuidString)",
             kAudioAggregateDeviceSubDeviceListKey: [],
             kAudioAggregateDeviceTapListKey: [[kAudioSubTapUIDKey: tapUID]],
             kAudioAggregateDeviceTapAutoStartKey: false,
@@ -367,7 +367,7 @@ func makeError(
         userInfo["AudioTapStatus"] = Int(status)
         userInfo["NSLocalizedFailureReasonErrorKey"] = "\(message): \(Int(status))"
     }
-    return NSError(domain: "OpenWhisprAudioTap", code: Int(status ?? -1), userInfo: userInfo)
+    return NSError(domain: "SuperTingAudioTap", code: Int(status ?? -1), userInfo: userInfo)
 }
 
 func inferErrorCode(status: OSStatus?, operation: String) -> String {

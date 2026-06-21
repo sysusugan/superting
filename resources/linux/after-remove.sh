@@ -12,12 +12,12 @@ else
   REAL_HOME="$HOME"
 fi
 
-CACHE_DIR="$REAL_HOME/.cache/openwhispr"
+CACHE_DIR="$REAL_HOME/.cache/superting"
 MODELS_DIR="$CACHE_DIR/models"
 
 if [ -d "$MODELS_DIR" ]; then
   rm -rf "$MODELS_DIR"
-  echo "Removed OpenWhispr cached models"
+  echo "Removed SuperTing cached models"
 fi
 
 if [ -d "$CACHE_DIR" ]; then

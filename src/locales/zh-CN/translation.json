@@ -4,7 +4,7 @@
       "sectionTitle": "语言",
       "sectionDescription": "分别设置界面语言和转录语言",
       "uiLabel": "界面语言",
-      "uiDescription": "选择 OpenWhispr 界面使用的语言",
+      "uiDescription": "选择 SuperTing 界面使用的语言",
       "transcriptionLabel": "转录语言",
       "transcriptionDescription": "选择你说话的语言，以提高转录准确率"
     },
@@ -33,12 +33,12 @@
       "hide": "隐藏听写面板"
     },
     "openControlPanel": "打开控制面板",
-    "quit": "退出 OpenWhispr",
-    "tooltip": "OpenWhispr - 语音听写"
+    "quit": "退出 SuperTing",
+    "tooltip": "SuperTing - 语音听写"
   },
   "menu": {
-    "appLabel": "OpenWhispr",
-    "quit": "退出 OpenWhispr",
+    "appLabel": "SuperTing",
+    "quit": "退出 SuperTing",
     "speech": "语音",
     "settings": "设置...",
     "help": "帮助",
@@ -57,8 +57,8 @@
       "message": "无法在浏览器中打开该链接：\n{{url}}\n\n错误：{{error}}"
     },
     "loadFailure": {
-      "title": "OpenWhispr 加载失败",
-      "message": "OpenWhispr 无法加载其界面。",
+      "title": "SuperTing 加载失败",
+      "message": "SuperTing 无法加载其界面。",
       "detail": {
         "window": "窗口：{{windowName}}",
         "error": "错误 {{errorCode}}：{{errorDescription}}",
@@ -69,17 +69,17 @@
   },
   "startup": {
     "error": {
-      "title": "OpenWhispr 启动错误",
+      "title": "SuperTing 启动错误",
       "message": "应用启动失败：\n\n{{error}}\n\n请反馈此问题。"
     },
     "globeHotkey": {
       "title": "Globe 快捷键不可用",
-      "message": "OpenWhispr 无法激活 Globe 键快捷键。",
+      "message": "SuperTing 无法激活 Globe 键快捷键。",
       "details": {
         "unknown": "启动 Globe 监听器时发生未知错误。",
         "fallback": "Globe 键快捷键将保持禁用状态；现有的键盘快捷键仍可正常使用。",
         "devHint": "运行 `npm run compile:globe` 并重新构建应用以重新生成监听器。",
-        "reinstallHint": "请尝试重新安装 OpenWhispr，如果问题仍然存在请联系技术支持。"
+        "reinstallHint": "请尝试重新安装 SuperTing，如果问题仍然存在请联系技术支持。"
       }
     }
   },
@@ -102,9 +102,9 @@
     "systemAudio": "系统音频设置在此平台上不可用。"
   },
   "titleBar": {
-    "quitTitle": "退出 OpenWhispr",
-    "quitConfirmTitle": "确定退出 OpenWhispr？",
-    "quitConfirmDescription": "这将关闭 OpenWhispr 并停止后台进程。",
+    "quitTitle": "退出 SuperTing",
+    "quitConfirmTitle": "确定退出 SuperTing？",
+    "quitConfirmDescription": "这将关闭 SuperTing 并停止后台进程。",
     "quit": "退出",
     "cancel": "取消"
   },
@@ -182,14 +182,14 @@
       "accessibilityTitle": "辅助功能",
       "accessibilityDescription": "允许将转录文本自动粘贴到任何应用程序",
       "testAndGrant": "测试并授权",
-      "requiredForApp": "OpenWhispr 运行所必需的权限",
+      "requiredForApp": "SuperTing 运行所必需的权限",
       "microphoneRequired": "需要麦克风访问权限",
       "openSystemSettings": "打开系统设置",
       "systemAudioTitle": "系统音频",
       "systemAudioDescription": "转录会议、通话、讲座、播客和其他系统音频。",
       "optional": "可选",
       "recommended": "推荐",
-      "accessibilityTroubleshooting": "In System Settings -> Accessibility, switch OpenWhispr off and back on. If that does not work, remove OpenWhispr from the list and add it back."
+      "accessibilityTroubleshooting": "In System Settings -> Accessibility, switch SuperTing off and back on. If that does not work, remove SuperTing from the list and add it back."
     },
     "transcription": {
       "title": "转录设置",
@@ -233,7 +233,7 @@
       "problemTitle": "更新遇到问题",
       "problemDescription": "无法完成更新，请稍后再试。",
       "installTitle": "安装更新",
-      "installDescription": "OpenWhispr 将重启以应用更新。当前进行中的工作将被保存。",
+      "installDescription": "SuperTing 将重启以应用更新。当前进行中的工作将被保存。",
       "couldNotInstallTitle": "无法安装更新",
       "couldNotInstallDescription": "出了点问题，请重试。",
       "couldNotDownloadTitle": "无法下载更新",
@@ -248,7 +248,7 @@
     },
     "accessibilityMissing": {
       "title": "需要辅助功能权限",
-      "description": "我们检测到 OpenWhispr 需要辅助功能权限才能正常工作。请在下方启用。"
+      "description": "我们检测到 SuperTing 需要辅助功能权限才能正常工作。请在下方启用。"
     },
     "history": {
       "couldNotLoadTitle": "无法加载历史记录",
@@ -310,8 +310,8 @@
       "quickSettings": "转录设置"
     },
     "cloudMigration": {
-      "title": "欢迎使用 OpenWhispr 云端",
-      "description": "我们已将转录切换到 OpenWhispr 云端，以获得更快、更准确的结果。你之前的设置已保存——随时可以在设置中切换回去。",
+      "title": "欢迎使用 SuperTing 云端",
+      "description": "我们已将转录切换到 SuperTing 云端，以获得更快、更准确的结果。你之前的设置已保存——随时可以在设置中切换回去。",
       "viewSettings": "查看设置"
     },
     "aiCta": {
@@ -516,7 +516,7 @@
       "micErrors": {
         "accessFailed": "麦克风访问失败，请重试。",
         "noMicrophones": "未检测到麦克风。请在 {{settingsPath}} 中连接或选择麦克风。",
-        "permissionDenied": "权限被拒绝。请打开 {{privacyPath}} 并允许 OpenWhispr。",
+        "permissionDenied": "权限被拒绝。请打开 {{privacyPath}} 并允许 SuperTing。",
         "couldNotStart": "无法启动所选麦克风。请在 {{settingsPath}} 中选择输入设备，然后重新测试。",
         "noActiveInput": "未找到活跃的音频输入。请在 {{settingsPath}} 中选择麦克风。",
         "unknown": "麦克风访问失败：{{error}}。请选择其他输入设备后重试。",
@@ -545,8 +545,8 @@
         "accessibilityNeeded": "请在系统设置中授予辅助功能权限，以启用自动粘贴。",
         "windowsReady": "Windows 无需特殊权限即可自动粘贴，一切就绪！",
         "linuxReadyWithMethod": "可使用 {{method}} 进行自动粘贴，一切就绪！",
-        "waylandClipboardMode": "此 Wayland 会话不支持自动粘贴。OpenWhispr 会将文本复制到剪贴板，你可以使用 Ctrl+V 粘贴。",
-        "optionalPasteTool": "如需自动粘贴功能，请安装 {{tool}}：\n\n{{installCmd}}{{waylandNote}}\n\n即使不安装，你仍然可以使用 OpenWhispr——文本会被复制到剪贴板，你可以使用 Ctrl+V 粘贴。"
+        "waylandClipboardMode": "此 Wayland 会话不支持自动粘贴。SuperTing 会将文本复制到剪贴板，你可以使用 Ctrl+V 粘贴。",
+        "optionalPasteTool": "如需自动粘贴功能，请安装 {{tool}}：\n\n{{installCmd}}{{waylandNote}}\n\n即使不安装，你仍然可以使用 SuperTing——文本会被复制到剪贴板，你可以使用 Ctrl+V 粘贴。"
       },
       "alerts": {
         "accessibilityNeeded": "需要辅助功能权限！请在系统设置中授权。"
@@ -559,7 +559,7 @@
         "defaultPasteTool": "xdotool",
         "xdotoolXwayland": "xdotool（XWayland 应用）"
       },
-      "accessibilityTestText": "OpenWhispr 辅助功能测试",
+      "accessibilityTestText": "SuperTing 辅助功能测试",
       "warning": {
         "messages": {
           "macos": "请检查声音设置以选择输入设备",
@@ -629,10 +629,10 @@
       "continueWithApple": "使用 Apple 继续",
       "continueWithGoogle": "使用 Google 继续",
       "continueWithMicrosoft": "使用 Microsoft 继续",
-      "protocolUnavailable": "无法通过浏览器登录 — 请在系统的“默认应用”设置中重新注册 openwhispr:// 协议。"
+      "protocolUnavailable": "无法通过浏览器登录 — 请在系统的“默认应用”设置中重新注册 superting:// 协议。"
     },
     "welcomeSubtitle": "随时随地用语音输入",
-    "welcomeTitle": "欢迎使用 OpenWhispr",
+    "welcomeTitle": "欢迎使用 SuperTing",
     "sessionExpired": "会话已过期，请重新登录。"
   },
   "cleanupPrompt": "文本整理",
@@ -838,10 +838,10 @@
     "recheckChecking": "检查中...",
     "title": "自动粘贴",
     "usingMethodPrefix": "使用",
-    "waylandClipboardDescription": "此 Wayland 会话不支持自动粘贴。OpenWhispr 会将文本复制到剪贴板，你可以使用 Ctrl+V 手动粘贴。",
+    "waylandClipboardDescription": "此 Wayland 会话不支持自动粘贴。SuperTing 会将文本复制到剪贴板，你可以使用 Ctrl+V 手动粘贴。",
     "waylandClipboardTitle": "Wayland 上的剪贴板模式",
     "windowsReady": "Windows 原生支持自动粘贴，无需额外设置！",
-    "withoutToolPrefix": "如果不安装此工具，OpenWhispr 会将文本复制到剪贴板，你可以使用 Ctrl+V 手动粘贴。",
+    "withoutToolPrefix": "如果不安装此工具，SuperTing 会将文本复制到剪贴板，你可以使用 Ctrl+V 手动粘贴。",
     "xwaylandAppsOnly": "自动粘贴仅适用于 XWayland 应用"
   },
   "promptStudio": {
@@ -972,19 +972,19 @@
         "providers": "云服务商",
         "local": "本地",
         "selfHosted": "自托管",
-        "openwhisprDesc": "准确可靠，无需设置。",
+        "supertingDesc": "准确可靠，无需设置。",
         "providersDesc": "使用你自己的 API Key。",
         "localDesc": "设备端模型，完全私密。",
         "selfHostedDesc": "你的服务器，在你的网络上。",
         "enterprise": "企业级",
         "enterpriseDesc": "使用你组织的云账号（AWS、Azure、GCP）。"
       },
-      "openwhisprCloudDescription": "准确可靠，无需设置。",
+      "supertingCloudDescription": "准确可靠，无需设置。",
       "title": "AI 文本增强",
       "toasts": {
         "switchedCloud": {
-          "description": "文本增强将使用 OpenWhispr 云端服务。",
-          "title": "已切换到 OpenWhispr 云端"
+          "description": "文本增强将使用 SuperTing 云端服务。",
+          "title": "已切换到 SuperTing 云端"
         },
         "switchedCustom": {
           "description": "请配置你的服务商和 API Key。",
@@ -1063,7 +1063,7 @@
       "appearance": {
         "auto": "自动",
         "dark": "深色",
-        "description": "控制 OpenWhispr 的外观",
+        "description": "控制 SuperTing 的外观",
         "light": "浅色",
         "theme": "主题",
         "themeDescription": "选择浅色、深色或跟随系统",
@@ -1112,7 +1112,7 @@
       },
       "notifications": {
         "title": "通知",
-        "description": "设置 OpenWhispr 可以显示哪些通知",
+        "description": "设置 SuperTing 可以显示哪些通知",
         "disableAll": "禁用所有通知",
         "disableAllDescription": "静音除错误消息外的所有内容",
         "meetingDetection": "会议检测",
@@ -1129,9 +1129,9 @@
       },
       "startup": {
         "launchAtLogin": "登录时启动",
-        "launchAtLoginDescription": "登录时自动启动 OpenWhispr",
+        "launchAtLoginDescription": "登录时自动启动 SuperTing",
         "title": "启动",
-        "description": "控制 OpenWhispr 启动时的行为",
+        "description": "控制 SuperTing 启动时的行为",
         "startMinimized": "启动时最小化",
         "startMinimizedDescription": "启动时不显示控制面板窗口"
       },
@@ -1177,7 +1177,7 @@
           "group": {
             "step1Title": "将你的用户添加到 input 组",
             "step2Title": "注销并重新登录",
-            "step2Desc": "组更改仅在新会话后生效。从桌面注销，重新登录，然后重新打开 OpenWhispr。"
+            "step2Desc": "组更改仅在新会话后生效。从桌面注销，重新登录，然后重新打开 SuperTing。"
           },
           "service": {
             "step1Title": "创建服务目录",
@@ -1225,7 +1225,7 @@
           },
           "installUpdate": {
             "confirmText": "安装并重启",
-            "description": "OpenWhispr 将重启以应用更新。",
+            "description": "SuperTing 将重启以应用更新。",
             "title": "安装更新"
           },
           "noUpdates": {
@@ -1256,13 +1256,13 @@
     "permissions": {
       "accessibilityDescription": "转录后自动粘贴需要此权限",
       "accessibilityTitle": "辅助功能",
-      "description": "测试和管理 OpenWhispr 正常运行所需的系统权限",
+      "description": "测试和管理 SuperTing 正常运行所需的系统权限",
       "microphoneDescription": "录制您的声音用于听写和转录",
       "microphoneTitle": "麦克风",
       "resetAccessibility": {
-        "description": "这将从辅助功能权限中移除 OpenWhispr。你需要在系统设置 > 隐私与安全 > 辅助功能中重新授权。",
+        "description": "这将从辅助功能权限中移除 SuperTing。你需要在系统设置 > 隐私与安全 > 辅助功能中重新授权。",
         "label": "重置辅助功能权限",
-        "rowDescription": "重新安装或重新构建应用后，通过在系统设置中移除并重新添加 OpenWhispr 来解决问题",
+        "rowDescription": "重新安装或重新构建应用后，通过在系统设置中移除并重新添加 SuperTing 来解决问题",
         "title": "重置辅助功能权限"
       },
       "optional": "可选",
@@ -1340,22 +1340,22 @@
     "transcription": {
       "customSetup": "自定义设置",
       "customSetupDescription": "使用你自己的服务商和 API Key。",
-      "description": "选择 OpenWhispr 转录语音的方式",
+      "description": "选择 SuperTing 转录语音的方式",
       "modes": {
         "providers": "云服务商",
         "local": "本地",
         "selfHosted": "自托管",
-        "openwhisprDesc": "准确可靠，无需设置。",
+        "supertingDesc": "准确可靠，无需设置。",
         "providersDesc": "使用你自己的 API Key。",
         "localDesc": "设备端模型，完全私密。",
         "selfHostedDesc": "你的服务器，在你的网络上。"
       },
-      "openwhisprCloudDescription": "准确可靠，无需设置。",
+      "supertingCloudDescription": "准确可靠，无需设置。",
       "title": "语音转文字",
       "toasts": {
         "switchedCloud": {
-          "description": "转录将使用 OpenWhispr 云端服务。",
-          "title": "已切换到 OpenWhispr 云端"
+          "description": "转录将使用 SuperTing 云端服务。",
+          "title": "已切换到 SuperTing 云端"
         },
         "switchedCustom": {
           "description": "请配置你的服务商和 API Key。",
@@ -1996,7 +1996,7 @@
     "submitBug": "提交 Bug"
   },
   "postMigration": {
-    "title": "欢迎回到 OpenWhispr",
+    "title": "欢迎回到 SuperTing",
     "description": "您的笔记和设置已从此前的版本中保留下来。不过 macOS 会将其视为一款全新的应用，因此需要您重新授予一些权限。",
     "done": "完成",
     "remindLater": "稍后提醒我"
@@ -2038,7 +2038,7 @@
       "undo": "撤消",
       "accessibilityMissing": {
         "title": "需要辅助功能权限",
-        "description": "OpenWhispr 需要辅助功能权限来检测快捷键和粘贴文本。请在控制面板中启用。"
+        "description": "SuperTing 需要辅助功能权限来检测快捷键和粘贴文本。请在控制面板中启用。"
       }
     },
     "mic": {
@@ -2061,7 +2061,7 @@
     "enabled": "Enable voice agent",
     "enabledDescription": "Dictate instructions to your agent. Activate by saying \"{{agentName}}\". Configurable below.",
     "modes": {
-      "openwhisprDesc": "Use the OpenWhispr-managed agent — no API key needed.",
+      "supertingDesc": "Use the SuperTing-managed agent — no API key needed.",
       "providers": "Bring your own key",
       "providersDesc": "Connect to OpenAI, Anthropic, Gemini, or Groq with your own API key.",
       "local": "Local",
@@ -2090,14 +2090,14 @@
         "providers": "云服务商",
         "local": "本地",
         "selfHosted": "自托管",
-        "openwhisprDesc": "准确可靠，无需设置。",
+        "supertingDesc": "准确可靠，无需设置。",
         "providersDesc": "使用自己的 API 密钥。",
         "localDesc": "设备端模型，完全私密。",
         "selfHostedDesc": "你自己网络上的服务器。",
         "enterprise": "企业级",
         "enterpriseDesc": "使用你组织的云账号（AWS、Azure、GCP）。"
       },
-      "openwhisprCloudDescription": "准确可靠，无需设置。",
+      "supertingCloudDescription": "准确可靠，无需设置。",
       "customSetup": "自定义配置 (BYOK)",
       "customSetupDescription": "使用自己的 API 密钥并选择偏好的模型"
     },
@@ -2156,7 +2156,7 @@
     },
     "mcp": {
       "title": "本地 MCP 访问",
-      "description": "让本地智能体通过 Model Context Protocol 读取和更新你的 OpenWhispr 笔记。",
+      "description": "让本地智能体通过 Model Context Protocol 读取和更新你的 SuperTing 笔记。",
       "urlLabel": "服务 URL",
       "tokenLabel": "Bearer token",
       "codexConfigLabel": "Codex 配置",
@@ -2182,7 +2182,7 @@
       "local": {
         "label": "本地",
         "freeBadge": "免费",
-        "description": "直接读取你的本地笔记。无需登录或 API 密钥 — 在 OpenWhispr 运行时即可使用。"
+        "description": "直接读取你的本地笔记。无需登录或 API 密钥 — 在 SuperTing 运行时即可使用。"
       },
       "cloud": {
         "label": "云端",
@@ -2235,13 +2235,13 @@
     }
   },
   "updateNotification": {
-    "title": "OpenWhispr 有可用更新",
+    "title": "SuperTing 有可用更新",
     "body": "版本 {{version}} 已可下载",
     "cta": "立即更新"
   },
   "permissionsGate": {
     "title": "需要权限",
-    "description": "OpenWhispr 需要一些权限才能在此电脑上正常运行。",
+    "description": "SuperTing 需要一些权限才能在此电脑上正常运行。",
     "continue": "继续"
   },
   "embeddedChat": {

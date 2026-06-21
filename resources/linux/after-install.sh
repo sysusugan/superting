@@ -1,15 +1,15 @@
 #!/bin/bash
-# Post-install script for OpenWhispr (deb/rpm)
+# Post-install script for SuperTing (deb/rpm)
 # Sets up chrome-sandbox permissions and ydotool daemon prerequisites
 
 set -euo pipefail
 
 # 0. Set SUID bit on chrome-sandbox (required by Electron for Linux sandboxing)
 #    Find it wherever dpkg placed the package files, rather than hardcoding /opt/...
-CHROME_SANDBOX=$(dpkg -L open-whispr 2>/dev/null | grep chrome-sandbox || echo "")
+CHROME_SANDBOX=$(dpkg -L superting 2>/dev/null | grep chrome-sandbox || echo "")
 if [ -z "$CHROME_SANDBOX" ]; then
   # Fallback: conventional electron-builder install path
-  CHROME_SANDBOX="/opt/OpenWhispr/chrome-sandbox"
+  CHROME_SANDBOX="/opt/SuperTing/chrome-sandbox"
 fi
 if [ -f "$CHROME_SANDBOX" ]; then
   chown root:root "$CHROME_SANDBOX"

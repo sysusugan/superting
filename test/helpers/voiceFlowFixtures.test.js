@@ -6,24 +6,24 @@ const {
   normalizeTranscriptionResult,
 } = require("../../src/helpers/dictationFlowResultCore.cjs");
 
-const dictionary = ["EntVerse", "OpenWhispr", "EnlightAI"];
+const dictionary = ["EntVerse", "SuperTing", "EnlightAI"];
 const aliases = [{ from: "Antibus", to: "EntVerse" }];
 
 test("voice flow fixtures correct realtime short dictation brand terms", () => {
   const result = normalizeTranscriptionResult(
     {
       success: true,
-      rawText: "Antibus 跟 openwhispr 都要记下来",
-      text: "Antibus 跟 openwhispr 都要记下来。",
+      rawText: "Antibus 跟 superting 都要记下来",
+      text: "Antibus 跟 superting 都要记下来。",
     },
     { mode: "dictation", customDictionary: dictionary, customDictionaryAliases: aliases }
   );
 
-  assert.equal(result.displayText, "EntVerse 跟 OpenWhispr 都要记下来。");
+  assert.equal(result.displayText, "EntVerse 跟 SuperTing 都要记下来。");
   assert.equal(result.warning, "dictionary_corrected");
   assert.deepEqual(result.dictionaryCorrections, [
     { from: "Antibus", to: "EntVerse", kind: "alias" },
-    { from: "openwhispr", to: "OpenWhispr", kind: "case" },
+    { from: "superting", to: "SuperTing", kind: "case" },
   ]);
   assert.deepEqual(result.processingMetadata.voiceFlow.dictionaryCorrections, result.dictionaryCorrections);
 });

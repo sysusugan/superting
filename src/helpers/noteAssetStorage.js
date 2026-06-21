@@ -4,9 +4,12 @@ const { app, net, protocol } = require("electron");
 const { randomUUID } = require("crypto");
 const { pathToFileURL } = require("url");
 const debugLogger = require("./debugLogger");
+const { BRAND } = require("./brandConfig");
 
-const NOTE_ASSET_PROTOCOL = "openwhispr-note-asset";
+const NOTE_ASSET_PROTOCOL = BRAND.noteAssetProtocol;
+const LEGACY_NOTE_ASSET_PROTOCOL = BRAND.legacyNoteAssetProtocol;
 const NOTE_ASSET_URL_PREFIX = `${NOTE_ASSET_PROTOCOL}://`;
+const LEGACY_NOTE_ASSET_URL_PREFIX = `${LEGACY_NOTE_ASSET_PROTOCOL}://`;
 const MAX_NOTE_IMAGE_BYTES = 10 * 1024 * 1024;
 
 const IMAGE_MIME_TO_EXT = {
@@ -33,7 +36,10 @@ function buildNoteAssetUrl(assetId) {
 }
 
 function isNoteAssetUrl(value) {
-  return typeof value === "string" && value.startsWith(NOTE_ASSET_URL_PREFIX);
+  return (
+    typeof value === "string" &&
+    (value.startsWith(NOTE_ASSET_URL_PREFIX) || value.startsWith(LEGACY_NOTE_ASSET_URL_PREFIX))
+  );
 }
 
 function getAssetIdFromUrl(value) {

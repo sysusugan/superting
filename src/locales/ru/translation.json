@@ -4,7 +4,7 @@
       "sectionTitle": "Язык",
       "sectionDescription": "Настройте язык интерфейса и транскрипции независимо друг от друга",
       "uiLabel": "Язык интерфейса",
-      "uiDescription": "Выберите язык интерфейса OpenWhispr",
+      "uiDescription": "Выберите язык интерфейса SuperTing",
       "transcriptionLabel": "Язык транскрипции",
       "transcriptionDescription": "Выберите язык, на котором вы говорите, для более точной транскрипции"
     },
@@ -33,12 +33,12 @@
       "hide": "Скрыть панель диктовки"
     },
     "openControlPanel": "Открыть панель управления",
-    "quit": "Закрыть OpenWhispr",
-    "tooltip": "OpenWhispr — голосовая диктовка"
+    "quit": "Закрыть SuperTing",
+    "tooltip": "SuperTing — голосовая диктовка"
   },
   "menu": {
-    "appLabel": "OpenWhispr",
-    "quit": "Закрыть OpenWhispr",
+    "appLabel": "SuperTing",
+    "quit": "Закрыть SuperTing",
     "speech": "Речь",
     "settings": "Настройки…",
     "help": "Справка",
@@ -57,8 +57,8 @@
       "message": "Не удалось открыть ссылку в браузере:\n{{url}}\n\nОшибка: {{error}}"
     },
     "loadFailure": {
-      "title": "OpenWhispr не удалось загрузить",
-      "message": "OpenWhispr не смог загрузить интерфейс.",
+      "title": "SuperTing не удалось загрузить",
+      "message": "SuperTing не смог загрузить интерфейс.",
       "detail": {
         "window": "Окно: {{windowName}}",
         "error": "Ошибка {{errorCode}}: {{errorDescription}}",
@@ -69,17 +69,17 @@
   },
   "startup": {
     "error": {
-      "title": "Ошибка запуска OpenWhispr",
+      "title": "Ошибка запуска SuperTing",
       "message": "Не удалось запустить приложение:\n\n{{error}}\n\nПожалуйста, сообщите об этой проблеме."
     },
     "globeHotkey": {
       "title": "Клавиша Globe недоступна",
-      "message": "OpenWhispr не смог активировать горячую клавишу Globe.",
+      "message": "SuperTing не смог активировать горячую клавишу Globe.",
       "details": {
         "unknown": "Неизвестная ошибка при запуске слушателя клавиши Globe.",
         "fallback": "Сочетание с клавишей Globe будет отключено; остальные горячие клавиши продолжат работать.",
         "devHint": "Выполните `npm run compile:globe` и пересоберите приложение для генерации бинарного файла слушателя.",
-        "reinstallHint": "Попробуйте переустановить OpenWhispr или обратитесь в поддержку, если проблема сохраняется."
+        "reinstallHint": "Попробуйте переустановить SuperTing или обратитесь в поддержку, если проблема сохраняется."
       }
     }
   },
@@ -102,9 +102,9 @@
     "systemAudio": "Настройки системного аудио недоступны на этой платформе."
   },
   "titleBar": {
-    "quitTitle": "Закрыть OpenWhispr",
-    "quitConfirmTitle": "Закрыть OpenWhispr?",
-    "quitConfirmDescription": "Это закроет OpenWhispr и остановит фоновые процессы.",
+    "quitTitle": "Закрыть SuperTing",
+    "quitConfirmTitle": "Закрыть SuperTing?",
+    "quitConfirmDescription": "Это закроет SuperTing и остановит фоновые процессы.",
     "quit": "Закрыть",
     "cancel": "Отмена"
   },
@@ -182,14 +182,14 @@
       "accessibilityTitle": "Универсальный доступ",
       "accessibilityDescription": "Позволяет автоматически вставлять транскрибированный текст в любое приложение",
       "testAndGrant": "Проверить и предоставить",
-      "requiredForApp": "Необходимо для работы OpenWhispr",
+      "requiredForApp": "Необходимо для работы SuperTing",
       "microphoneRequired": "Требуется доступ к микрофону",
       "openSystemSettings": "Открыть Системные настройки",
       "systemAudioTitle": "Системное аудио",
       "systemAudioDescription": "Транскрибируйте совещания, звонки, лекции, подкасты и другое системное аудио.",
       "optional": "Необязательно",
       "recommended": "Рекомендуется",
-      "accessibilityTroubleshooting": "In System Settings -> Accessibility, switch OpenWhispr off and back on. If that does not work, remove OpenWhispr from the list and add it back."
+      "accessibilityTroubleshooting": "In System Settings -> Accessibility, switch SuperTing off and back on. If that does not work, remove SuperTing from the list and add it back."
     },
     "transcription": {
       "title": "Настройка транскрипции",
@@ -233,7 +233,7 @@
       "problemTitle": "Проблема с обновлением",
       "problemDescription": "Не удалось завершить обновление. Попробуйте позже.",
       "installTitle": "Установить обновление",
-      "installDescription": "OpenWhispr перезапустится для применения обновления. Текущая работа будет сохранена.",
+      "installDescription": "SuperTing перезапустится для применения обновления. Текущая работа будет сохранена.",
       "couldNotInstallTitle": "Не удалось установить обновление",
       "couldNotInstallDescription": "Что-то пошло не так. Попробуйте ещё раз.",
       "couldNotDownloadTitle": "Не удалось скачать обновление",
@@ -248,7 +248,7 @@
     },
     "accessibilityMissing": {
       "title": "Необходимы разрешения универсального доступа",
-      "description": "Мы обнаружили, что OpenWhispr нуждается в разрешениях универсального доступа для корректной работы. Включите их ниже."
+      "description": "Мы обнаружили, что SuperTing нуждается в разрешениях универсального доступа для корректной работы. Включите их ниже."
     },
     "history": {
       "couldNotLoadTitle": "Не удалось загрузить историю",
@@ -514,7 +514,7 @@
       "micErrors": {
         "accessFailed": "Не удалось получить доступ к микрофону. Попробуйте ещё раз.",
         "noMicrophones": "Микрофоны не обнаружены. Подключите микрофон или выберите его в {{settingsPath}}.",
-        "permissionDenied": "Разрешение отклонено. Откройте {{privacyPath}} и разрешите доступ для OpenWhispr.",
+        "permissionDenied": "Разрешение отклонено. Откройте {{privacyPath}} и разрешите доступ для SuperTing.",
         "couldNotStart": "Не удалось запустить выбранный микрофон. Выберите устройство ввода в {{settingsPath}} и повторите тест.",
         "noActiveInput": "Активное устройство ввода звука не найдено. Выберите микрофон в {{settingsPath}}.",
         "unknown": "Ошибка доступа к микрофону: {{error}}. Выберите другое устройство ввода и попробуйте снова.",
@@ -543,8 +543,8 @@
         "accessibilityNeeded": "Предоставьте разрешения универсального доступа в системных настройках для автоматической вставки текста.",
         "windowsReady": "Windows не требует специальных разрешений для автоматической вставки. Всё готово!",
         "linuxReadyWithMethod": "Автоматическая вставка доступна через {{method}}. Всё готово!",
-        "waylandClipboardMode": "Автоматическая вставка недоступна в этой сессии Wayland. OpenWhispr скопирует текст в буфер обмена, и вы сможете вставить его с помощью Ctrl+V.",
-        "optionalPasteTool": "Для автоматической вставки установите {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nБез этого инструмента OpenWhispr будет копировать текст в буфер обмена, и вы сможете вставить его с помощью Ctrl+V."
+        "waylandClipboardMode": "Автоматическая вставка недоступна в этой сессии Wayland. SuperTing скопирует текст в буфер обмена, и вы сможете вставить его с помощью Ctrl+V.",
+        "optionalPasteTool": "Для автоматической вставки установите {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nБез этого инструмента SuperTing будет копировать текст в буфер обмена, и вы сможете вставить его с помощью Ctrl+V."
       },
       "alerts": {
         "accessibilityNeeded": "Требуются разрешения универсального доступа! Предоставьте их в системных настройках."
@@ -557,7 +557,7 @@
         "defaultPasteTool": "xdotool",
         "xdotoolXwayland": "xdotool (приложения XWayland)"
       },
-      "accessibilityTestText": "Тест универсального доступа OpenWhispr",
+      "accessibilityTestText": "Тест универсального доступа SuperTing",
       "warning": {
         "messages": {
           "macos": "Проверьте настройки звука, чтобы выбрать устройство ввода",
@@ -627,10 +627,10 @@
       "continueWithApple": "Продолжить с Apple",
       "continueWithGoogle": "Продолжить с Google",
       "continueWithMicrosoft": "Продолжить с Microsoft",
-      "protocolUnavailable": "Вход через браузер недоступен — повторно зарегистрируйте протокол openwhispr:// в системных настройках приложений по умолчанию."
+      "protocolUnavailable": "Вход через браузер недоступен — повторно зарегистрируйте протокол superting:// в системных настройках приложений по умолчанию."
     },
     "welcomeSubtitle": "Диктуйте где угодно голосом",
-    "welcomeTitle": "Добро пожаловать в OpenWhispr",
+    "welcomeTitle": "Добро пожаловать в SuperTing",
     "sessionExpired": "Сессия истекла. Пожалуйста, войдите снова."
   },
   "cleanupPrompt": "Очистка",
@@ -836,10 +836,10 @@
     "recheckChecking": "Проверка...",
     "title": "Автоматическая вставка",
     "usingMethodPrefix": "Используется",
-    "waylandClipboardDescription": "Автоматическая вставка недоступна в этой сессии Wayland. OpenWhispr скопирует текст в буфер обмена, и вы сможете вставить его вручную с помощью Ctrl+V.",
+    "waylandClipboardDescription": "Автоматическая вставка недоступна в этой сессии Wayland. SuperTing скопирует текст в буфер обмена, и вы сможете вставить его вручную с помощью Ctrl+V.",
     "waylandClipboardTitle": "Режим буфера обмена в Wayland",
     "windowsReady": "Windows поддерживает автоматическую вставку из коробки. Настройка не требуется!",
-    "withoutToolPrefix": "Без этого инструмента OpenWhispr скопирует текст в буфер обмена. Вы сможете вставить его вручную с помощью Ctrl+V.",
+    "withoutToolPrefix": "Без этого инструмента SuperTing скопирует текст в буфер обмена. Вы сможете вставить его вручную с помощью Ctrl+V.",
     "xwaylandAppsOnly": "автоматическая вставка работает только для приложений XWayland"
   },
   "promptStudio": {
@@ -970,18 +970,18 @@
         "providers": "Облачные провайдеры",
         "local": "Локально",
         "selfHosted": "Свой сервер",
-        "openwhisprDesc": "Надёжные результаты. Без настройки.",
+        "supertingDesc": "Надёжные результаты. Без настройки.",
         "providersDesc": "Используйте свой API-ключ.",
         "localDesc": "Модели на устройстве. Полная приватность.",
         "selfHostedDesc": "Свой сервер в вашей сети.",
         "enterprise": "Корпоративный",
         "enterpriseDesc": "Используйте облачный аккаунт вашей организации (AWS, Azure, GCP)."
       },
-      "openwhisprCloudDescription": "Надёжные результаты. Без настройки.",
+      "supertingCloudDescription": "Надёжные результаты. Без настройки.",
       "title": "ИИ-улучшение текста",
       "toasts": {
         "switchedCloud": {
-          "description": "Улучшение текста будет использовать облачный сервис OpenWhispr."
+          "description": "Улучшение текста будет использовать облачный сервис SuperTing."
         },
         "switchedCustom": {
           "description": "Настройте собственного провайдера и API-ключ.",
@@ -1060,7 +1060,7 @@
       "appearance": {
         "auto": "Авто",
         "dark": "Тёмная",
-        "description": "Управляйте внешним видом OpenWhispr",
+        "description": "Управляйте внешним видом SuperTing",
         "light": "Светлая",
         "theme": "Тема",
         "themeDescription": "Выберите светлую, тёмную тему или следуйте системным настройкам",
@@ -1109,7 +1109,7 @@
       },
       "notifications": {
         "title": "Уведомления",
-        "description": "Настройте, какие уведомления может показывать OpenWhispr",
+        "description": "Настройте, какие уведомления может показывать SuperTing",
         "disableAll": "Отключить все уведомления",
         "disableAllDescription": "Отключить всё, кроме сообщений об ошибках",
         "meetingDetection": "Обнаружение встреч",
@@ -1126,9 +1126,9 @@
       },
       "startup": {
         "launchAtLogin": "Запускать при входе",
-        "launchAtLoginDescription": "Автоматически запускать OpenWhispr при входе в систему",
+        "launchAtLoginDescription": "Автоматически запускать SuperTing при входе в систему",
         "title": "Автозапуск",
-        "description": "Управляйте поведением OpenWhispr при запуске",
+        "description": "Управляйте поведением SuperTing при запуске",
         "startMinimized": "Запуск в свёрнутом виде",
         "startMinimizedDescription": "Запускать без отображения окна панели управления"
       },
@@ -1174,7 +1174,7 @@
           "group": {
             "step1Title": "Добавить пользователя в группу input",
             "step2Title": "Выйти и войти снова",
-            "step2Desc": "Изменения групп вступают в силу только после нового входа в систему. Выйдите из рабочего стола, войдите снова и откройте OpenWhispr."
+            "step2Desc": "Изменения групп вступают в силу только после нового входа в систему. Выйдите из рабочего стола, войдите снова и откройте SuperTing."
           },
           "service": {
             "step1Title": "Создать каталог службы",
@@ -1222,7 +1222,7 @@
           },
           "installUpdate": {
             "confirmText": "Установить и перезапустить",
-            "description": "OpenWhispr перезапустится для применения обновления.",
+            "description": "SuperTing перезапустится для применения обновления.",
             "title": "Установить обновление"
           },
           "noUpdates": {
@@ -1253,13 +1253,13 @@
     "permissions": {
       "accessibilityDescription": "Необходимо для автоматической вставки после транскрипции",
       "accessibilityTitle": "Универсальный доступ",
-      "description": "Проверяйте и управляйте системными разрешениями, необходимыми для работы OpenWhispr",
+      "description": "Проверяйте и управляйте системными разрешениями, необходимыми для работы SuperTing",
       "microphoneDescription": "Записывает ваш голос для диктовки и транскрипции",
       "microphoneTitle": "Микрофон",
       "resetAccessibility": {
-        "description": "OpenWhispr будет удалён из разрешений универсального доступа. Вам потребуется повторно предоставить доступ в Системные настройки > Конфиденциальность и безопасность > Универсальный доступ.",
+        "description": "SuperTing будет удалён из разрешений универсального доступа. Вам потребуется повторно предоставить доступ в Системные настройки > Конфиденциальность и безопасность > Универсальный доступ.",
         "label": "Сбросить разрешения универсального доступа",
-        "rowDescription": "Исправьте проблемы после переустановки или пересборки приложения, удалив и повторно добавив OpenWhispr в системных настройках",
+        "rowDescription": "Исправьте проблемы после переустановки или пересборки приложения, удалив и повторно добавив SuperTing в системных настройках",
         "title": "Сбросить разрешения универсального доступа"
       },
       "optional": "Необязательно",
@@ -1337,21 +1337,21 @@
     "transcription": {
       "customSetup": "Пользовательская настройка",
       "customSetupDescription": "Используйте собственного провайдера и API-ключ.",
-      "description": "Выберите, как OpenWhispr будет транскрибировать вашу речь",
+      "description": "Выберите, как SuperTing будет транскрибировать вашу речь",
       "modes": {
         "providers": "Облачные провайдеры",
         "local": "Локально",
         "selfHosted": "Свой сервер",
-        "openwhisprDesc": "Надёжные результаты. Без настройки.",
+        "supertingDesc": "Надёжные результаты. Без настройки.",
         "providersDesc": "Используйте свой API-ключ.",
         "localDesc": "Модели на устройстве. Полная приватность.",
         "selfHostedDesc": "Свой сервер в вашей сети."
       },
-      "openwhisprCloudDescription": "Надёжные результаты. Без настройки.",
+      "supertingCloudDescription": "Надёжные результаты. Без настройки.",
       "title": "Распознавание речи",
       "toasts": {
         "switchedCloud": {
-          "description": "Транскрипция будет использовать облачный сервис OpenWhispr."
+          "description": "Транскрипция будет использовать облачный сервис SuperTing."
         },
         "switchedCustom": {
           "description": "Настройте собственного провайдера и API-ключ.",
@@ -1668,7 +1668,7 @@
       "diarizationEtaCalculating": "calculating time",
       "diarizationUnknownNote": "Untitled note",
       "rediarizeDialogTitle": "Re-identify speakers",
-      "rediarizeDialogDescription": "By default OpenWhispr detects the number of speakers automatically. Use advanced options only when the result is clearly too few or too many speakers.",
+      "rediarizeDialogDescription": "By default SuperTing detects the number of speakers automatically. Use advanced options only when the result is clearly too few or too many speakers.",
       "rediarizeModeAuto": "Auto-detect speakers",
       "rediarizeModeAutoDescription": "Recommended. Let the diarization model decide the speaker count.",
       "rediarizeAdvanced": "Advanced options",
@@ -1994,7 +1994,7 @@
     "submitBug": "Сообщить об ошибке"
   },
   "postMigration": {
-    "title": "С возвращением в OpenWhispr",
+    "title": "С возвращением в SuperTing",
     "description": "Ваши заметки и настройки перенесены из предыдущей версии. Однако macOS считает это новым приложением, поэтому потребуется заново предоставить несколько разрешений.",
     "done": "Готово",
     "remindLater": "Напомнить позже"
@@ -2036,7 +2036,7 @@
       "undo": "Отменить",
       "accessibilityMissing": {
         "title": "Требуются разрешения универсального доступа",
-        "description": "OpenWhispr нужны разрешения универсального доступа для распознавания горячей клавиши и вставки текста. Включите их в Панели управления."
+        "description": "SuperTing нужны разрешения универсального доступа для распознавания горячей клавиши и вставки текста. Включите их в Панели управления."
       }
     },
     "mic": {
@@ -2059,7 +2059,7 @@
     "enabled": "Enable voice agent",
     "enabledDescription": "Dictate instructions to your agent. Activate by saying \"{{agentName}}\". Configurable below.",
     "modes": {
-      "openwhisprDesc": "Use the OpenWhispr-managed agent — no API key needed.",
+      "supertingDesc": "Use the SuperTing-managed agent — no API key needed.",
       "providers": "Bring your own key",
       "providersDesc": "Connect to OpenAI, Anthropic, Gemini, or Groq with your own API key.",
       "local": "Local",
@@ -2088,14 +2088,14 @@
         "providers": "Облачные провайдеры",
         "local": "Локально",
         "selfHosted": "Свой сервер",
-        "openwhisprDesc": "Надёжные результаты. Без настройки.",
+        "supertingDesc": "Надёжные результаты. Без настройки.",
         "providersDesc": "Свой API-ключ.",
         "localDesc": "Модели на устройстве. Полная приватность.",
         "selfHostedDesc": "Ваш сервер в вашей сети.",
         "enterprise": "Корпоративный",
         "enterpriseDesc": "Используйте облачный аккаунт вашей организации (AWS, Azure, GCP)."
       },
-      "openwhisprCloudDescription": "Надёжные результаты. Без настройки.",
+      "supertingCloudDescription": "Надёжные результаты. Без настройки.",
       "customSetup": "Своя настройка (BYOK)",
       "customSetupDescription": "Используйте собственные API-ключи и выберите предпочтительную модель"
     },
@@ -2154,7 +2154,7 @@
     },
     "mcp": {
       "title": "Локальный доступ MCP",
-      "description": "Разрешите локальным агентам читать и обновлять заметки OpenWhispr через Model Context Protocol.",
+      "description": "Разрешите локальным агентам читать и обновлять заметки SuperTing через Model Context Protocol.",
       "urlLabel": "URL сервера",
       "tokenLabel": "Bearer token",
       "codexConfigLabel": "Конфигурация Codex",
@@ -2180,7 +2180,7 @@
       "local": {
         "label": "Локально",
         "freeBadge": "Бесплатно",
-        "description": "Читайте свои локальные заметки напрямую. Без входа в аккаунт и API-ключа — работает, пока OpenWhispr запущен."
+        "description": "Читайте свои локальные заметки напрямую. Без входа в аккаунт и API-ключа — работает, пока SuperTing запущен."
       },
       "cloud": {
         "label": "Облако",
@@ -2234,13 +2234,13 @@
     }
   },
   "updateNotification": {
-    "title": "Доступно обновление OpenWhispr",
+    "title": "Доступно обновление SuperTing",
     "body": "Версия {{version}} готова к загрузке",
     "cta": "Обновить"
   },
   "permissionsGate": {
     "title": "Требуются разрешения",
-    "description": "OpenWhispr нужны некоторые разрешения для работы на этом компьютере.",
+    "description": "SuperTing нужны некоторые разрешения для работы на этом компьютере.",
     "continue": "Продолжить"
   },
   "embeddedChat": {

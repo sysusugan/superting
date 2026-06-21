@@ -1,5 +1,5 @@
 {
-  "name": "open-whispr",
+  "name": "superting",
   "version": "1.7.2",
   "description": "A desktop dictation application using whisper.cpp for speech-to-text transcription",
   "main": "main.js",
@@ -88,7 +88,7 @@
     "desktop-app"
   ],
   "author": {
-    "name": "OpenWhispr Contributors"
+    "name": "SuperTing Contributors"
   },
   "license": "MIT",
   "devDependencies": {

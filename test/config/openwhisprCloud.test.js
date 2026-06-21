@@ -9,6 +9,6 @@ test("official hosted API defaults are not configured in the open-source build",
     "utf8"
   );
 
-  assert.match(constants, /export const OPENWHISPR_API_URL = "";/);
-  assert.doesNotMatch(constants, /api\.openwhispr\.com/i);
+  assert.match(constants, /export const SUPERTING_API_URL = "";/);
+  assert.doesNotMatch(constants, /api\.superting\.com/i);
 });

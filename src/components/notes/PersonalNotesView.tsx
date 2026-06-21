@@ -120,7 +120,7 @@ import type {
 const FOLDER_INPUT_CLASS =
   "w-full h-7 bg-background dark:bg-white/[0.03] rounded-md px-2 text-xs text-foreground outline-none border border-border/70 focus:border-border-hover";
 const NOTE_SORT_STORAGE_KEY = "noteSortBy";
-const NOTES_SIDEBAR_WIDTH_KEY = "openwhispr.notesSidebarWidth";
+const NOTES_SIDEBAR_WIDTH_KEY = "superting.notesSidebarWidth";
 const NOTES_SIDEBAR_DEFAULT_WIDTH = 224;
 const NOTES_SIDEBAR_MIN_WIDTH = 200;
 const NOTES_SIDEBAR_MAX_WIDTH = 420;

@@ -1,10 +1,11 @@
 const { app } = require("electron");
 const os = require("os");
 const path = require("path");
+const { ensureMigratedPath } = require("./brandConfig");
 
 function getCacheRoot() {
   const homeDir = app?.getPath?.("home") || os.homedir();
-  return path.join(homeDir, ".cache", "openwhispr");
+  return ensureMigratedPath(homeDir, "cache");
 }
 
 function getModelsDirForService(service) {

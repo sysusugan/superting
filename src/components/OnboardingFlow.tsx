@@ -91,7 +91,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   } = useSettings();
 
   const [hotkey, setHotkey] = useState(dictationKey || getDefaultHotkey());
-  const [agentName, setAgentName] = useState("OpenWhispr");
+  const [agentName, setAgentName] = useState("SuperTing");
   const [isModelDownloaded, setIsModelDownloaded] = useState(false);
   const [isUsingNativeShortcut, setIsUsingNativeShortcut] = useState(false);
   const readableHotkey = formatHotkeyLabel(hotkey);

@@ -276,8 +276,8 @@ function migrateOfficialCloudModesToLocal() {
   if (localStorage.getItem("_officialCloudModesRemoved") === "1") return;
 
   const wasOfficialTranscription =
-    localStorage.getItem("transcriptionMode") === "openwhispr" ||
-    localStorage.getItem("cloudTranscriptionMode") === "openwhispr";
+    localStorage.getItem("transcriptionMode") === "superting" ||
+    localStorage.getItem("cloudTranscriptionMode") === "superting";
   if (wasOfficialTranscription) {
     localStorage.setItem("useLocalWhisper", "true");
     localStorage.setItem("transcriptionMode", "local");
@@ -293,10 +293,10 @@ function migrateOfficialCloudModesToLocal() {
     ["chatAgentMode", "chatAgentCloudMode"],
     ["dictationAgentMode", "dictationAgentCloudMode"],
   ] as const) {
-    if (localStorage.getItem(modeKey) === "openwhispr") {
+    if (localStorage.getItem(modeKey) === "superting") {
       localStorage.setItem(modeKey, "providers");
     }
-    if (localStorage.getItem(cloudModeKey) === "openwhispr") {
+    if (localStorage.getItem(cloudModeKey) === "superting") {
       localStorage.setItem(cloudModeKey, "byok");
     }
   }

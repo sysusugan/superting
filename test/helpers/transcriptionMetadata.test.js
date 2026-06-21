@@ -5,11 +5,11 @@ const { buildSaveTranscriptionInsert } = require("../../src/helpers/database");
 
 test("buildSaveTranscriptionInsert includes dictation metadata columns and values", () => {
   const insert = buildSaveTranscriptionInsert(
-    "OpenWhispr fixed Qdrant.",
+    "SuperTing fixed Qdrant.",
     "open whisper fixed q drant",
     {
       clientTranscriptionId: "client-meta-1",
-      provider: "openwhispr",
+      provider: "superting",
       model: "gpt-4o-mini-transcribe",
       language: "en",
       audioDurationMs: 1234,
@@ -27,13 +27,13 @@ test("buildSaveTranscriptionInsert includes dictation metadata columns and value
     "INSERT INTO transcriptions (text, raw_text, status, error_message, error_code, client_transcription_id, provider, model, language, audio_duration_ms, warning, partial, processing_metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
   );
   assert.deepEqual(insert.values, [
-    "OpenWhispr fixed Qdrant.",
+    "SuperTing fixed Qdrant.",
     "open whisper fixed q drant",
     "completed",
     null,
     null,
     "client-meta-1",
-    "openwhispr",
+    "superting",
     "gpt-4o-mini-transcribe",
     "en",
     1234,

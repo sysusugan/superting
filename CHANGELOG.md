@@ -52,7 +52,7 @@ A follow-up to 1.7.0 with a stronger encryption key for stored secrets, end-to-e
 - **Voice Agent rename.** The Dictation Agent tab and toggle are now labeled "Voice Agent" in all 10 locales; the internal `dictationAgent` identifiers are unchanged. The agent system prompt was compressed ~2700 → ~1200 chars now that name detection (`detectAgentName`) handles routing.
 - **Custom prompts sync across windows without restart.** Storage events for `customPrompt.*` keys now propagate Control Panel edits to the Main Window immediately.
 - **Side-panel layout flip is scoped to the notes view with an active note.** It no longer leaks onto Home, Chat, or Upload when the window is narrow; the layout now also flips correctly when you drag the window narrow on an open note and reverts on widen.
-- **Dictation overlay can't steal focus on Linux WMs.** The floating icon is now `focusable: false`, the cross-platform equivalent of the `no_focus [instance="open-whispr"]` workaround Sway/i3/wlroots users were applying by hand. Mouse clicks on mic and cancel still work; auto-paste no longer breaks because the original text field stays focused.
+- **Dictation overlay can't steal focus on Linux WMs.** The floating icon is now `focusable: false`, the cross-platform equivalent of the `no_focus [instance="superting"]` workaround Sway/i3/wlroots users were applying by hand. Mouse clicks on mic and cancel still work; auto-paste no longer breaks because the original text field stays focused.
 - **Meeting-detected "Start Recording" no longer races on a fresh control panel.** The main process used to fire the `navigate-to-meeting-note` IPC after `did-finish-load` but before React mounted its listener, so the click was silently lost on a newly-created window. Now uses the same store-and-drain handshake the notification window already follows.
 
 ### Reasoning & local LLMs
@@ -79,7 +79,7 @@ A follow-up to 1.7.0 with a stronger encryption key for stored secrets, end-to-e
 ### Streaming & cloud
 
 - **OpenAI Realtime GA migration complete.** OpenAI removed the Realtime Beta API on 2026-05-12. 1.7.0 dropped the `OpenAI-Beta` header but kept the Beta wire format — transcription still broke because the GA server emits `session.created` / `session.updated` (not `transcription_session.*`) and rejects `transcription_session.update` in favor of `session.update` with `session.type=transcription` and a nested `audio.input.*` schema. The two server-event handlers and the session configuration payload are now on the GA shape. Closes #805.
-- **Graceful fallback when the OpenWhispr API URL is unconfigured.** `postServerToken` now attaches a `NO_API` code so `startStreamingRecording` can fall back to batch recording instead of surfacing an unhandled error.
+- **Graceful fallback when the SuperTing API URL is unconfigured.** `postServerToken` now attaches a `NO_API` code so `startStreamingRecording` can fall back to batch recording instead of surfacing an unhandled error.
 
 ### Networking & proxies
 
@@ -96,8 +96,8 @@ A follow-up to 1.7.0 with a stronger encryption key for stored secrets, end-to-e
 - **Pop!OS COSMIC is forced to XWayland.** COSMIC's `XDG_CURRENT_DESKTOP=COSMIC` fell outside the relaunch allowlist, so the app ran as a native Wayland client — breaking the orb's initial placement and drag. Now handled like GNOME and KDE.
 - **Terminal detection on GNOME Wayland** now uses AT-SPI2 instead of the X11 selection heuristic, restoring `Ctrl+Shift+V` auto-paste for native Wayland terminal emulators. Fixes #725.
 - **Konsole on X11 auto-paste fixed.** Konsole intermittently reports no `WM_CLASS` via `xdotool`, so terminal detection went blind and fell through to `Ctrl+V` — which AI terminal agents like Codex and Claude Code interpret as image-paste, producing "No image found in clipboard" instead of pasting text. Detection now reads `/proc/<pid>/comm` as a complementary signal, and Konsole + X11 specifically routes through `xdotool windowactivate --sync key shift+Insert` (the XTest `Ctrl+Shift+V` path was being silently dropped by a long-standing focus/grab quirk). Closes #184; original patch and root-cause by @JGKle.
-- **Linux launcher symlinks** (e.g. `/usr/bin/open-whispr` → `/opt/OpenWhispr/open-whispr` from deb/rpm packages) no longer fail with "No such file or directory" — the wrapper now resolves the symlink target before sourcing.
-- **Windows: llama.cpp pinned to b8857** to keep `whisper-server.exe` (frozen at OpenWhispr/whisper.cpp 0.0.6) loading correctly. A llama.cpp release between b8861 and b9020 bumped ggml's ABI, leaving local Whisper users on 1.7.0 unable to transcribe; the download script now requests b8857 explicitly.
+- **Linux launcher symlinks** (e.g. `/usr/bin/superting` → `/opt/SuperTing/superting` from deb/rpm packages) no longer fail with "No such file or directory" — the wrapper now resolves the symlink target before sourcing.
+- **Windows: llama.cpp pinned to b8857** to keep `whisper-server.exe` (frozen at sysusugan/whisper.cpp 0.0.6) loading correctly. A llama.cpp release between b8861 and b9020 bumped ggml's ABI, leaving local Whisper users on 1.7.0 unable to transcribe; the download script now requests b8857 explicitly.
 - **Port availability check probes the wildcard address (`0.0.0.0` / `::`)** so sidecars don't false-positive on a free port when something is already bound on all interfaces. Resolved with a consolidated `serverUtils.isPortAvailable` with IPv6 probe. Closes #748.
 
 ### Docs & contributor experience
@@ -113,10 +113,10 @@ A big release: new sign-in options, smoother meeting recording, faster cross-dev
 
 - **Sign in with Microsoft** — new on this release, alongside Google and email/password.
 - **Sign in with Apple** on macOS — native Apple ID flow.
-- **Self-hosted authentication.** Sign-in now runs entirely on OpenWhispr infrastructure (we replaced Neon Auth with [Better Auth](https://better-auth.com) at `auth.openwhispr.com`). No third-party vendor lock-in. Self-hosters can point at their own server via `VITE_AUTH_URL`.
+- **Self-hosted authentication.** Sign-in was moved from Neon Auth to a Better Auth based service in the upstream project. SuperTing does not configure a hosted auth endpoint by default; self-hosters can point at their own server via `VITE_AUTH_URL`.
 - **Bearer-token sessions** stored in your OS keychain replace the old browser-style cookie jar, so signed-in state survives renderer crashes and Electron session resets. Existing 1.7.x users transition silently on first launch.
-- **Forgot password** opens a browser tab to `openwhispr.com/reset-password` instead of an in-app form, matching how every other reset flow works on the web.
-- **Sign-in buttons disable with a tooltip** when the OS hasn't registered the `openwhispr://` callback handler, so OAuth never gets stuck without a return path.
+- **Forgot password** opens a browser tab to `superting.com/reset-password` instead of an in-app form, matching how every other reset flow works on the web.
+- **Sign-in buttons disable with a tooltip** when the OS hasn't registered the `superting://` callback handler, so OAuth never gets stuck without a return path.
 
 ### Security
 
@@ -131,7 +131,7 @@ A big release: new sign-in options, smoother meeting recording, faster cross-dev
 - **Side-panel layout is opt-in.** A new hotkey-only layout setting (full-width or side-panel) controls whether hotkey-triggered recordings snap the window to a 1/3 panel. Manual record-from-note and calendar joins always open full-width and auto-flip to side-panel only when the window narrows below 1024px.
 - **Per-note diarization preferences persist.** Mid-session toggles for "label speakers" and the "others in call" stepper are saved against the note, so a stop/resume keeps your choices instead of falling back to the global default.
 - **Meeting metadata syncs across devices.** Participants, calendar event ID, diarization toggle, and expected speaker count now travel through cloud sync alongside note content. Older clients that don't send these fields keep working — the columns are nullable and treated as optional server-side.
-- **Three interchangeable streaming providers**: OpenAI Realtime, AssemblyAI Universal-3 Pro, and Deepgram. Which providers are available is set on the OpenWhispr server, so there's no desktop-side toggle to keep in sync.
+- **Three interchangeable streaming providers**: OpenAI Realtime, AssemblyAI Universal-3 Pro, and Deepgram. Which providers are available is set on the SuperTing server, so there's no desktop-side toggle to keep in sync.
 - **Cleaner mic capture.** A new acoustic gate prevents system audio from leaking into your mic during meetings. Speech onsets are protected so your voice isn't clipped at the start of a sentence.
 - **Better echo cancellation** with built-in noise suppression in the same pass.
 - **Speaker labels capped to attendee count** — no more phantom "Speaker 3+" labels in 1-on-1s and small groups.
@@ -166,7 +166,7 @@ A big release: new sign-in options, smoother meeting recording, faster cross-dev
 
 ### CLI
 
-- **Local HTTP bridge** for the `openwhispr` CLI: when the desktop is running, CLI commands hit it directly for note/folder/transcription operations and only fall back to the cloud API if the desktop is closed. Bearer-token auth, 127.0.0.1-only.
+- **Local HTTP bridge** for the `superting` CLI: when the desktop is running, CLI commands hit it directly for note/folder/transcription operations and only fall back to the cloud API if the desktop is closed. Bearer-token auth, 127.0.0.1-only.
 
 ### Network
 
@@ -186,15 +186,15 @@ A big release: new sign-in options, smoother meeting recording, faster cross-dev
 
 ### macOS / Windows: bundle identifier change
 
-The app's bundle ID changed from `com.herotools.openwispr` to `com.gizmolabs.openwhispr` to match our new legal entity (Gizmo Labs Inc.) and fix the long-standing typo. Your notes, settings, API keys, and downloaded models carry over automatically on first launch.
+The upstream app's bundle ID changed to match its legal entity (Gizmo Labs Inc.) and fix the long-standing typo. SuperTing uses its own bundle ID: `com.sysusugan.superting`.
 
-**Auto-update from 1.6.x cannot reach this release.** Please download the new build manually from [openwhispr.com/download](https://openwhispr.com/download).
+**Auto-update from 1.6.x cannot reach this release.** Please download the new build manually from the current project release page.
 
 A one-time onboarding modal walks you through re-granting Microphone, Accessibility, and System Audio permissions on macOS.
 
 ### Upgrade notes
 
-- 1.6.x users: download manually from [openwhispr.com/download](https://openwhispr.com/download).
+- 1.6.x users: download manually from the current project release page.
 - You'll be signed out and need to sign in again.
 - macOS: re-grant Microphone in-app and Accessibility + Screen Recording in System Settings.
 - Self-hosters: rename `VITE_NEON_AUTH_URL` → `VITE_AUTH_URL`; rename the legacy reasoning-model env vars (e.g. `REASONING_MODEL` → `CLEANUP_MODEL`); rename `AGENT_KEY` → `CHAT_AGENT_KEY`. Both old and new names work for two releases.
@@ -214,7 +214,7 @@ A one-time onboarding modal walks you through re-granting Microphone, Accessibil
 - **Settings Reorganization**: "AI Models" collapsed into Speech-to-Text and Language Models; "Speech & AI" sidebar group renamed to "AI Models"; Meetings section added with its own sub-tabs; multiple redundant headers removed (sidebar "Settings", Agent Mode, enterprise provider-tabs wrapper, system-prompt textarea wrapper)
 - **Agent Hotkey Relocated**: Moved into the Hotkeys section where it belongs, no longer orphaned under Agent Mode
 - **MCP Pro Gating**: Free users see an upgrade message on the MCP card instead of operational-looking setup steps; paid users get the full flow
-- **README Reframed**: Positions OpenWhispr as an open-source alternative to WisprFlow (dictation) and Granola (meetings)
+- **README Reframed**: Positions SuperTing as an open-source alternative to WisprFlow (dictation) and Granola (meetings)
 - **Meeting Sub-tabs Simplified**: Engine selectors now shown directly; "follow main settings" toggles dropped. A one-time migration preserves every existing user's behavior with zero breaking changes
 
 ### Fixed
@@ -455,7 +455,7 @@ A one-time onboarding modal walks you through re-granting Microphone, Accessibil
 
 ### Changed
 
-- **System Audio Permission Clarity**: Renamed "Screen Recording" to "System Audio" across all permission prompts, onboarding, and settings — makes it clear that OpenWhispr captures other participants' audio, not your screen
+- **System Audio Permission Clarity**: Renamed "Screen Recording" to "System Audio" across all permission prompts, onboarding, and settings — makes it clear that SuperTing captures other participants' audio, not your screen
 - **Improved Permission Copy**: Microphone permission now reads "Captures your voice for transcription"; System Audio reads "Captures other participants' audio from calls and meetings. We never record your screen."
 - **Electron 39**: Upgraded from Electron 36 to 39, which uses the CoreAudio Tap API by default on macOS 14.2+ — eliminates the purple "screen recording" indicator, the "Your screen is being observed" lock screen message, and the misleading "Screen & System Audio Recording" permission prompt. Users now see "System Audio Recording Only" instead
 - **NSAudioCaptureUsageDescription**: Added the new macOS 14.2+ audio capture usage description to Info.plist, enabling the separate system audio permission dialog
@@ -705,7 +705,7 @@ A one-time onboarding modal walks you through re-granting Microphone, Accessibil
 - **Windows Push-to-Talk Refactor**: Moved PTT state management (hold timing, recording tracking, cooldown) from main process into `windowManager` for cleaner separation and consistency with macOS PTT patterns
 - **Audio Recording Reentrancy Guards**: Added lock refs to `useAudioRecording` start/stop to prevent concurrent calls from rapid key presses
 - **Synchronous Activation Mode**: `getActivationMode()` is now synchronous (reads from cache), removing unnecessary async overhead in all PTT and hotkey handlers
-- **Default Agent Name**: Set default agent name to OpenWhispr
+- **Default Agent Name**: Set default agent name to SuperTing
 
 ### Fixed
 
@@ -717,7 +717,7 @@ A one-time onboarding modal walks you through re-granting Microphone, Accessibil
 ### Added
 
 - **Deepgram Streaming Liveness Check**: Detects unresponsive warm connections within 2.5s and transparently reconnects with audio replay
-- **Batch Transcription Fallback**: If streaming produces no text, automatically falls back to batch transcription via OpenWhispr Cloud
+- **Batch Transcription Fallback**: If streaming produces no text, automatically falls back to batch transcription via SuperTing Cloud
 - **Full Locale Codes**: Pass full locale codes (e.g. en-US, zh-CN) to Deepgram instead of stripping to base codes, preserving dialect precision
 
 ### Fixed
@@ -880,7 +880,7 @@ A one-time onboarding modal walks you through re-granting Microphone, Accessibil
 
 ### Added
 
-- **OpenWhispr Cloud**: Cloud-native transcription service — sign in and transcribe without managing API keys
+- **SuperTing Cloud**: Cloud-native transcription service — sign in and transcribe without managing API keys
   - Google OAuth and email/password authentication via Neon Auth
   - Email verification flow with polling and resend support
   - Password reset via email magic links
@@ -903,8 +903,8 @@ A one-time onboarding modal walks you through re-granting Microphone, Accessibil
   - Signed-in users get a streamlined 3-step flow (Welcome → Setup → Activation)
   - Non-signed-in users get a 4-step flow with transcription mode selection
   - Permissions merged into Setup step for signed-in users
-- **Transcription Mode Architecture**: Unified mode selection across OpenWhispr Cloud, Bring Your Own Key (BYOK), and Local
-  - Signed-in users default to OpenWhispr Cloud
+- **Transcription Mode Architecture**: Unified mode selection across SuperTing Cloud, Bring Your Own Key (BYOK), and Local
+  - Signed-in users default to SuperTing Cloud
   - Non-signed-in users choose between BYOK and Local
 - **Design System Overhaul**: Complete refactor of styling to use design tokens throughout the codebase
   - Button component now uses `text-foreground`, `bg-muted`, `border-border` instead of hardcoded hex values
@@ -1277,7 +1277,7 @@ A one-time onboarding modal walks you through re-granting Microphone, Accessibil
 
 ### Added
 
-- Button to fully quit OpenWhispr processes from the application
+- Button to fully quit SuperTing processes from the application
 - Linux terminal detection with automatic paste key switching (Ctrl+Shift+V for terminals)
 
 ### Changed
@@ -1291,7 +1291,7 @@ A one-time onboarding modal walks you through re-granting Microphone, Accessibil
 - Persist OpenAI key before onboarding test to prevent key loss during setup
 - Windows Python discovery now correctly handles output parsing
 - Keep FFmpeg debug schema as boolean type
-- Fixed OpenWhispr documentation paths
+- Fixed SuperTing documentation paths
 - Windows: Resolved issue #16 with WAV validation, registry-based Python detection, and normalized FFmpeg paths
 
 ## [1.0.13] - 2025-12-24
@@ -1337,7 +1337,7 @@ A one-time onboarding modal walks you through re-granting Microphone, Accessibil
 
 ### Fixed
 
-- Local Whisper now finds Python on Windows more reliably by scanning typical install paths, honoring `OPENWHISPR_PYTHON`, and surfacing actionable ENOENT guidance.
+- Local Whisper now finds Python on Windows more reliably by scanning typical install paths, honoring `SUPERTING_PYTHON`, and surfacing actionable ENOENT guidance.
 - Whisper installs automatically retry pip operations that hit PEP‑668, TOML, or permission errors, sanitizing the output and falling back to `--user` + legacy resolver when needed.
 
 ## [1.0.11] - 2025-10-13
@@ -1414,7 +1414,7 @@ A one-time onboarding modal walks you through re-granting Microphone, Accessibil
 - **macOS Window Lifecycle**: Ensured the dictation panel keeps the app visible in Dock and Command-Tab while retaining floating behaviour across spaces.
 - **Control Panel Stability**: Reworked close/minimize handling so the panel stays interactive when switching apps and reopens cleanly without spawning duplicate windows.
 - **Always-On-Top Enforcement**: Centralised the logic that reapplies floating window levels, eliminating redundant timers and focus quirks.
-- **Menu Labelling**: macOS application menu items now display the correct OpenWhispr casing instead of "open-whispr".
+- **Menu Labelling**: macOS application menu items now display the correct SuperTing casing instead of "superting".
 - **Non-mac Hotkey Guard**: Prevented the mac-only Globe shortcut from being saved on Windows/Linux.
 
 ## [1.0.5] - 2025-09-10
@@ -1618,7 +1618,7 @@ A one-time onboarding modal walks you through re-granting Microphone, Accessibil
 
 ### Added
 
-- Initial release of OpenWhispr (formerly OpenWispr)
+- Initial release of SuperTing (formerly OpenWispr)
 - Desktop dictation application using OpenAI Whisper
 - Local and cloud-based speech-to-text transcription
 - Real-time audio recording and processing

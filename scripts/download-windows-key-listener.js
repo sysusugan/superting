@@ -19,7 +19,7 @@ const {
   setExecutable,
 } = require("./lib/download-utils");
 
-const REPO = "OpenWhispr/openwhispr";
+const REPO = process.env.SUPERTING_RELEASE_REPO || "sysusugan/openwhispr";
 const TAG_PREFIX = "windows-key-listener-v";
 const ZIP_NAME = "windows-key-listener-win32-x64.zip";
 const BINARY_NAME = "windows-key-listener.exe";

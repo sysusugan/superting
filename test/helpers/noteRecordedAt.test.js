@@ -8,7 +8,7 @@ const Database = require("better-sqlite3");
 const DatabaseManager = require("../../src/helpers/database");
 
 function createRoot(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-recorded-at-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-recorded-at-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   return root;
 }

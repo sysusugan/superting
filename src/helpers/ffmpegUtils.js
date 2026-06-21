@@ -403,7 +403,7 @@ function clearCache() {
 }
 
 function makeTempPath(suffix) {
-  return path.join(os.tmpdir(), `openwhispr-${suffix}-${crypto.randomBytes(6).toString("hex")}`);
+  return path.join(os.tmpdir(), `superting-${suffix}-${crypto.randomBytes(6).toString("hex")}`);
 }
 
 function _buildOpusEncodeArgs({

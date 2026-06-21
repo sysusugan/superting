@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="src/assets/logo.svg" alt="OpenWhispr" width="120" />
+  <img src="src/assets/logo.svg" alt="SuperTing" width="120" />
 </p>
 
-<h1 align="center">OpenWhispr</h1>
+<h1 align="center">SuperTing</h1>
 
 <p align="center">
-  <a href="https://github.com/OpenWhispr/openwhispr/blob/main/LICENSE"><img src="https://img.shields.io/github/license/OpenWhispr/openwhispr?style=flat" alt="License" /></a>
+  <a href="https://github.com/sysusugan/openwhispr/blob/main/LICENSE"><img src="https://img.shields.io/github/license/sysusugan/openwhispr?style=flat" alt="License" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey?style=flat" alt="Platform" />
-  <a href="https://github.com/OpenWhispr/openwhispr/releases/latest"><img src="https://img.shields.io/github/v/release/OpenWhispr/openwhispr?style=flat&sort=semver" alt="GitHub release" /></a>
-  <a href="https://github.com/OpenWhispr/openwhispr/releases"><img src="https://img.shields.io/github/downloads/OpenWhispr/openwhispr/total?style=flat&color=blue" alt="Downloads" /></a>
-  <a href="https://github.com/OpenWhispr/openwhispr/stargazers"><img src="https://img.shields.io/github/stars/OpenWhispr/openwhispr?style=flat" alt="GitHub stars" /></a>
+  <a href="https://github.com/sysusugan/openwhispr/releases/latest"><img src="https://img.shields.io/github/v/release/sysusugan/openwhispr?style=flat&sort=semver" alt="GitHub release" /></a>
+  <a href="https://github.com/sysusugan/openwhispr/releases"><img src="https://img.shields.io/github/downloads/sysusugan/openwhispr/total?style=flat&color=blue" alt="Downloads" /></a>
+  <a href="https://github.com/sysusugan/openwhispr/stargazers"><img src="https://img.shields.io/github/stars/sysusugan/openwhispr?style=flat" alt="GitHub stars" /></a>
 </p>
 
 <p align="center">
@@ -18,23 +18,23 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/OpenWhispr/openwhispr#readme">Docs</a> &middot;
-  <a href="https://github.com/OpenWhispr/openwhispr/releases/latest">Download</a> &middot;
-  <a href="https://github.com/OpenWhispr/openwhispr/blob/main/CHANGELOG.md">Changelog</a>
+  <a href="https://github.com/sysusugan/openwhispr#readme">Docs</a> &middot;
+  <a href="https://github.com/sysusugan/openwhispr/releases/latest">Download</a> &middot;
+  <a href="https://github.com/sysusugan/openwhispr/blob/main/CHANGELOG.md">Changelog</a>
 </p>
 
 ---
 
-OpenWhispr turns your voice into text, notes, and actions from your desktop. Press a hotkey, speak, and your words appear at your cursor. Choose fully private offline transcription with local speech-to-text engines like Whisper and NVIDIA Parakeet, or bring your own provider API key. No data collection, no telemetry, fully open source.
+SuperTing turns your voice into text, notes, and actions from your desktop. Press a hotkey, speak, and your words appear at your cursor. Choose fully private offline transcription with local speech-to-text engines like Whisper and NVIDIA Parakeet, or bring your own provider API key. No data collection, no telemetry, fully open source.
 
 ## Download
 
 | Platform | Download |
 |----------|----------|
-| macOS (Apple Silicon) | [`.dmg`](https://github.com/OpenWhispr/openwhispr/releases/latest) |
-| macOS (Intel) | [`.dmg`](https://github.com/OpenWhispr/openwhispr/releases/latest) |
-| Windows | [`.exe`](https://github.com/OpenWhispr/openwhispr/releases/latest) |
-| Linux | [`.AppImage`](https://github.com/OpenWhispr/openwhispr/releases/latest) / [`.deb`](https://github.com/OpenWhispr/openwhispr/releases/latest) / [`.rpm`](https://github.com/OpenWhispr/openwhispr/releases/latest) |
+| macOS (Apple Silicon) | [`.dmg`](https://github.com/sysusugan/openwhispr/releases/latest) |
+| macOS (Intel) | [`.dmg`](https://github.com/sysusugan/openwhispr/releases/latest) |
+| Windows | [`.exe`](https://github.com/sysusugan/openwhispr/releases/latest) |
+| Linux | [`.AppImage`](https://github.com/sysusugan/openwhispr/releases/latest) / [`.deb`](https://github.com/sysusugan/openwhispr/releases/latest) / [`.rpm`](https://github.com/sysusugan/openwhispr/releases/latest) |
 
 ## Features
 
@@ -48,7 +48,7 @@ OpenWhispr turns your voice into text, notes, and actions from your desktop. Pre
 ## Quick start
 
 ```bash
-git clone https://github.com/OpenWhispr/openwhispr.git
+git clone https://github.com/sysusugan/openwhispr.git
 cd openwhispr
 npm install
 npm run dev
@@ -66,7 +66,7 @@ React 19, TypeScript, Tailwind CSS v4, Electron 41, better-sqlite3, whisper.cpp,
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=OpenWhispr/openwhispr&type=date&legend=top-left)](https://www.star-history.com/#OpenWhispr/openwhispr&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=sysusugan/openwhispr&type=date&legend=top-left)](https://www.star-history.com/#sysusugan/openwhispr&type=date&legend=top-left)
 
 ## Contributing
 
@@ -78,6 +78,7 @@ We welcome contributions. Fork the repo, create a feature branch, and open a pul
 
 ## Acknowledgments
 
+- **[OpenWhispr](https://github.com/OpenWhispr/openwhispr)** — upstream MIT project this independent fork is based on
 - **[OpenAI Whisper](https://github.com/openai/whisper)** — speech recognition model powering local and cloud transcription
 - **[whisper.cpp](https://github.com/ggerganov/whisper.cpp)** — high-performance C++ implementation for local processing
 - **[NVIDIA Parakeet](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)** — fast multilingual ASR model

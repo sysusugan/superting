@@ -6,7 +6,7 @@ const CliBridge = require("../../src/helpers/cliBridge");
 test("CLI bridge exposes dictionary and alias read endpoints for local agents", async () => {
   const bridge = new CliBridge({
     databaseManager: {
-      getDictionary: () => ["EntVerse", "OpenWhispr"],
+      getDictionary: () => ["EntVerse", "SuperTing"],
       getDictionaryAliases: () => [{ from: "Antibus", to: "EntVerse" }],
     },
   });
@@ -17,7 +17,7 @@ test("CLI bridge exposes dictionary and alias read endpoints for local agents", 
   assert.ok(dictionaryRoute);
   assert.ok(aliasesRoute);
   assert.deepEqual(await dictionaryRoute.handler({ query: new URLSearchParams() }), {
-    data: ["EntVerse", "OpenWhispr"],
+    data: ["EntVerse", "SuperTing"],
   });
   assert.deepEqual(await aliasesRoute.handler({ query: new URLSearchParams() }), {
     data: [{ from: "Antibus", to: "EntVerse" }],

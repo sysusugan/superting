@@ -14,7 +14,7 @@ const {
 } = require("../../src/helpers/ffmpegUtils");
 
 function makeTempDir(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-opus-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "superting-opus-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
@@ -336,11 +336,11 @@ test("mergeToOpusWebm does not leave concat list or temp output behind on succes
 
   const listFilesBefore = fs
     .readdirSync(os.tmpdir())
-    .filter((f) => f.includes("openwhispr-opus-concat-list"));
+    .filter((f) => f.includes("superting-opus-concat-list"));
   await mergeToOpusWebm([a, b], merged);
   const listFilesAfter = fs
     .readdirSync(os.tmpdir())
-    .filter((f) => f.includes("openwhispr-opus-concat-list"));
+    .filter((f) => f.includes("superting-opus-concat-list"));
 
   assert.deepEqual(listFilesAfter, listFilesBefore, "concat list should be cleaned up");
   assert.equal(fs.existsSync(merged), true);

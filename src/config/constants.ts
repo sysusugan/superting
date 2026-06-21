@@ -57,13 +57,13 @@ const computeBaseUrl = (candidates: Array<string | undefined>, fallback: string)
 };
 
 const DEFAULT_OPENAI_BASE = computeBaseUrl(
-  [env.OPENWHISPR_OPENAI_BASE_URL as string | undefined, env.OPENAI_BASE_URL as string | undefined],
+  [env.SUPERTING_OPENAI_BASE_URL as string | undefined, env.OPENAI_BASE_URL as string | undefined],
   "https://api.openai.com/v1"
 );
 
 const DEFAULT_TRANSCRIPTION_BASE = computeBaseUrl(
   [
-    env.OPENWHISPR_TRANSCRIPTION_BASE_URL as string | undefined,
+    env.SUPERTING_TRANSCRIPTION_BASE_URL as string | undefined,
     env.WHISPER_BASE_URL as string | undefined,
   ],
   DEFAULT_OPENAI_BASE
@@ -113,7 +113,7 @@ export const CACHE_CONFIG = {
   PASTE_DELAY_MS: 50, // Delay before paste simulation to allow clipboard to settle
 } as const;
 
-export const OPENWHISPR_API_URL = "";
+export const SUPERTING_API_URL = "";
 
 // Retry Configuration
 export const RETRY_CONFIG = {

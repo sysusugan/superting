@@ -6,7 +6,7 @@ const originalLoad = Module._load;
 Module._load = function load(request, parent, isMain) {
   if (request === "electron") {
     return {
-      app: { getPath: () => "/tmp/openwhispr-test-user-data" },
+      app: { getPath: () => "/tmp/superting-test-user-data" },
       net: {},
       protocol: {},
     };
@@ -16,6 +16,7 @@ Module._load = function load(request, parent, isMain) {
 
 const {
   appendUnreferencedNoteAssets,
+  collectNoteAssetIds,
   hasNoteAssetImage,
   markdownToHtml,
   selectNoteExportContent,
@@ -24,7 +25,7 @@ const {
 Module._load = originalLoad;
 
 test("detects note asset images embedded inside markdown content", () => {
-  const content = "纪要\n\n主题: demo\n\n![image.png](openwhispr-note-asset://asset-id)会议背景";
+  const content = "纪要\n\n主题: demo\n\n![image.png](superting-note-asset://asset-id)会议背景";
   const enhancedContent = "### 摘要\n\n没有图片的增强内容";
 
   assert.equal(hasNoteAssetImage(content), true);
@@ -37,6 +38,12 @@ test("detects note asset images embedded inside markdown content", () => {
     selectNoteExportContent({ content, enhanced_content: enhancedContent }, "enhanced_content"),
     enhancedContent
   );
+});
+
+test("collects legacy OpenWhispr note asset URLs during migration window", () => {
+  const ids = collectNoteAssetIds("![image.png](openwhispr-note-asset://legacy-asset)");
+
+  assert.deepEqual([...ids], ["legacy-asset"]);
 });
 
 test("does not append note assets when current export content does not reference them", () => {
@@ -55,7 +62,7 @@ test("does not append note assets when current export content does not reference
 
 test("selectNoteExportContent does not fall back from empty enhanced content to raw content", () => {
   const note = {
-    content: "# Raw\n\n![image.png](openwhispr-note-asset://asset-a)",
+    content: "# Raw\n\n![image.png](superting-note-asset://asset-a)",
     enhanced_content: "",
   };
 

@@ -5,12 +5,12 @@ import { countMatches, replaceAllMatches } from "./transcriptFindReplace.ts";
 
 describe("transcriptFindReplace", () => {
   it("counts case-insensitive matches by default", () => {
-    assert.equal(countMatches("OpenWhispr openwhispr OPENWHISPR", "openwhispr"), 3);
+    assert.equal(countMatches("SuperTing superting SUPERTING", "superting"), 3);
   });
 
   it("can count case-sensitive matches", () => {
     assert.equal(
-      countMatches("OpenWhispr openwhispr OPENWHISPR", "openwhispr", {
+      countMatches("SuperTing superting SUPERTING", "superting", {
         ignoreCase: false,
       }),
       1
