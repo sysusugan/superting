@@ -373,6 +373,15 @@ export default function PersonalNotesView({
       : "Files";
   const { isComplete: isOnboardingComplete, complete: completeOnboarding } = useNotesOnboarding();
 
+  const {
+    state: actionProcessingState,
+    actionName,
+    outputTarget: actionOutputTarget,
+    runAction,
+  } = useActionProcessing(activeNoteId ?? null);
+  const actionProcessingStateRef = useRef(actionProcessingState);
+  actionProcessingStateRef.current = actionProcessingState;
+
   const isTranscribing = useMeetingRecordingStore((s) => s.isRecording);
   const realtimeTranscript = useMeetingRecordingStore((s) => s.transcript);
   const realtimeSegments = useMeetingRecordingStore((s) => s.segments);
@@ -596,6 +605,7 @@ export default function PersonalNotesView({
       // Also update refs directly so callbacks are correct before next render
       localTitleRef.current = activeNote.title;
       localContentRef.current = activeNote.content;
+      localEnhancedContentRef.current = activeNote.enhanced_content ?? null;
 
       // 4. Flush old note data fire-and-forget (uses captured values, not refs)
       if (hadPendingSave && oldNoteId) {
@@ -611,9 +621,16 @@ export default function PersonalNotesView({
       }
     } else if (activeNote && activeNote.id === activeNoteRef.current && !saveTimeoutRef.current) {
       // External update (e.g. AI chat tool) — resync only when no user save is pending
-      if (activeNote.title !== localTitleRef.current) setLocalTitle(activeNote.title);
-      if (activeNote.content !== localContentRef.current) setLocalContent(activeNote.content);
+      if (activeNote.title !== localTitleRef.current) {
+        localTitleRef.current = activeNote.title;
+        setLocalTitle(activeNote.title);
+      }
+      if (activeNote.content !== localContentRef.current) {
+        localContentRef.current = activeNote.content;
+        setLocalContent(activeNote.content);
+      }
       if ((activeNote.enhanced_content ?? null) !== localEnhancedContentRef.current) {
+        localEnhancedContentRef.current = activeNote.enhanced_content ?? null;
         setLocalEnhancedContent(activeNote.enhanced_content ?? null);
       }
     } else if (!activeNote) {
@@ -636,6 +653,19 @@ export default function PersonalNotesView({
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(async () => {
       saveTimeoutRef.current = null;
+      if (actionProcessingStateRef.current !== "idle") {
+        logger.info(
+          "Skipped pending note autosave because action is running",
+          {
+            noteId,
+            actionProcessingState: actionProcessingStateRef.current,
+            titleLength: title.length,
+            contentLength: content.length,
+          },
+          "note-actions"
+        );
+        return;
+      }
       setIsSaving(true);
       try {
         await window.electronAPI.updateNote(noteId, { title, content });
@@ -682,8 +712,41 @@ export default function PersonalNotesView({
     };
   }, []);
 
+  useEffect(() => {
+    actionProcessingStateRef.current = actionProcessingState;
+    if (actionProcessingState === "idle") return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+      logger.info(
+        "Cleared pending note autosave while action is running",
+        { noteId: activeNoteRef.current, actionProcessingState, actionOutputTarget },
+        "note-actions"
+      );
+    }
+
+    if (enhancedSaveTimeoutRef.current) {
+      clearTimeout(enhancedSaveTimeoutRef.current);
+      enhancedSaveTimeoutRef.current = null;
+      logger.info(
+        "Cleared pending enhanced note autosave while action is running",
+        { noteId: activeNoteRef.current, actionProcessingState, actionOutputTarget },
+        "note-actions"
+      );
+    }
+  }, [actionOutputTarget, actionProcessingState]);
+
   const handleTitleChange = useCallback(
     (title: string) => {
+      if (actionProcessingStateRef.current !== "idle") {
+        logger.info(
+          "Ignored title autosave while action is running",
+          { noteId: activeNoteRef.current, actionProcessingState: actionProcessingStateRef.current },
+          "note-actions"
+        );
+        return;
+      }
       setLocalTitle(title);
       if (activeNoteRef.current)
         debouncedSave(activeNoteRef.current, title, localContentRef.current);
@@ -693,6 +756,18 @@ export default function PersonalNotesView({
 
   const handleContentChange = useCallback(
     (content: string) => {
+      if (actionProcessingStateRef.current !== "idle") {
+        logger.info(
+          "Ignored content autosave while action is running",
+          {
+            noteId: activeNoteRef.current,
+            actionProcessingState: actionProcessingStateRef.current,
+            contentLength: content.length,
+          },
+          "note-actions"
+        );
+        return;
+      }
       setLocalContent(content);
       if (activeNoteRef.current)
         debouncedSave(activeNoteRef.current, localTitleRef.current, content);
@@ -701,12 +776,36 @@ export default function PersonalNotesView({
   );
 
   const handleEnhancedContentChange = useCallback((content: string) => {
+    if (actionProcessingStateRef.current !== "idle") {
+      logger.info(
+        "Ignored enhanced content autosave while action is running",
+        {
+          noteId: activeNoteRef.current,
+          actionProcessingState: actionProcessingStateRef.current,
+          contentLength: content.length,
+        },
+        "note-actions"
+      );
+      return;
+    }
     setLocalEnhancedContent(content);
     if (!activeNoteRef.current) return;
     const noteId = activeNoteRef.current;
     if (enhancedSaveTimeoutRef.current) clearTimeout(enhancedSaveTimeoutRef.current);
     enhancedSaveTimeoutRef.current = setTimeout(async () => {
       enhancedSaveTimeoutRef.current = null;
+      if (actionProcessingStateRef.current !== "idle") {
+        logger.info(
+          "Skipped pending enhanced note autosave because action is running",
+          {
+            noteId,
+            actionProcessingState: actionProcessingStateRef.current,
+            contentLength: content.length,
+          },
+          "note-actions"
+        );
+        return;
+      }
       setIsSaving(true);
       try {
         await window.electronAPI.updateNote(noteId, { enhanced_content: content });
@@ -839,13 +938,6 @@ export default function PersonalNotesView({
     },
     [loadFolders, toast, t]
   );
-
-  const {
-    state: actionProcessingState,
-    actionName,
-    outputTarget: actionOutputTarget,
-    runAction,
-  } = useActionProcessing(activeNoteId ?? null);
 
   const isActiveNoteRecording = isTranscribing && recordingNoteId === activeNote?.id;
   const echoCancellationMessage = isActiveNoteRecording
