@@ -6,7 +6,7 @@ const { extractReplacementCorrection } = require("../../src/utils/correctionLear
 test("extractReplacementCorrection learns a valid replacement word", () => {
   assert.deepEqual(
     extractReplacementCorrection({
-      findText: "Open Whisper",
+      findText: "super ting",
       replacementText: "SuperTing",
       replacementCount: 1,
       existingDictionary: [],
@@ -22,7 +22,7 @@ test("extractReplacementCorrection skips invalid replacement candidates", () => 
     { findText: "SuperTing", replacementText: "SuperTing", replacementCount: 1 },
     { findText: "AI", replacementText: "ML", replacementCount: 1 },
     { findText: "alpha", replacementText: "CompletelyDifferent", replacementCount: 1 },
-    { findText: "Open Whisper", replacementText: "SuperTing", replacementCount: 0 },
+    { findText: "super ting", replacementText: "SuperTing", replacementCount: 0 },
   ];
 
   for (const input of cases) {
@@ -33,7 +33,7 @@ test("extractReplacementCorrection skips invalid replacement candidates", () => 
 test("extractReplacementCorrection skips existing dictionary entries case-insensitively", () => {
   assert.deepEqual(
     extractReplacementCorrection({
-      findText: "Open Whisper",
+      findText: "super ting",
       replacementText: "SuperTing",
       replacementCount: 3,
       existingDictionary: ["superting"],

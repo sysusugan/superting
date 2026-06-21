@@ -4,11 +4,14 @@ const { i18nMain } = require("./i18nMain");
 
 class MeetingDetectionEngine {
   constructor(
+    settingsStore,
     meetingProcessDetector,
     audioActivityDetector,
     windowManager,
     databaseManager
   ) {
+    // settingsStore is accepted for future per-engine preference reads; not used yet.
+    this.settingsStore = settingsStore;
     this.meetingProcessDetector = meetingProcessDetector;
     this.audioActivityDetector = audioActivityDetector;
     this.windowManager = windowManager;
