@@ -7,7 +7,7 @@ const path = require("node:path");
 const DatabaseManager = require("../../src/helpers/database");
 
 test("dictionary aliases persist in SQLite", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-dictionary-aliases-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-dictionary-aliases-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const dbPath = path.join(root, "transcriptions.db");
 

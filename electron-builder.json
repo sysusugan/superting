@@ -1,10 +1,10 @@
 {
-  "appId": "com.gizmolabs.openwhispr",
+  "appId": "com.sysusugan.superting",
   "afterPack": "scripts/afterPack.js",
-  "productName": "OpenWhispr",
+  "productName": "SuperTing",
   "protocols": {
-    "name": "OpenWhispr Protocol",
-    "schemes": ["openwhispr"]
+    "name": "SuperTing Protocol",
+    "schemes": ["superting"]
   },
   "directories": {
     "output": "dist"
@@ -133,8 +133,8 @@
     "hardenedRuntime": true,
     "entitlements": "resources/mac/entitlements.mac.plist",
     "entitlementsInherit": "resources/mac/entitlements.mac.plist",
-    "identity": "Gizmo Labs Inc. (T832773L2J)",
-    "notarize": true,
+    "identity": null,
+    "notarize": false,
     "extraResources": [
       {
         "from": "src/assets/Assets.car",
@@ -143,10 +143,10 @@
     ],
     "extendInfo": {
       "LSUIElement": false,
-      "CFBundleIconName": "openwhispr",
-      "NSMicrophoneUsageDescription": "OpenWhispr uses the microphone to capture your voice for transcription.",
-      "NSAudioCaptureUsageDescription": "OpenWhispr uses system audio to capture other participants' audio from calls and meetings.",
-      "NSAccessibilityUsageDescription": "OpenWhispr needs accessibility permissions to paste transcribed text into other applications."
+      "CFBundleIconName": "superting",
+      "NSMicrophoneUsageDescription": "SuperTing uses the microphone to capture your voice for transcription.",
+      "NSAudioCaptureUsageDescription": "SuperTing uses system audio to capture other participants' audio from calls and meetings.",
+      "NSAccessibilityUsageDescription": "SuperTing needs accessibility permissions to paste transcribed text into other applications."
     }
   },
   "win": {
@@ -154,9 +154,9 @@
     "icon": "src/assets/icon.ico",
     "azureSignOptions": {
       "endpoint": "https://eus.codesigning.azure.net/",
-      "certificateProfileName": "openwhispr-release",
-      "codeSigningAccountName": "OpenWhispr",
-      "publisherName": "CN=Gizmo Labs Inc., O=Gizmo Labs Inc., L=Wilmington, S=Delaware, C=US"
+      "certificateProfileName": "superting-release",
+      "codeSigningAccountName": "SuperTing",
+      "publisherName": ""
     },
     "extraResources": [
       {
@@ -237,7 +237,7 @@
     "include": "resources/nsis/cleanup-models.nsh"
   },
   "dmg": {
-    "title": "OpenWhispr",
+    "title": "SuperTing",
     "icon": "src/assets/icon.icns",
     "window": {
       "width": 540,

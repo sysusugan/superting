@@ -1,5 +1,5 @@
 // Source of truth for the desktop side of the public API key UI.
-// Keep API_SCOPES and MAX_API_KEYS in sync with openwhispr-api/lib/api-keys.ts.
+// Keep API_SCOPES and MAX_API_KEYS in sync with superting-api/lib/api-keys.ts.
 
 export const API_SCOPES = ["notes:read", "notes:write", "transcriptions:read"] as const;
 

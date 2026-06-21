@@ -16,7 +16,7 @@ class LocalEmbeddings {
     const cacheDir = path.join(
       os.homedir(),
       ".cache",
-      "openwhispr",
+      "superting",
       "embedding-models",
       MODEL_SUBDIR
     );

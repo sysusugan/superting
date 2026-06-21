@@ -64,7 +64,7 @@ class AudioStorageManager {
   _makeTempAudioPath(prefix, ext) {
     return path.join(
       os.tmpdir(),
-      `openwhispr-${prefix}-${crypto.randomBytes(6).toString("hex")}${ext}`
+      `superting-${prefix}-${crypto.randomBytes(6).toString("hex")}${ext}`
     );
   }
 
@@ -421,7 +421,7 @@ class AudioStorageManager {
           if (stats.mtimeMs < cutoffMs) {
             fs.unlinkSync(filePath);
             deletedFilenames.push(file);
-            // Extract ID from "OpenWhispr-...-{id}.webm" or legacy "{id}.webm"
+            // Extract ID from "SuperTing-...-{id}.webm" or legacy "{id}.webm"
             if (isDictationAudioFile(file)) {
               const basename = path.basename(file, ".webm");
               const lastDash = basename.lastIndexOf("-");

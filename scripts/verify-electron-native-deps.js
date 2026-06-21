@@ -20,14 +20,14 @@ function packagedAppBinaryPath() {
   let binary;
 
   if (process.platform === "darwin") {
-    appDir = path.join(projectRoot, "dist", `mac-${process.arch}`, "OpenWhispr.app");
-    binary = path.join(appDir, "Contents", "MacOS", "OpenWhispr");
+    appDir = path.join(projectRoot, "dist", `mac-${process.arch}`, "SuperTing.app");
+    binary = path.join(appDir, "Contents", "MacOS", "SuperTing");
   } else if (process.platform === "win32") {
     appDir = path.join(projectRoot, "dist", "win-unpacked");
-    binary = path.join(appDir, "OpenWhispr.exe");
+    binary = path.join(appDir, "SuperTing.exe");
   } else if (process.platform === "linux") {
     appDir = path.join(projectRoot, "dist", "linux-unpacked");
-    binary = path.join(appDir, "OpenWhispr");
+    binary = path.join(appDir, "SuperTing");
   } else {
     throw new Error(
       `Packaged native verification is not implemented for ${process.platform}`

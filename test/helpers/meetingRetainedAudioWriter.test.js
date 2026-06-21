@@ -32,7 +32,7 @@ function readPeak(pcmPath) {
 }
 
 test("finalize keeps audible mic-only retained audio", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-meeting-retained-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-meeting-retained-"));
   const writer = new MeetingRetainedAudioWriter({ tmpDir: root });
   t.after(async () => {
     await writer.cleanup();
@@ -49,7 +49,7 @@ test("finalize keeps audible mic-only retained audio", async (t) => {
 });
 
 test("finalize keeps audible system-only retained audio", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-meeting-retained-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-meeting-retained-"));
   const writer = new MeetingRetainedAudioWriter({ tmpDir: root });
   t.after(async () => {
     await writer.cleanup();
@@ -65,7 +65,7 @@ test("finalize keeps audible system-only retained audio", async (t) => {
 });
 
 test("finalize mixes audible mic and system retained audio", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-meeting-retained-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-meeting-retained-"));
   const writer = new MeetingRetainedAudioWriter({ tmpDir: root });
   t.after(async () => {
     await writer.cleanup();
@@ -83,7 +83,7 @@ test("finalize mixes audible mic and system retained audio", async (t) => {
 });
 
 test("finalize falls back to audible mic when system is silent", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-meeting-retained-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-meeting-retained-"));
   const writer = new MeetingRetainedAudioWriter({ tmpDir: root });
   t.after(async () => {
     await writer.cleanup();
@@ -100,7 +100,7 @@ test("finalize falls back to audible mic when system is silent", async (t) => {
 });
 
 test("finalize rejects all-zero retained audio when audible transcript exists", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-meeting-retained-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-meeting-retained-"));
   const writer = new MeetingRetainedAudioWriter({ tmpDir: root });
   t.after(async () => {
     await writer.cleanup();
@@ -115,7 +115,7 @@ test("finalize rejects all-zero retained audio when audible transcript exists", 
 });
 
 test("finalize aligns source start times before mixing", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-meeting-retained-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-meeting-retained-"));
   const writer = new MeetingRetainedAudioWriter({ tmpDir: root });
   t.after(async () => {
     await writer.cleanup();

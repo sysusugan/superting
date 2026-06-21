@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { getAssetIdFromUrl, isNoteAssetUrl, readNoteAssetBuffer } = require("./noteAssetStorage");
+const { BRAND } = require("./brandConfig");
 
 function safeExportName(value) {
   return String(value || "image")
@@ -33,14 +34,20 @@ function readHtmlAttribute(attrs, name) {
 }
 
 function hasNoteAssetImage(markdown) {
-  return String(markdown || "").includes("openwhispr-note-asset://");
+  const content = String(markdown || "");
+  return (
+    content.includes(`${BRAND.noteAssetProtocol}://`) ||
+    content.includes(`${BRAND.legacyNoteAssetProtocol}://`)
+  );
 }
 
 function collectNoteAssetIds(markdown) {
+  const protocols = [BRAND.noteAssetProtocol, BRAND.legacyNoteAssetProtocol]
+    .map((protocol) => protocol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+  const pattern = new RegExp(`(?:${protocols}):\\/\\/([A-Za-z0-9_-]+)`, "g");
   return new Set(
-    Array.from(String(markdown || "").matchAll(/openwhispr-note-asset:\/\/([A-Za-z0-9_-]+)/g)).map(
-      (match) => match[1]
-    )
+    Array.from(String(markdown || "").matchAll(pattern)).map((match) => match[1])
   );
 }
 

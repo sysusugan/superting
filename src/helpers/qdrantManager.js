@@ -18,7 +18,7 @@ const STARTUP_POLL_INTERVAL_MS = 100;
 const HEALTH_CHECK_INTERVAL_MS = 5000;
 const HEALTH_CHECK_TIMEOUT_MS = 2000;
 
-const STORAGE_DIR = path.join(os.homedir(), ".cache", "openwhispr", "qdrant-data");
+const STORAGE_DIR = path.join(os.homedir(), ".cache", "superting", "qdrant-data");
 
 class QdrantManager {
   constructor() {

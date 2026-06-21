@@ -13,7 +13,7 @@ const AgentOverlay = React.lazy(() => import("./components/AgentOverlay.tsx"));
 const isDevPreviewBypassEnabled = () =>
   import.meta.env.DEV &&
   window.location.search.includes("panel=true") &&
-  import.meta.env.VITE_OPENWHISPR_DEV_PREVIEW_BYPASS !== "false";
+  import.meta.env.VITE_SUPERTING_DEV_PREVIEW_BYPASS !== "false";
 
 export default function AppRouter() {
   useTheme();
@@ -127,7 +127,7 @@ function LoadingFallback({ message }) {
         <svg
           viewBox="0 0 1024 1024"
           className="w-12 h-12 drop-shadow-[0_2px_8px_rgba(15,98,254,0.18)] dark:drop-shadow-[0_2px_12px_rgba(120,169,255,0.25)]"
-          aria-label="OpenWhispr"
+          aria-label="SuperTing"
         >
           <rect width="1024" height="1024" rx="241" fill="#0F62FE" />
           <circle cx="512" cy="512" r="314" fill="#0F62FE" stroke="white" strokeWidth="74" />

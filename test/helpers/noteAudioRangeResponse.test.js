@@ -7,7 +7,7 @@ const path = require("node:path");
 const { createNoteAudioFileResponse } = require("../../src/helpers/noteAudioRangeResponse");
 
 function createAudioFixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-range-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-range-"));
   const filePath = path.join(root, "sample.wav");
   fs.writeFileSync(filePath, "0123456789");
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

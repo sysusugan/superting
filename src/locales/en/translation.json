@@ -4,7 +4,7 @@
       "sectionTitle": "Language",
       "sectionDescription": "Set interface and transcription languages independently",
       "uiLabel": "Interface language",
-      "uiDescription": "Choose the language used throughout OpenWhispr's interface",
+      "uiDescription": "Choose the language used throughout SuperTing's interface",
       "transcriptionLabel": "Transcription language",
       "transcriptionDescription": "Choose the language you speak for more accurate transcription"
     },
@@ -33,12 +33,12 @@
       "hide": "Hide Dictation Panel"
     },
     "openControlPanel": "Open Control Panel",
-    "quit": "Quit OpenWhispr",
-    "tooltip": "OpenWhispr - Voice Dictation"
+    "quit": "Quit SuperTing",
+    "tooltip": "SuperTing - Voice Dictation"
   },
   "menu": {
-    "appLabel": "OpenWhispr",
-    "quit": "Quit OpenWhispr",
+    "appLabel": "SuperTing",
+    "quit": "Quit SuperTing",
     "speech": "Speech",
     "settings": "Settings...",
     "help": "Help",
@@ -57,8 +57,8 @@
       "message": "Failed to open the link in your browser:\n{{url}}\n\nError: {{error}}"
     },
     "loadFailure": {
-      "title": "OpenWhispr failed to load",
-      "message": "OpenWhispr could not load its UI.",
+      "title": "SuperTing failed to load",
+      "message": "SuperTing could not load its UI.",
       "detail": {
         "window": "Window: {{windowName}}",
         "error": "Error {{errorCode}}: {{errorDescription}}",
@@ -69,17 +69,17 @@
   },
   "startup": {
     "error": {
-      "title": "OpenWhispr Startup Error",
+      "title": "SuperTing Startup Error",
       "message": "Failed to start the application:\n\n{{error}}\n\nPlease report this issue."
     },
     "globeHotkey": {
       "title": "Globe Hotkey Unavailable",
-      "message": "OpenWhispr could not activate the Globe key hotkey.",
+      "message": "SuperTing could not activate the Globe key hotkey.",
       "details": {
         "unknown": "Unknown error occurred while starting the Globe listener.",
         "fallback": "The Globe key shortcut will remain disabled; existing keyboard shortcuts continue to work.",
         "devHint": "Run `npm run compile:globe` and rebuild the app to regenerate the listener binary.",
-        "reinstallHint": "Try reinstalling OpenWhispr or contact support if the issue persists."
+        "reinstallHint": "Try reinstalling SuperTing or contact support if the issue persists."
       }
     }
   },
@@ -102,9 +102,9 @@
     "systemAudio": "System audio settings are not available on this platform."
   },
   "titleBar": {
-    "quitTitle": "Quit OpenWhispr",
-    "quitConfirmTitle": "Quit OpenWhispr?",
-    "quitConfirmDescription": "This will close OpenWhispr and stop background processes.",
+    "quitTitle": "Quit SuperTing",
+    "quitConfirmTitle": "Quit SuperTing?",
+    "quitConfirmDescription": "This will close SuperTing and stop background processes.",
     "quit": "Quit",
     "cancel": "Cancel"
   },
@@ -182,14 +182,14 @@
       "accessibilityTitle": "Accessibility",
       "accessibilityDescription": "Allows auto-pasting transcribed text into any app",
       "testAndGrant": "Test & Grant",
-      "requiredForApp": "Required for OpenWhispr to work",
+      "requiredForApp": "Required for SuperTing to work",
       "microphoneRequired": "Microphone access required",
       "openSystemSettings": "Open System Settings",
       "systemAudioTitle": "System Audio",
       "systemAudioDescription": "Transcribe meetings, calls, lectures, podcasts, and other system audio.",
       "optional": "Optional",
       "recommended": "Recommended",
-      "accessibilityTroubleshooting": "In System Settings -> Accessibility, switch OpenWhispr off and back on. If that does not work, remove OpenWhispr from the list and add it back."
+      "accessibilityTroubleshooting": "In System Settings -> Accessibility, switch SuperTing off and back on. If that does not work, remove SuperTing from the list and add it back."
     },
     "transcription": {
       "title": "Transcription Setup",
@@ -233,7 +233,7 @@
       "problemTitle": "Update ran into a problem",
       "problemDescription": "We couldn't complete the update. Please try again later.",
       "installTitle": "Install Update",
-      "installDescription": "OpenWhispr will restart to apply the update. Any in-progress work will be saved.",
+      "installDescription": "SuperTing will restart to apply the update. Any in-progress work will be saved.",
       "couldNotInstallTitle": "Couldn't install update",
       "couldNotInstallDescription": "Something went wrong. Please try again.",
       "couldNotDownloadTitle": "Couldn't download update",
@@ -247,7 +247,7 @@
     },
     "accessibilityMissing": {
       "title": "Accessibility permissions needed",
-      "description": "We've detected that OpenWhispr needs accessibility permissions to work properly. Please enable them below."
+      "description": "We've detected that SuperTing needs accessibility permissions to work properly. Please enable them below."
     },
     "history": {
       "couldNotLoadTitle": "Couldn't load your history",
@@ -513,7 +513,7 @@
       "micErrors": {
         "accessFailed": "Microphone access failed. Please try again.",
         "noMicrophones": "No microphones were detected. Connect or select a microphone in {{settingsPath}}.",
-        "permissionDenied": "Permission was denied. Open {{privacyPath}} and allow OpenWhispr.",
+        "permissionDenied": "Permission was denied. Open {{privacyPath}} and allow SuperTing.",
         "couldNotStart": "Could not start the selected microphone. Choose an input device in {{settingsPath}}, then rerun the test.",
         "noActiveInput": "No active audio input was found. Pick a microphone in {{settingsPath}}.",
         "unknown": "Microphone access failed: {{error}}. Select a different input device and try again.",
@@ -542,8 +542,8 @@
         "accessibilityNeeded": "Please grant accessibility permissions in System Settings to enable automatic text pasting.",
         "windowsReady": "Windows does not require special permissions for automatic pasting. You're all set!",
         "linuxReadyWithMethod": "Automatic pasting is available using {{method}}. You are all set!",
-        "waylandClipboardMode": "Automatic pasting is not available on this Wayland session. OpenWhispr will copy text to your clipboard and you can paste with Ctrl+V.",
-        "optionalPasteTool": "For automatic pasting, install {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nWithout this, you can still use OpenWhispr - text will be copied to your clipboard and you can paste with Ctrl+V."
+        "waylandClipboardMode": "Automatic pasting is not available on this Wayland session. SuperTing will copy text to your clipboard and you can paste with Ctrl+V.",
+        "optionalPasteTool": "For automatic pasting, install {{tool}}:\n\n{{installCmd}}{{waylandNote}}\n\nWithout this, you can still use SuperTing - text will be copied to your clipboard and you can paste with Ctrl+V."
       },
       "alerts": {
         "accessibilityNeeded": "Accessibility permissions needed! Please grant them in System Settings."
@@ -556,7 +556,7 @@
         "defaultPasteTool": "xdotool",
         "xdotoolXwayland": "xdotool (XWayland apps)"
       },
-      "accessibilityTestText": "OpenWhispr accessibility test",
+      "accessibilityTestText": "SuperTing accessibility test",
       "warning": {
         "messages": {
           "macos": "Check Sound settings to select your input device",
@@ -626,10 +626,10 @@
       "continueWithApple": "Continue with Apple",
       "continueWithGoogle": "Continue with Google",
       "continueWithMicrosoft": "Continue with Microsoft",
-      "protocolUnavailable": "Browser sign-in unavailable — re-register the openwhispr:// protocol in your system's Default Apps settings."
+      "protocolUnavailable": "Browser sign-in unavailable — re-register the superting:// protocol in your system's Default Apps settings."
     },
     "welcomeSubtitle": "Dictate anywhere using your voice",
-    "welcomeTitle": "Welcome to OpenWhispr",
+    "welcomeTitle": "Welcome to SuperTing",
     "sessionExpired": "Session expired. Please restart the sign-up process."
   },
   "upcoming": {
@@ -838,10 +838,10 @@
     "recheckChecking": "Checking...",
     "title": "Automatic Pasting",
     "usingMethodPrefix": "Using",
-    "waylandClipboardDescription": "Automatic pasting isn't available on this Wayland session. OpenWhispr will copy text to your clipboard so you can paste manually with Ctrl+V.",
+    "waylandClipboardDescription": "Automatic pasting isn't available on this Wayland session. SuperTing will copy text to your clipboard so you can paste manually with Ctrl+V.",
     "waylandClipboardTitle": "Clipboard Mode on Wayland",
     "windowsReady": "Windows supports automatic pasting out of the box. No setup required!",
-    "withoutToolPrefix": "Without this tool, OpenWhispr will copy text to your clipboard. You can then paste manually with Ctrl+V.",
+    "withoutToolPrefix": "Without this tool, SuperTing will copy text to your clipboard. You can then paste manually with Ctrl+V.",
     "xwaylandAppsOnly": "automatic pasting works for XWayland apps only"
   },
   "promptStudio": {
@@ -973,17 +973,17 @@
         "local": "Local",
         "selfHosted": "Self-Hosted",
         "enterprise": "Enterprise",
-        "openwhisprDesc": "Reliable accuracy. No setup needed.",
+        "supertingDesc": "Reliable accuracy. No setup needed.",
         "providersDesc": "Bring your own API key.",
         "localDesc": "On-device models. Fully private.",
         "selfHostedDesc": "Your own server on your network.",
         "enterpriseDesc": "Use your organization's cloud account (AWS, Azure, GCP)."
       },
-      "openwhisprCloudDescription": "Reliable accuracy. No setup needed.",
+      "supertingCloudDescription": "Reliable accuracy. No setup needed.",
       "title": "AI Text Enhancement",
       "toasts": {
         "switchedCloud": {
-          "description": "Text enhancement will use OpenWhispr's cloud service."
+          "description": "Text enhancement will use SuperTing's cloud service."
         },
         "switchedCustom": {
           "description": "Configure your own provider and API key.",
@@ -1062,7 +1062,7 @@
       "appearance": {
         "auto": "Auto",
         "dark": "Dark",
-        "description": "Control how OpenWhispr looks",
+        "description": "Control how SuperTing looks",
         "light": "Light",
         "theme": "Theme",
         "themeDescription": "Choose light, dark, or match your system",
@@ -1111,7 +1111,7 @@
       },
       "notifications": {
         "title": "Notifications",
-        "description": "Control which notifications OpenWhispr can show",
+        "description": "Control which notifications SuperTing can show",
         "disableAll": "Disable all notifications",
         "disableAllDescription": "Silence everything except error messages",
         "meetingDetection": "Meeting detection",
@@ -1128,9 +1128,9 @@
       },
       "startup": {
         "launchAtLogin": "Launch at login",
-        "launchAtLoginDescription": "Start OpenWhispr automatically when you log in",
+        "launchAtLoginDescription": "Start SuperTing automatically when you log in",
         "title": "Startup",
-        "description": "Control how OpenWhispr behaves when it launches",
+        "description": "Control how SuperTing behaves when it launches",
         "startMinimized": "Start minimized",
         "startMinimizedDescription": "Launch without showing the control panel window"
       },
@@ -1176,7 +1176,7 @@
           "group": {
             "step1Title": "Add your user to the input group",
             "step2Title": "Log out and back in",
-            "step2Desc": "Group changes only take effect after a new login session. Log out of your desktop and log back in, then reopen OpenWhispr."
+            "step2Desc": "Group changes only take effect after a new login session. Log out of your desktop and log back in, then reopen SuperTing."
           },
           "service": {
             "step1Title": "Create the service directory",
@@ -1224,7 +1224,7 @@
           },
           "installUpdate": {
             "confirmText": "Install & Restart",
-            "description": "OpenWhispr will restart to apply the update.",
+            "description": "SuperTing will restart to apply the update.",
             "title": "Install Update"
           },
           "noUpdates": {
@@ -1255,13 +1255,13 @@
     "permissions": {
       "accessibilityDescription": "Required for auto-paste to work after transcription",
       "accessibilityTitle": "Accessibility",
-      "description": "Test and manage system permissions required for OpenWhispr to function correctly",
+      "description": "Test and manage system permissions required for SuperTing to function correctly",
       "microphoneDescription": "Captures your voice for dictation and transcription",
       "microphoneTitle": "Microphone",
       "resetAccessibility": {
-        "description": "This will remove OpenWhispr from accessibility permissions. You'll need to re-grant access in System Settings > Privacy & Security > Accessibility.",
+        "description": "This will remove SuperTing from accessibility permissions. You'll need to re-grant access in System Settings > Privacy & Security > Accessibility.",
         "label": "Reset accessibility permissions",
-        "rowDescription": "Fix issues after reinstalling or rebuilding the app by removing and re-adding OpenWhispr in System Settings",
+        "rowDescription": "Fix issues after reinstalling or rebuilding the app by removing and re-adding SuperTing in System Settings",
         "title": "Reset Accessibility Permissions"
       },
       "optional": "Optional",
@@ -1339,21 +1339,21 @@
     "transcription": {
       "customSetup": "Custom Setup",
       "customSetupDescription": "Use your own provider and API key.",
-      "description": "Choose how OpenWhispr transcribes your voice",
+      "description": "Choose how SuperTing transcribes your voice",
       "modes": {
         "providers": "Cloud Providers",
         "local": "Local",
         "selfHosted": "Self-Hosted",
-        "openwhisprDesc": "Reliable accuracy. No setup needed.",
+        "supertingDesc": "Reliable accuracy. No setup needed.",
         "providersDesc": "Bring your own API key.",
         "localDesc": "On-device models. Fully private.",
         "selfHostedDesc": "Your own server on your network."
       },
-      "openwhisprCloudDescription": "Reliable accuracy. No setup needed.",
+      "supertingCloudDescription": "Reliable accuracy. No setup needed.",
       "title": "Speech to Text",
       "toasts": {
         "switchedCloud": {
-          "description": "Transcription will use OpenWhispr's cloud service."
+          "description": "Transcription will use SuperTing's cloud service."
         },
         "switchedCustom": {
           "description": "Configure your own provider and API key.",
@@ -1710,7 +1710,7 @@
       "diarizationEtaCalculating": "calculating time",
       "diarizationUnknownNote": "Untitled note",
       "rediarizeDialogTitle": "Re-identify speakers",
-      "rediarizeDialogDescription": "By default OpenWhispr detects the number of speakers automatically. Use advanced options only when the result is clearly too few or too many speakers.",
+      "rediarizeDialogDescription": "By default SuperTing detects the number of speakers automatically. Use advanced options only when the result is clearly too few or too many speakers.",
       "rediarizeModeAuto": "Auto-detect speakers",
       "rediarizeModeAutoDescription": "Recommended. Let the diarization model decide the speaker count.",
       "rediarizeAdvanced": "Advanced options",
@@ -1993,7 +1993,7 @@
     "submitBug": "Submit Bug"
   },
   "postMigration": {
-    "title": "Welcome back to OpenWhispr",
+    "title": "Welcome back to SuperTing",
     "description": "Your notes and settings carried over from the previous version. macOS treats this as a new app though, so a few permissions need to be granted again.",
     "done": "Done",
     "remindLater": "Remind Me Later"
@@ -2035,7 +2035,7 @@
       "undo": "Undo",
       "accessibilityMissing": {
         "title": "Accessibility permissions required",
-        "description": "OpenWhispr needs accessibility permissions to detect your hotkey and paste text. Please enable them in the Control Panel."
+        "description": "SuperTing needs accessibility permissions to detect your hotkey and paste text. Please enable them in the Control Panel."
       }
     },
     "mic": {
@@ -2058,7 +2058,7 @@
     "enabled": "Enable voice agent",
     "enabledDescription": "Dictate instructions to your agent. Activate by saying \"{{agentName}}\". Configurable below.",
     "modes": {
-      "openwhisprDesc": "Use the OpenWhispr-managed agent — no API key needed.",
+      "supertingDesc": "Use the SuperTing-managed agent — no API key needed.",
       "providers": "Bring your own key",
       "providersDesc": "Connect to OpenAI, Anthropic, Gemini, or Groq with your own API key.",
       "local": "Local",
@@ -2088,13 +2088,13 @@
         "local": "Local",
         "selfHosted": "Self-Hosted",
         "enterprise": "Enterprise",
-        "openwhisprDesc": "Reliable accuracy. No setup needed.",
+        "supertingDesc": "Reliable accuracy. No setup needed.",
         "providersDesc": "Bring your own API key.",
         "localDesc": "On-device models. Fully private.",
         "selfHostedDesc": "Your own server on your network.",
         "enterpriseDesc": "Use your organization's cloud account (AWS, Azure, GCP)."
       },
-      "openwhisprCloudDescription": "Reliable accuracy. No setup needed.",
+      "supertingCloudDescription": "Reliable accuracy. No setup needed.",
       "customSetup": "Custom Setup (BYOK)",
       "customSetupDescription": "Use your own API keys and choose your preferred model"
     },
@@ -2153,7 +2153,7 @@
     },
     "mcp": {
       "title": "Local MCP access",
-      "description": "Let local agents read and update your OpenWhispr notes through Model Context Protocol.",
+      "description": "Let local agents read and update your SuperTing notes through Model Context Protocol.",
       "urlLabel": "Server URL",
       "tokenLabel": "Bearer token",
       "codexConfigLabel": "Codex config",
@@ -2179,7 +2179,7 @@
       "local": {
         "label": "Local",
         "freeBadge": "Free",
-        "description": "Read your local notes directly. No login or API key — works while OpenWhispr is running."
+        "description": "Read your local notes directly. No login or API key — works while SuperTing is running."
       },
       "cloud": {
         "label": "Cloud",
@@ -2229,13 +2229,13 @@
     }
   },
   "updateNotification": {
-    "title": "OpenWhispr Update Available",
+    "title": "SuperTing Update Available",
     "body": "Version {{version}} is ready to download",
     "cta": "Update Now"
   },
   "permissionsGate": {
     "title": "Permissions Required",
-    "description": "OpenWhispr needs a few permissions to work on this computer.",
+    "description": "SuperTing needs a few permissions to work on this computer.",
     "continue": "Continue"
   },
   "embeddedChat": {

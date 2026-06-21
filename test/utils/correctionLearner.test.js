@@ -7,22 +7,22 @@ test("extractReplacementCorrection learns a valid replacement word", () => {
   assert.deepEqual(
     extractReplacementCorrection({
       findText: "Open Whisper",
-      replacementText: "OpenWhispr",
+      replacementText: "SuperTing",
       replacementCount: 1,
       existingDictionary: [],
     }),
-    ["OpenWhispr"]
+    ["SuperTing"]
   );
 });
 
 test("extractReplacementCorrection skips invalid replacement candidates", () => {
   const cases = [
-    { findText: "", replacementText: "OpenWhispr", replacementCount: 1 },
-    { findText: "OpenWhispr", replacementText: "", replacementCount: 1 },
-    { findText: "OpenWhispr", replacementText: "OpenWhispr", replacementCount: 1 },
+    { findText: "", replacementText: "SuperTing", replacementCount: 1 },
+    { findText: "SuperTing", replacementText: "", replacementCount: 1 },
+    { findText: "SuperTing", replacementText: "SuperTing", replacementCount: 1 },
     { findText: "AI", replacementText: "ML", replacementCount: 1 },
     { findText: "alpha", replacementText: "CompletelyDifferent", replacementCount: 1 },
-    { findText: "Open Whisper", replacementText: "OpenWhispr", replacementCount: 0 },
+    { findText: "Open Whisper", replacementText: "SuperTing", replacementCount: 0 },
   ];
 
   for (const input of cases) {
@@ -34,9 +34,9 @@ test("extractReplacementCorrection skips existing dictionary entries case-insens
   assert.deepEqual(
     extractReplacementCorrection({
       findText: "Open Whisper",
-      replacementText: "OpenWhispr",
+      replacementText: "SuperTing",
       replacementCount: 3,
-      existingDictionary: ["openwhispr"],
+      existingDictionary: ["superting"],
     }),
     []
   );

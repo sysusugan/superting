@@ -25,9 +25,9 @@ test("normalizes a successful dictation result with raw and refined text", () =>
   const result = normalizeDictationResult(
     {
       success: true,
-      text: "OpenWhispr fixed Qdrant.",
+      text: "SuperTing fixed Qdrant.",
       rawText: "open whisper fixed q drant",
-      source: "openwhispr",
+      source: "superting",
       timings: {
         transcriptionProcessingDurationMs: 320,
         reasoningProcessingDurationMs: 180,
@@ -35,7 +35,7 @@ test("normalizes a successful dictation result with raw and refined text", () =>
       clientTranscriptionId: "client-1",
     },
     {
-      provider: "openwhispr",
+      provider: "superting",
       model: "gpt-4o-mini-transcribe",
       language: "en",
       durationSeconds: 1.234,
@@ -45,10 +45,10 @@ test("normalizes a successful dictation result with raw and refined text", () =>
   assert.equal(result.mode, "dictation");
   assert.equal(result.stage, "complete");
   assert.equal(result.rawText, "open whisper fixed q drant");
-  assert.equal(result.refinedText, "OpenWhispr fixed Qdrant.");
-  assert.equal(result.displayText, "OpenWhispr fixed Qdrant.");
-  assert.equal(result.text, "OpenWhispr fixed Qdrant.");
-  assert.equal(result.provider, "openwhispr");
+  assert.equal(result.refinedText, "SuperTing fixed Qdrant.");
+  assert.equal(result.displayText, "SuperTing fixed Qdrant.");
+  assert.equal(result.text, "SuperTing fixed Qdrant.");
+  assert.equal(result.provider, "superting");
   assert.equal(result.model, "gpt-4o-mini-transcribe");
   assert.equal(result.language, "en");
   assert.equal(result.audioDurationMs, 1234);
@@ -210,7 +210,7 @@ test("normalizes upload transcription results with raw display metadata", () => 
     {
       success: true,
       text: "Uploaded transcript",
-      provider: "openwhispr",
+      provider: "superting",
       model: "cloud",
       partial: true,
       chunksTotal: 3,
@@ -231,7 +231,7 @@ test("normalizes upload transcription results with raw display metadata", () => 
   assert.equal(result.refinedText, "");
   assert.equal(result.displayText, "Uploaded transcript");
   assert.equal(result.text, "Uploaded transcript");
-  assert.equal(result.provider, "openwhispr");
+  assert.equal(result.provider, "superting");
   assert.equal(result.model, "cloud");
   assert.equal(result.language, "en");
   assert.equal(result.partial, true);
@@ -376,22 +376,22 @@ test("normalizes meeting final segments to Simplified Chinese after dictionary c
 
 test("normalizes meeting final segments with dictionary corrections", () => {
   const final = normalizeMeetingSegment(
-    { text: "Antibus uses openwhispr.", source: "system", type: "final", timestamp: 456 },
+    { text: "Antibus uses superting.", source: "system", type: "final", timestamp: 456 },
     {
       provider: "openai-realtime",
       model: "gpt-4o-mini-transcribe",
-      customDictionary: ["EntVerse", "OpenWhispr"],
+      customDictionary: ["EntVerse", "SuperTing"],
       customDictionaryAliases: [{ from: "Antibus", to: "EntVerse" }],
     }
   );
 
-  assert.equal(final.rawText, "Antibus uses openwhispr.");
-  assert.equal(final.text, "EntVerse uses OpenWhispr.");
-  assert.equal(final.displayText, "EntVerse uses OpenWhispr.");
+  assert.equal(final.rawText, "Antibus uses superting.");
+  assert.equal(final.text, "EntVerse uses SuperTing.");
+  assert.equal(final.displayText, "EntVerse uses SuperTing.");
   assert.equal(final.warning, "dictionary_corrected");
   assert.deepEqual(final.dictionaryCorrections, [
     { from: "Antibus", to: "EntVerse", kind: "alias" },
-    { from: "openwhispr", to: "OpenWhispr", kind: "case" },
+    { from: "superting", to: "SuperTing", kind: "case" },
   ]);
 });
 
@@ -413,34 +413,34 @@ test("normalizes meeting final segments to the preferred Chinese script", () => 
 
 test("does not rewrite meeting partial segments", () => {
   const partial = normalizeMeetingSegment(
-    { text: "Antibus openwhispr", source: "system", type: "partial", timestamp: 789 },
+    { text: "Antibus superting", source: "system", type: "partial", timestamp: 789 },
     {
-      customDictionary: ["EntVerse", "OpenWhispr"],
+      customDictionary: ["EntVerse", "SuperTing"],
       customDictionaryAliases: [{ from: "Antibus", to: "EntVerse" }],
     }
   );
 
-  assert.equal(partial.text, "Antibus openwhispr");
-  assert.equal(partial.displayText, "Antibus openwhispr");
+  assert.equal(partial.text, "Antibus superting");
+  assert.equal(partial.displayText, "Antibus superting");
   assert.equal(partial.warning, null);
   assert.equal(partial.dictionaryCorrections, undefined);
 });
 
 test("normalizes full meeting transcripts with voice flow metadata", () => {
-  const result = normalizeMeetingTranscript("Antibus discusses openwhispr.", {
+  const result = normalizeMeetingTranscript("Antibus discusses superting.", {
     provider: "openai-realtime",
     model: "gpt-4o-mini-transcribe",
-    customDictionary: ["EntVerse", "OpenWhispr"],
+    customDictionary: ["EntVerse", "SuperTing"],
     customDictionaryAliases: [{ from: "Antibus", to: "EntVerse" }],
   });
 
   assert.equal(result.mode, "meeting");
-  assert.equal(result.rawText, "EntVerse discusses OpenWhispr.");
-  assert.equal(result.displayText, "EntVerse discusses OpenWhispr.");
+  assert.equal(result.rawText, "EntVerse discusses SuperTing.");
+  assert.equal(result.displayText, "EntVerse discusses SuperTing.");
   assert.equal(result.warning, "dictionary_corrected");
   assert.deepEqual(result.processingMetadata.voiceFlow.dictionaryCorrections, [
     { from: "Antibus", to: "EntVerse", kind: "alias" },
-    { from: "openwhispr", to: "OpenWhispr", kind: "case" },
+    { from: "superting", to: "SuperTing", kind: "case" },
   ]);
 });
 

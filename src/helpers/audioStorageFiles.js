@@ -13,31 +13,31 @@ function formatTimestamp(timestamp) {
 
 function buildDictationAudioFilename(transcriptionId, timestamp) {
   if (timestamp) {
-    return `OpenWhispr-${formatTimestamp(timestamp)}-${transcriptionId}.webm`;
+    return `SuperTing-${formatTimestamp(timestamp)}-${transcriptionId}.webm`;
   }
-  return `OpenWhispr-${transcriptionId}.webm`;
+  return `SuperTing-${transcriptionId}.webm`;
 }
 
 function buildMeetingAudioFilename(noteId, timestamp) {
-  return `OpenWhispr-meeting-${formatTimestamp(timestamp)}-${noteId}.webm`;
+  return `SuperTing-meeting-${formatTimestamp(timestamp)}-${noteId}.webm`;
 }
 
 function buildMeetingWavFallbackFilename(noteId, timestamp) {
-  return `OpenWhispr-meeting-${formatTimestamp(timestamp)}-${noteId}.wav`;
+  return `SuperTing-meeting-${formatTimestamp(timestamp)}-${noteId}.wav`;
 }
 
 function buildMergedMeetingAudioFilename(noteId, timestamp) {
-  return `OpenWhispr-meeting-merged-${formatTimestamp(timestamp)}-${noteId}.webm`;
+  return `SuperTing-meeting-merged-${formatTimestamp(timestamp)}-${noteId}.webm`;
 }
 
 function buildUploadAudioFilename(noteId, timestamp, extension = ".wav") {
   const ext = String(extension || ".wav").toLowerCase() === ".webm" ? ".webm" : ".wav";
-  return `OpenWhispr-upload-${formatTimestamp(timestamp)}-${noteId}${ext}`;
+  return `SuperTing-upload-${formatTimestamp(timestamp)}-${noteId}${ext}`;
 }
 
 function parseMeetingAudioFilename(filename) {
   const match = String(filename || "").match(
-    /^OpenWhispr-meeting-(merged-)?(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d+)\.(wav|webm)$/i
+    /^SuperTing-meeting-(merged-)?(\d{4})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d{2})-(\d+)\.(wav|webm)$/i
   );
   if (!match) return null;
 
@@ -90,7 +90,7 @@ function buildAudioDownloadFilename(title, sourceFilename) {
   const safeTitle = String(title || "")
     .replace(/[/\\?%*:|"<>]/g, "-")
     .trim();
-  return `${safeTitle || "OpenWhispr-audio"}${safeExt}`;
+  return `${safeTitle || "SuperTing-audio"}${safeExt}`;
 }
 
 module.exports = {

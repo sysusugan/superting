@@ -7,8 +7,8 @@ Module._load = function mockElectron(request, parent, isMain) {
   if (request === "electron") {
     return {
       app: {
-        getAppPath: () => "/tmp/openwhispr-test",
-        getPath: () => "/tmp/openwhispr-test",
+        getAppPath: () => "/tmp/superting-test",
+        getPath: () => "/tmp/superting-test",
         isReady: () => false,
       },
     };

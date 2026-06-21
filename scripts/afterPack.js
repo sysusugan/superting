@@ -7,7 +7,7 @@
 // 1. Strips non-target platform/arch binaries from onnxruntime-node
 //    (saves 150–180 MB per build).
 // 2. Wraps the Linux binary in a shell script that forces XWayland and
-//    reads user flags from ~/.config/open-whispr-flags.conf.
+//    reads user flags from ~/.config/superting-flags.conf.
 
 const fs = require("fs");
 const path = require("path");
@@ -259,7 +259,7 @@ function wrapLinuxBinary(context) {
   fs.renameSync(binaryPath, realBinaryPath);
 
   const wrapper = `#!/bin/bash
-# OpenWhispr launcher
+# SuperTing launcher
 # User flags: ~/.config/${binaryName}-flags.conf (one per line, # = comment)
 
 HERE="$(dirname "$(readlink -f "\${BASH_SOURCE[0]}")")"

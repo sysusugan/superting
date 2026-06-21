@@ -39,7 +39,7 @@ function buildTonePcm({ sampleRate = 24000, channels = 1, durationSec = 1 } = {}
 }
 
 test("saveMeetingPcmAudio writes retained meeting WAV by default and reports storage usage", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const pcmPath = path.join(root, "meeting.pcm");
@@ -53,7 +53,7 @@ test("saveMeetingPcmAudio writes retained meeting WAV by default and reports sto
   });
 
   assert.equal(result.success, true);
-  assert.equal(result.filename, "OpenWhispr-meeting-2026-05-28-06-07-08-12.wav");
+  assert.equal(result.filename, "SuperTing-meeting-2026-05-28-06-07-08-12.wav");
   assert.equal(result.durationSeconds, 1);
   assert.equal(result.compressed, false);
 
@@ -70,7 +70,7 @@ test("saveMeetingPcmAudio writes retained meeting WAV by default and reports sto
 });
 
 test("saveMeetingPcmAudio does not invoke Opus compression for default retained audio", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const pcmPath = path.join(root, "meeting.pcm");
@@ -92,7 +92,7 @@ test("saveMeetingPcmAudio does not invoke Opus compression for default retained 
 
   assert.equal(result.success, true);
   assert.equal(compressionCalls, 0);
-  assert.equal(result.filename, "OpenWhispr-meeting-2026-05-28-06-07-08-12.wav");
+  assert.equal(result.filename, "SuperTing-meeting-2026-05-28-06-07-08-12.wav");
   assert.equal(result.compressed, false);
 
   const wav = fs.readFileSync(result.path);
@@ -102,13 +102,13 @@ test("saveMeetingPcmAudio does not invoke Opus compression for default retained 
 });
 
 test("mergeRetainedAudioToOpusWebm creates a retained merged WebM from note audio files", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const audioDir = path.join(root, "audio");
   const storage = new AudioStorageManager({ audioDir });
-  const first = path.join(audioDir, "OpenWhispr-meeting-2026-05-28-06-00-00-12.wav");
-  const second = path.join(audioDir, "OpenWhispr-meeting-2026-05-28-06-10-00-12.wav");
+  const first = path.join(audioDir, "SuperTing-meeting-2026-05-28-06-00-00-12.wav");
+  const second = path.join(audioDir, "SuperTing-meeting-2026-05-28-06-10-00-12.wav");
   const pcm = Buffer.alloc(24000);
   fs.writeFileSync(first, buildTestWav(pcm));
   fs.writeFileSync(second, buildTestWav(pcm));
@@ -120,7 +120,7 @@ test("mergeRetainedAudioToOpusWebm creates a retained merged WebM from note audi
   );
 
   assert.equal(result.success, true);
-  assert.equal(result.filename, "OpenWhispr-meeting-merged-2026-05-28-06-30-00-12.webm");
+  assert.equal(result.filename, "SuperTing-meeting-merged-2026-05-28-06-30-00-12.webm");
   const merged = fs.readFileSync(result.path);
   assert.equal(merged[0], 0x1a);
   assert.equal(merged[1], 0x45);
@@ -129,18 +129,18 @@ test("mergeRetainedAudioToOpusWebm creates a retained merged WebM from note audi
 });
 
 test("compressRetainedAudioToOpusWebm converts retained WAV to same basename WebM", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const audioDir = path.join(root, "audio");
   const storage = new AudioStorageManager({ audioDir });
-  const wavName = "OpenWhispr-meeting-2026-05-28-06-00-00-12.wav";
+  const wavName = "SuperTing-meeting-2026-05-28-06-00-00-12.wav";
   fs.writeFileSync(path.join(audioDir, wavName), buildTestWav(buildTonePcm()));
 
   const result = await storage.compressRetainedAudioToOpusWebm(wavName);
 
   assert.equal(result.success, true);
-  assert.equal(result.filename, "OpenWhispr-meeting-2026-05-28-06-00-00-12.webm");
+  assert.equal(result.filename, "SuperTing-meeting-2026-05-28-06-00-00-12.webm");
   assert.equal(fs.existsSync(path.join(audioDir, wavName)), false);
   assert.equal(
     fs.existsSync(path.join(audioDir, ".pending-delete", wavName)),
@@ -153,7 +153,7 @@ test("compressRetainedAudioToOpusWebm converts retained WAV to same basename Web
 });
 
 test("compressRetainedAudioToOpusWebm leaves original WAV in place when compression fails", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const audioDir = path.join(root, "audio");
@@ -163,7 +163,7 @@ test("compressRetainedAudioToOpusWebm leaves original WAV in place when compress
       throw new Error("forced compression failure");
     },
   });
-  const wavName = "OpenWhispr-meeting-2026-05-28-06-00-00-12.wav";
+  const wavName = "SuperTing-meeting-2026-05-28-06-00-00-12.wav";
   fs.writeFileSync(path.join(audioDir, wavName), buildTestWav(buildTonePcm()));
 
   const result = await storage.compressRetainedAudioToOpusWebm(wavName);
@@ -172,16 +172,16 @@ test("compressRetainedAudioToOpusWebm leaves original WAV in place when compress
   assert.match(result.error, /forced compression failure/);
   assert.equal(fs.existsSync(path.join(audioDir, wavName)), true);
   assert.equal(fs.existsSync(path.join(audioDir, ".pending-delete", wavName)), false);
-  assert.equal(fs.existsSync(path.join(audioDir, "OpenWhispr-meeting-2026-05-28-06-00-00-12.webm")), false);
+  assert.equal(fs.existsSync(path.join(audioDir, "SuperTing-meeting-2026-05-28-06-00-00-12.webm")), false);
 });
 
 test("compressRetainedAudioToOpusWebm returns existing WebM without rewriting", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const audioDir = path.join(root, "audio");
   const storage = new AudioStorageManager({ audioDir });
-  const webmName = "OpenWhispr-meeting-2026-05-28-06-00-00-12.webm";
+  const webmName = "SuperTing-meeting-2026-05-28-06-00-00-12.webm";
   const webmPath = path.join(audioDir, webmName);
   fs.writeFileSync(webmPath, Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
 
@@ -194,13 +194,13 @@ test("compressRetainedAudioToOpusWebm returns existing WebM without rewriting", 
 });
 
 test("compressAllRetainedAudioToOpusWebm compresses only uncompressed retained audio", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const audioDir = path.join(root, "audio");
   const storage = new AudioStorageManager({ audioDir });
-  const wavName = "OpenWhispr-meeting-2026-05-28-06-00-00-12.wav";
-  const webmName = "OpenWhispr-meeting-2026-05-28-06-10-00-12.webm";
+  const wavName = "SuperTing-meeting-2026-05-28-06-00-00-12.wav";
+  const webmName = "SuperTing-meeting-2026-05-28-06-10-00-12.webm";
   fs.writeFileSync(path.join(audioDir, wavName), buildTestWav(buildTonePcm()));
   fs.writeFileSync(path.join(audioDir, webmName), Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
 
@@ -217,7 +217,7 @@ test("compressAllRetainedAudioToOpusWebm compresses only uncompressed retained a
   assert.equal(result.skipped, 1);
   assert.equal(result.failed, 0);
   assert.deepEqual(replacements, [
-    [wavName, "OpenWhispr-meeting-2026-05-28-06-00-00-12.webm"],
+    [wavName, "SuperTing-meeting-2026-05-28-06-00-00-12.webm"],
   ]);
   assert.equal(fs.existsSync(path.join(audioDir, wavName)), false);
   assert.equal(fs.existsSync(path.join(audioDir, ".pending-delete", wavName)), false);
@@ -225,13 +225,13 @@ test("compressAllRetainedAudioToOpusWebm compresses only uncompressed retained a
 });
 
 test("compressAllRetainedAudioToOpusWebm removes legacy pending-delete backups", async (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const audioDir = path.join(root, "audio");
   const pendingDir = path.join(audioDir, ".pending-delete");
   const storage = new AudioStorageManager({ audioDir });
-  const wavName = "OpenWhispr-meeting-2026-05-28-06-00-00-12.wav";
+  const wavName = "SuperTing-meeting-2026-05-28-06-00-00-12.wav";
   fs.writeFileSync(path.join(audioDir, wavName), buildTestWav(buildTonePcm()));
   fs.mkdirSync(pendingDir, { recursive: true });
   fs.writeFileSync(path.join(pendingDir, "old.wav"), Buffer.from("legacy backup"));
@@ -244,12 +244,12 @@ test("compressAllRetainedAudioToOpusWebm removes legacy pending-delete backups",
 });
 
 test("getRetainedAudioPath returns existing retained audio and rejects missing or unsafe names", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const audioDir = path.join(root, "audio");
   const storage = new AudioStorageManager({ audioDir });
-  const filename = "OpenWhispr-meeting-2026-05-28-06-07-08-12.wav";
+  const filename = "SuperTing-meeting-2026-05-28-06-07-08-12.wav";
   const audioPath = path.join(audioDir, filename);
   fs.writeFileSync(audioPath, Buffer.from("wav"));
 
@@ -259,13 +259,13 @@ test("getRetainedAudioPath returns existing retained audio and rejects missing o
 });
 
 test("cleanupExpiredAudio reports deleted retained note audio filenames to database", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const audioDir = path.join(root, "audio");
   const storage = new AudioStorageManager({ audioDir });
-  const expired = "OpenWhispr-meeting-2026-05-28-06-07-08-12.wav";
-  const retained = "OpenWhispr-meeting-2026-05-29-06-07-08-12.wav";
+  const expired = "SuperTing-meeting-2026-05-28-06-07-08-12.wav";
+  const retained = "SuperTing-meeting-2026-05-29-06-07-08-12.wav";
   fs.writeFileSync(path.join(audioDir, expired), Buffer.from("old"));
   fs.writeFileSync(path.join(audioDir, retained), Buffer.from("new"));
 
@@ -288,12 +288,12 @@ test("cleanupExpiredAudio reports deleted retained note audio filenames to datab
 });
 
 test("cleanupExpiredAudio skips deletion when retention is permanent", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const audioDir = path.join(root, "audio");
   const storage = new AudioStorageManager({ audioDir });
-  const oldFile = "OpenWhispr-meeting-2026-05-28-06-07-08-12.wav";
+  const oldFile = "SuperTing-meeting-2026-05-28-06-07-08-12.wav";
   fs.writeFileSync(path.join(audioDir, oldFile), Buffer.from("old"));
 
   const oldTime = Date.now() - 400 * 86400000;
@@ -316,7 +316,7 @@ test("cleanupExpiredAudio skips deletion when retention is permanent", (t) => {
 });
 
 test("cleanupPendingDeleteAudio deletes historical pending-delete directory", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const audioDir = path.join(root, "audio");
@@ -333,13 +333,13 @@ test("cleanupPendingDeleteAudio deletes historical pending-delete directory", (t
 });
 
 test("deleteRetainedAudioFiles deletes safe retained audio and rejects unsafe names", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const audioDir = path.join(root, "audio");
   const storage = new AudioStorageManager({ audioDir });
-  const existing = "OpenWhispr-meeting-2026-05-29-06-07-08-12.wav";
-  const missing = "OpenWhispr-meeting-2026-05-29-06-07-09-12.wav";
+  const existing = "SuperTing-meeting-2026-05-29-06-07-08-12.wav";
+  const missing = "SuperTing-meeting-2026-05-29-06-07-09-12.wav";
   const unsafe = "../secret.wav";
   fs.writeFileSync(path.join(audioDir, existing), Buffer.from("wav"));
 

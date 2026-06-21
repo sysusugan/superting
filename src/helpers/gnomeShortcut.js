@@ -1,23 +1,24 @@
 const { execFileSync } = require("child_process");
 const debugLogger = require("./debugLogger");
+const { BRAND } = require("./brandConfig");
 
-const DBUS_SERVICE_NAME = "com.openwhispr.App";
-const DBUS_OBJECT_PATH = "/com/openwhispr/App";
-const DBUS_INTERFACE = "com.openwhispr.App";
+const DBUS_SERVICE_NAME = BRAND.dbusService;
+const DBUS_OBJECT_PATH = BRAND.dbusObjectPath;
+const DBUS_INTERFACE = BRAND.dbusService;
 
 // Per-slot gsettings paths and display names
 const SLOT_CONFIG = {
   dictation: {
-    path: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr/",
-    name: "OpenWhispr Toggle",
+    path: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/superting/",
+    name: "SuperTing Toggle",
   },
   agent: {
-    path: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr-agent/",
-    name: "OpenWhispr Agent",
+    path: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/superting-agent/",
+    name: "SuperTing Agent",
   },
   meeting: {
-    path: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/openwhispr-meeting/",
-    name: "OpenWhispr Meeting",
+    path: "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/superting-meeting/",
+    name: "SuperTing Meeting",
   },
 };
 
@@ -153,7 +154,7 @@ class GnomeShortcutManager {
   }
 
   _createInterfaceClass(dbusModule) {
-    class OpenWhisprInterface extends dbusModule.interface.Interface {
+    class SuperTingInterface extends dbusModule.interface.Interface {
       constructor(dictationCallback, agentCallback, meetingCallback) {
         super(DBUS_INTERFACE);
         this._dictationCallback = dictationCallback;
@@ -180,7 +181,7 @@ class GnomeShortcutManager {
       }
     }
 
-    OpenWhisprInterface.configureMembers({
+    SuperTingInterface.configureMembers({
       methods: {
         Toggle: { inSignature: "", outSignature: "" },
         ToggleAgent: { inSignature: "", outSignature: "" },
@@ -188,7 +189,7 @@ class GnomeShortcutManager {
       },
     });
 
-    return OpenWhisprInterface;
+    return SuperTingInterface;
   }
 
   static isValidShortcut(shortcut) {

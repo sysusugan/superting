@@ -32,6 +32,7 @@ const path = require("path");
 const http = require("http");
 const tls = require("tls");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
+const { BRAND } = require("./src/helpers/brandConfig");
 
 // Extend Node's TLS trust with the OS store so ws and https.get see corporate
 // CAs that Chromium already trusts.
@@ -49,11 +50,11 @@ try {
 
 const VALID_CHANNELS = new Set(["development", "staging", "production"]);
 const DEFAULT_OAUTH_PROTOCOL_BY_CHANNEL = {
-  development: "openwhispr-dev",
-  staging: "openwhispr-staging",
-  production: "openwhispr",
+  development: `${BRAND.protocol}-dev`,
+  staging: `${BRAND.protocol}-staging`,
+  production: BRAND.protocol,
 };
-const BASE_WINDOWS_APP_ID = "com.gizmolabs.openwhispr";
+const BASE_WINDOWS_APP_ID = BRAND.appId;
 const DEFAULT_AUTH_BRIDGE_PORT = 5199;
 
 function isElectronBinaryExec() {
@@ -73,7 +74,7 @@ function inferDefaultChannel() {
 }
 
 function resolveAppChannel() {
-  const rawChannel = (process.env.OPENWHISPR_CHANNEL || process.env.VITE_OPENWHISPR_CHANNEL || "")
+  const rawChannel = (process.env.SUPERTING_CHANNEL || process.env.VITE_SUPERTING_CHANNEL || "")
     .trim()
     .toLowerCase();
 
@@ -85,11 +86,11 @@ function resolveAppChannel() {
 }
 
 const APP_CHANNEL = resolveAppChannel();
-process.env.OPENWHISPR_CHANNEL = APP_CHANNEL;
+process.env.SUPERTING_CHANNEL = APP_CHANNEL;
 
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: "openwhispr-note-asset",
+    scheme: BRAND.noteAssetProtocol,
     privileges: {
       standard: true,
       secure: true,
@@ -97,7 +98,7 @@ protocol.registerSchemesAsPrivileged([
     },
   },
   {
-    scheme: "openwhispr-note-audio",
+    scheme: BRAND.noteAudioProtocol,
     privileges: {
       standard: true,
       secure: true,
@@ -112,7 +113,7 @@ function configureChannelUserDataPath() {
     return;
   }
 
-  const isolatedPath = path.join(app.getPath("appData"), `OpenWhispr-${APP_CHANNEL}`);
+  const isolatedPath = path.join(app.getPath("appData"), `${BRAND.productName}-${APP_CHANNEL}`);
   app.setPath("userData", isolatedPath);
 }
 
@@ -144,7 +145,7 @@ if (process.platform === "linux" && process.env.XDG_SESSION_TYPE === "wayland") 
 // Set desktop filename so Wayland compositors can match windows to the .desktop entry.
 // This allows XDG portals (e.g. PipeWire) to persist permissions across sessions.
 if (process.platform === "linux") {
-  app.setDesktopName("open-whispr.desktop");
+  app.setDesktopName("superting.desktop");
 }
 
 // Group all windows under single taskbar entry on Windows
@@ -155,7 +156,7 @@ if (process.platform === "win32") {
 }
 
 function getOAuthProtocol() {
-  const fromEnv = (process.env.VITE_OPENWHISPR_PROTOCOL || process.env.OPENWHISPR_PROTOCOL || "")
+  const fromEnv = (process.env.VITE_SUPERTING_PROTOCOL || process.env.SUPERTING_PROTOCOL || "")
     .trim()
     .toLowerCase();
 
@@ -206,7 +207,7 @@ function restoreHtmlHandlerIfChanged(original) {
 // Register custom protocol for OAuth callbacks.
 // In development, always include the app path argument so macOS/Windows/Linux
 // can launch the project app instead of opening bare Electron.
-function registerOpenWhisprProtocol() {
+function registerSuperTingProtocol() {
   const protocol = OAUTH_PROTOCOL;
   const htmlHandler = process.platform === "linux" ? getDefaultHtmlHandler() : null;
 
@@ -225,7 +226,7 @@ function registerOpenWhisprProtocol() {
   return result;
 }
 
-const protocolRegistered = registerOpenWhisprProtocol();
+const protocolRegistered = registerSuperTingProtocol();
 if (!protocolRegistered) {
   console.warn(`[Auth] Failed to register ${OAUTH_PROTOCOL}:// protocol handler`);
 }
@@ -239,8 +240,8 @@ if (!gotSingleInstanceLock) {
 const isLiveWindow = (window) => window && !window.isDestroyed();
 
 // Ensure macOS menus use the proper casing for the app name
-if (process.platform === "darwin" && app.getName() !== "OpenWhispr") {
-  app.setName("OpenWhispr");
+if (process.platform === "darwin" && app.getName() !== BRAND.productName) {
+  app.setName(BRAND.productName);
 }
 
 // Add global error handling for uncaught exceptions
@@ -317,7 +318,7 @@ let globeKeyAlertShown = false;
 let authBridgeServer = null;
 
 function parseAuthBridgePort() {
-  const raw = (process.env.OPENWHISPR_AUTH_BRIDGE_PORT || "").trim();
+  const raw = (process.env.SUPERTING_AUTH_BRIDGE_PORT || "").trim();
   if (!raw) return DEFAULT_AUTH_BRIDGE_PORT;
 
   const parsed = Number(raw);
@@ -500,8 +501,8 @@ function resolveAuthUrl() {
 
 function getOauthCookieName() {
   return process.env.NODE_ENV === "production"
-    ? "__Secure-openwhispr.session_token"
-    : "openwhispr.session_token";
+    ? "__Secure-superting.session_token"
+    : "superting.session_token";
 }
 
 // Older website builds send the signed cookie value as `?token=`; trade it
@@ -675,7 +676,7 @@ function startAuthBridgeServer() {
 
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(
-      "<html><body><h3>OpenWhispr sign-in complete.</h3><p>You can close this tab.</p></body></html>"
+      "<html><body><h3>SuperTing sign-in complete.</h3><p>You can close this tab.</p></body></html>"
     );
   });
 
@@ -722,7 +723,7 @@ async function startApp() {
   // servers reject. Spoof Origin to the request's own URL for configured local
   // or self-hosted service endpoints.
   const authUrl = resolveAuthUrl();
-  const apiUrl = process.env.OPENWHISPR_API_URL || process.env.VITE_OPENWHISPR_API_URL || "";
+  const apiUrl = process.env.SUPERTING_API_URL || process.env.VITE_SUPERTING_API_URL || "";
   const rewriteUrls = [authUrl, apiUrl, "http://localhost:3000", "http://127.0.0.1:3000"]
     .map((value) => String(value || "").replace(/\/+$/, ""))
     .filter(Boolean)

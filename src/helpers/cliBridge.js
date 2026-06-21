@@ -4,6 +4,7 @@ const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 const debugLogger = require("./debugLogger");
+const { ensureMigratedPath } = require("./brandConfig");
 const { isPortAvailable } = require("../utils/serverUtils");
 
 const PORT_RANGE_START = 8200;
@@ -16,7 +17,7 @@ const LOOPBACK_ADDRESSES = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 const NO_CONTENT = Symbol("CliBridge.NoContent");
 
 function getBridgeFilePath() {
-  return path.join(os.homedir(), ".openwhispr", "cli-bridge.json");
+  return path.join(ensureMigratedPath(os.homedir(), "config"), "cli-bridge.json");
 }
 
 async function findAvailablePort() {

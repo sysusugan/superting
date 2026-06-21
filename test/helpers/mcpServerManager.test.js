@@ -11,7 +11,7 @@ const {
 const McpServerManager = require("../../src/helpers/mcpServerManager");
 
 function createTempHome(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-mcp-test-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "superting-mcp-test-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
@@ -94,8 +94,8 @@ function createIpcHandlers() {
               deleted_at: null,
             }
           : null,
-      getDictionary: () => ["OpenWhispr"],
-      getDictionaryAliases: () => [{ from: "Open Whisper", to: "OpenWhispr" }],
+      getDictionary: () => ["SuperTing"],
+      getDictionaryAliases: () => [{ from: "Open Whisper", to: "SuperTing" }],
     },
     broadcastToWindows: () => {},
     _asyncVectorUpsert: () => {},
@@ -110,7 +110,7 @@ function createIpcHandlers() {
 }
 
 async function createClient(url, token) {
-  const client = new Client({ name: "openwhispr-mcp-test", version: "1.0.0" });
+  const client = new Client({ name: "superting-mcp-test", version: "1.0.0" });
   const transport = new StreamableHTTPClientTransport(new URL(url), {
     requestInit: {
       headers: {
@@ -133,7 +133,7 @@ test("MCP server stays stopped until explicitly enabled", async (t) => {
     port: null,
     hasToken: false,
   });
-  assert.equal(fs.existsSync(path.join(homeDir, ".openwhispr", "mcp-server.json")), false);
+  assert.equal(fs.existsSync(path.join(homeDir, ".superting", "mcp-server.json")), false);
 });
 
 test("MCP server exposes authenticated tools over Streamable HTTP", async (t) => {
@@ -148,7 +148,7 @@ test("MCP server exposes authenticated tools over Streamable HTTP", async (t) =>
   assert.ok(status.url);
   assert.equal(status.hasToken, true);
 
-  const metadataPath = path.join(homeDir, ".openwhispr", "mcp-server.json");
+  const metadataPath = path.join(homeDir, ".superting", "mcp-server.json");
   const metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
   assert.equal(metadata.url, status.url);
   assert.equal(metadata.token.length, 64);
@@ -157,10 +157,11 @@ test("MCP server exposes authenticated tools over Streamable HTTP", async (t) =>
   t.after(async () => client.close());
 
   const tools = await client.listTools();
+  assert.ok(tools.tools.some((tool) => tool.name === "superting_search_notes"));
   assert.ok(tools.tools.some((tool) => tool.name === "openwhispr_search_notes"));
 
   const result = await client.callTool({
-    name: "openwhispr_search_notes",
+    name: "superting_search_notes",
     arguments: { query: "Weekly", limit: 5 },
   });
   const payload = JSON.parse(result.content[0].text);
@@ -192,13 +193,13 @@ test("MCP server exposes note write tools", async (t) => {
   await manager.setEnabled(true);
   const status = manager.getStatus();
   const metadata = JSON.parse(
-    fs.readFileSync(path.join(homeDir, ".openwhispr", "mcp-server.json"), "utf8")
+    fs.readFileSync(path.join(homeDir, ".superting", "mcp-server.json"), "utf8")
   );
   const { client } = await createClient(status.url, metadata.token);
   t.after(async () => client.close());
 
   const createResult = await client.callTool({
-    name: "openwhispr_create_note",
+    name: "superting_create_note",
     arguments: { title: "MCP draft", content: "Created from MCP", folder_id: 2 },
   });
   const created = JSON.parse(createResult.content[0].text);
@@ -206,7 +207,7 @@ test("MCP server exposes note write tools", async (t) => {
   assert.equal(created.data.title, "MCP draft");
 
   const updateResult = await client.callTool({
-    name: "openwhispr_update_note",
+    name: "superting_update_note",
     arguments: { id: created.data.id, content: "Updated from MCP" },
   });
   const updated = JSON.parse(updateResult.content[0].text);
@@ -214,7 +215,7 @@ test("MCP server exposes note write tools", async (t) => {
   assert.equal(updated.data.content, "Updated from MCP");
 
   const deleteResult = await client.callTool({
-    name: "openwhispr_delete_note",
+    name: "superting_delete_note",
     arguments: { id: created.data.id },
   });
   const deleted = JSON.parse(deleteResult.content[0].text);

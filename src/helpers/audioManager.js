@@ -1334,7 +1334,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     return result;
   }
 
-  async processWithOpenWhisprCloud(audioBlob, metadata = {}) {
+  async processWithSuperTingCloud(audioBlob, metadata = {}) {
     return this.processWithOpenAIAPI(audioBlob, metadata);
   }
 
@@ -2567,7 +2567,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         "streaming"
       );
       try {
-        const batchResult = await this.processWithOpenWhisprCloud(fallbackBlob, {
+        const batchResult = await this.processWithSuperTingCloud(fallbackBlob, {
           durationSeconds,
         });
         if (batchResult?.text) {

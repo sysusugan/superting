@@ -7,7 +7,7 @@ const path = require("node:path");
 const DatabaseManager = require("../../src/helpers/database");
 
 function createDatabase(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-db-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-db-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const db = new DatabaseManager({ dbPath: path.join(root, "transcriptions.db") });
@@ -19,10 +19,10 @@ test("note audio files retain multiple saved recordings for one note", (t) => {
   const db = createDatabase(t);
   const note = db.saveNote("Meeting", "", "meeting").note;
 
-  db.addNoteAudioFile(note.id, "OpenWhispr-meeting-2026-05-29-10-00-00-1.wav", 60, {
+  db.addNoteAudioFile(note.id, "SuperTing-meeting-2026-05-29-10-00-00-1.wav", 60, {
     recordedAt: "2026-05-29T10:00:00.000Z",
   });
-  db.addNoteAudioFile(note.id, "OpenWhispr-meeting-2026-05-29-10-30-00-1.wav", 30, {
+  db.addNoteAudioFile(note.id, "SuperTing-meeting-2026-05-29-10-30-00-1.wav", 30, {
     recordedAt: "2026-05-29T10:30:00.000Z",
   });
 
@@ -30,7 +30,7 @@ test("note audio files retain multiple saved recordings for one note", (t) => {
 
   assert.deepEqual(
     files.map((file) => file.filename),
-    ["OpenWhispr-meeting-2026-05-29-10-30-00-1.wav", "OpenWhispr-meeting-2026-05-29-10-00-00-1.wav"]
+    ["SuperTing-meeting-2026-05-29-10-30-00-1.wav", "SuperTing-meeting-2026-05-29-10-00-00-1.wav"]
   );
   assert.equal(files[0].duration_seconds, 30);
 });
@@ -41,7 +41,7 @@ test("existing note source files are backfilled once into note audio files", (t)
     "Legacy",
     "",
     "meeting",
-    "OpenWhispr-meeting-2026-05-29-10-00-00-2.wav",
+    "SuperTing-meeting-2026-05-29-10-00-00-2.wav",
     42
   ).note;
 
@@ -50,7 +50,7 @@ test("existing note source files are backfilled once into note audio files", (t)
 
   const files = db.getNoteAudioFiles(note.id);
   assert.equal(files.length, 1);
-  assert.equal(files[0].filename, "OpenWhispr-meeting-2026-05-29-10-00-00-2.wav");
+  assert.equal(files[0].filename, "SuperTing-meeting-2026-05-29-10-00-00-2.wav");
   assert.equal(files[0].duration_seconds, 42);
 });
 
@@ -66,8 +66,8 @@ test("backfill ignores upload source files that are not retained local audio", (
 test("removing note audio files falls back note source_file to latest remaining recording", (t) => {
   const db = createDatabase(t);
   const note = db.saveNote("Meeting", "", "meeting").note;
-  const older = "OpenWhispr-meeting-2026-05-29-10-00-00-3.wav";
-  const newer = "OpenWhispr-meeting-2026-05-29-10-30-00-3.wav";
+  const older = "SuperTing-meeting-2026-05-29-10-00-00-3.wav";
+  const newer = "SuperTing-meeting-2026-05-29-10-30-00-3.wav";
 
   db.addNoteAudioFile(note.id, older, 60, {
     recordedAt: "2026-05-29T10:00:00.000Z",
@@ -92,9 +92,9 @@ test("removing note audio files falls back note source_file to latest remaining 
 test("replaceNoteAudioFilesWithMergedFile keeps only merged recording as latest source", (t) => {
   const db = createDatabase(t);
   const note = db.saveNote("Meeting", "", "meeting").note;
-  const older = "OpenWhispr-meeting-2026-05-29-10-00-00-3.wav";
-  const newer = "OpenWhispr-meeting-2026-05-29-10-30-00-3.wav";
-  const merged = "OpenWhispr-meeting-merged-2026-05-29-10-45-00-3.webm";
+  const older = "SuperTing-meeting-2026-05-29-10-00-00-3.wav";
+  const newer = "SuperTing-meeting-2026-05-29-10-30-00-3.wav";
+  const merged = "SuperTing-meeting-merged-2026-05-29-10-45-00-3.webm";
 
   db.addNoteAudioFile(note.id, older, 60, {
     recordedAt: "2026-05-29T10:00:00.000Z",
@@ -126,8 +126,8 @@ test("replaceNoteAudioFilesWithMergedFile keeps only merged recording as latest 
 test("replaceNoteAudioFilename preserves a note recording when compressed globally", (t) => {
   const db = createDatabase(t);
   const note = db.saveNote("Meeting", "", "meeting").note;
-  const wavName = "OpenWhispr-meeting-2026-05-29-10-00-00-4.wav";
-  const webmName = "OpenWhispr-meeting-2026-05-29-10-00-00-4.webm";
+  const wavName = "SuperTing-meeting-2026-05-29-10-00-00-4.wav";
+  const webmName = "SuperTing-meeting-2026-05-29-10-00-00-4.webm";
 
   db.addNoteAudioFile(note.id, wavName, 60, {
     recordedAt: "2026-05-29T10:00:00.000Z",
@@ -150,16 +150,16 @@ test("replaceNoteAudioFilename preserves a note recording when compressed global
 
 test("backfill from audio directory imports old meeting audio files with note ids", (t) => {
   const db = createDatabase(t);
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-audio-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-audio-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const note = db.saveNote("Meeting", "", "meeting").note;
-  const older = `OpenWhispr-meeting-2026-05-29-10-00-00-${note.id}.wav`;
-  const newer = `OpenWhispr-meeting-2026-05-29-10-30-00-${note.id}.wav`;
+  const older = `SuperTing-meeting-2026-05-29-10-00-00-${note.id}.wav`;
+  const newer = `SuperTing-meeting-2026-05-29-10-30-00-${note.id}.wav`;
   fs.writeFileSync(path.join(root, older), Buffer.alloc(44));
   fs.writeFileSync(path.join(root, newer), Buffer.alloc(44));
-  fs.writeFileSync(path.join(root, "OpenWhispr-meeting-2026-05-29-10-45-00-999999.wav"), "");
-  fs.writeFileSync(path.join(root, "OpenWhispr-2026-05-29-10-45-00-1.webm"), "");
+  fs.writeFileSync(path.join(root, "SuperTing-meeting-2026-05-29-10-45-00-999999.wav"), "");
+  fs.writeFileSync(path.join(root, "SuperTing-2026-05-29-10-45-00-1.webm"), "");
   fs.writeFileSync(path.join(root, "customer-call.wav"), "");
 
   db.backfillNoteAudioFilesFromDirectory(root);

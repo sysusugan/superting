@@ -1,11 +1,11 @@
 ---
-name: openwhispr-api
-description: Use OpenWhispr's local loopback API exposed by a running desktop app.
+name: superting-api
+description: Use SuperTing's local loopback API exposed by a running desktop app.
 ---
 
-# OpenWhispr Local API
+# SuperTing Local API
 
-OpenWhispr exposes a local-only HTTP bridge for automation. It is intended for
+SuperTing exposes a local-only HTTP bridge for automation. It is intended for
 desktop-local tools, MCP adapters, and agent skills that need to read or modify
 the user's local notes and transcription history.
 
@@ -14,13 +14,13 @@ the user's local notes and transcription history.
 The desktop app writes bridge metadata to:
 
 ```sh
-~/.openwhispr/cli-bridge.json
+~/.superting/cli-bridge.json
 ```
 
 Read the current port and bearer token from that file:
 
 ```sh
-bridge="${HOME}/.openwhispr/cli-bridge.json"
+bridge="${HOME}/.superting/cli-bridge.json"
 port="$(jq -r .port "$bridge")"
 token="$(jq -r .token "$bridge")"
 base_url="http://127.0.0.1:${port}"
@@ -33,7 +33,7 @@ Authorization: Bearer $token
 ```
 
 The bridge only binds to `127.0.0.1` and is not a hosted service. It does not
-require an OpenWhispr account.
+require an SuperTing account.
 
 ## Routes
 

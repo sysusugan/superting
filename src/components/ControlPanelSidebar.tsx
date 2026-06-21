@@ -183,7 +183,7 @@ export default function ControlPanelSidebar({
       >
         <div className="flex items-center gap-2 min-w-0">
           <img src={logoIcon} alt="" className="w-6 h-6 rounded-md shrink-0" />
-          <span className="text-sm font-semibold text-foreground truncate">OpenWhispr</span>
+          <span className="text-sm font-semibold text-foreground truncate">SuperTing</span>
         </div>
         <button
           type="button"

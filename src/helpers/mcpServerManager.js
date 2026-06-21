@@ -10,6 +10,7 @@ const {
 const { isInitializeRequest } = require("@modelcontextprotocol/sdk/types.js");
 const z = require("zod/v4");
 const debugLogger = require("./debugLogger");
+const { ensureMigratedPath } = require("./brandConfig");
 const { isPortAvailable } = require("../utils/serverUtils");
 
 const HOST = "127.0.0.1";
@@ -20,7 +21,7 @@ const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 const MAX_REQUEST_BODY_BYTES = 1 * 1024 * 1024;
 
 function getMcpMetadataFilePath(homeDir = os.homedir()) {
-  return path.join(homeDir, ".openwhispr", "mcp-server.json");
+  return path.join(ensureMigratedPath(homeDir, "config"), "mcp-server.json");
 }
 
 function sendJson(res, statusCode, payload) {
@@ -320,12 +321,12 @@ class McpServerManager {
   _createMcpServer() {
     const server = new McpServer(
       {
-        name: "openwhispr-local",
+        name: "superting-local",
         version: "1.0.0",
       },
       {
         instructions:
-          "Use OpenWhispr tools for the user's local notes, folders, dictionary, and transcription text. Data is local to this desktop app. Do not request or expose raw audio; only audio metadata is available.",
+          "Use SuperTing tools for the user's local notes, folders, dictionary, and transcription text. Data is local to this desktop app. Do not request or expose raw audio; only audio metadata is available.",
       }
     );
 
@@ -336,22 +337,35 @@ class McpServerManager {
   _registerTools(server) {
     const db = this.ipcHandlers.databaseManager;
 
-    server.registerTool(
-      "openwhispr_health",
+    const registerTool = (suffix, config, handler) => {
+      server.registerTool(`superting_${suffix}`, config, handler);
+      server.registerTool(
+        `openwhispr_${suffix}`,
+        {
+          ...config,
+          title: `${config.title} (legacy OpenWhispr alias)`,
+          description: `${config.description} Legacy alias; use superting_${suffix}.`,
+        },
+        handler
+      );
+    };
+
+    registerTool(
+      "health",
       {
-        title: "OpenWhispr health",
-        description: "Check whether the local OpenWhispr MCP server is available.",
+        title: "SuperTing health",
+        description: "Check whether the local SuperTing MCP server is available.",
         inputSchema: {},
         annotations: { readOnlyHint: true },
       },
       async () => sendMcpToolResult({ success: true, data: { ok: true, version: 1 } })
     );
 
-    server.registerTool(
-      "openwhispr_list_notes",
+    registerTool(
+      "list_notes",
       {
-        title: "List OpenWhispr notes",
-        description: "List local OpenWhispr notes with text previews and audio metadata.",
+        title: "List SuperTing notes",
+        description: "List local SuperTing notes with text previews and audio metadata.",
         inputSchema: {
           limit: z.number().optional().describe("Maximum number of notes to return. Default 100."),
           folder_id: z.number().optional().describe("Optional folder ID filter."),
@@ -367,11 +381,11 @@ class McpServerManager {
       }
     );
 
-    server.registerTool(
-      "openwhispr_search_notes",
+    registerTool(
+      "search_notes",
       {
-        title: "Search OpenWhispr notes",
-        description: "Search local OpenWhispr notes by keyword and return previews.",
+        title: "Search SuperTing notes",
+        description: "Search local SuperTing notes by keyword and return previews.",
         inputSchema: {
           query: z.string().describe("Search query."),
           limit: z.number().optional().describe("Maximum number of results. Default 20."),
@@ -386,11 +400,11 @@ class McpServerManager {
       }
     );
 
-    server.registerTool(
-      "openwhispr_get_note",
+    registerTool(
+      "get_note",
       {
-        title: "Get OpenWhispr note",
-        description: "Get the full text fields for a local OpenWhispr note.",
+        title: "Get SuperTing note",
+        description: "Get the full text fields for a local SuperTing note.",
         inputSchema: {
           id: z.number().describe("Note ID."),
         },
@@ -405,11 +419,11 @@ class McpServerManager {
       }
     );
 
-    server.registerTool(
-      "openwhispr_create_note",
+    registerTool(
+      "create_note",
       {
-        title: "Create OpenWhispr note",
-        description: "Create a local OpenWhispr note.",
+        title: "Create SuperTing note",
+        description: "Create a local SuperTing note.",
         inputSchema: {
           title: z.string().describe("Note title."),
           content: z.string().describe("Note content."),
@@ -443,10 +457,10 @@ class McpServerManager {
       }
     );
 
-    server.registerTool(
-      "openwhispr_update_note",
+    registerTool(
+      "update_note",
       {
-        title: "Update OpenWhispr note",
+        title: "Update SuperTing note",
         description: "Update title, content, enhanced content, transcript, or folder for a note.",
         inputSchema: {
           id: z.number().describe("Note ID."),
@@ -488,11 +502,11 @@ class McpServerManager {
       }
     );
 
-    server.registerTool(
-      "openwhispr_delete_note",
+    registerTool(
+      "delete_note",
       {
-        title: "Delete OpenWhispr note",
-        description: "Delete a local OpenWhispr note and its retained audio references.",
+        title: "Delete SuperTing note",
+        description: "Delete a local SuperTing note and its retained audio references.",
         inputSchema: {
           id: z.number().describe("Note ID."),
         },
@@ -510,22 +524,22 @@ class McpServerManager {
       }
     );
 
-    server.registerTool(
-      "openwhispr_list_folders",
+    registerTool(
+      "list_folders",
       {
-        title: "List OpenWhispr folders",
-        description: "List local OpenWhispr folders.",
+        title: "List SuperTing folders",
+        description: "List local SuperTing folders.",
         inputSchema: {},
         annotations: { readOnlyHint: true },
       },
       async () => sendMcpToolResult({ success: true, data: db.getFolders() })
     );
 
-    server.registerTool(
-      "openwhispr_create_folder",
+    registerTool(
+      "create_folder",
       {
-        title: "Create OpenWhispr folder",
-        description: "Create a local OpenWhispr folder.",
+        title: "Create SuperTing folder",
+        description: "Create a local SuperTing folder.",
         inputSchema: {
           name: z.string().describe("Folder name."),
         },
@@ -544,10 +558,10 @@ class McpServerManager {
       }
     );
 
-    server.registerTool(
-      "openwhispr_list_transcriptions",
+    registerTool(
+      "list_transcriptions",
       {
-        title: "List OpenWhispr transcriptions",
+        title: "List SuperTing transcriptions",
         description: "List local transcription text records with audio metadata only.",
         inputSchema: {
           limit: z.number().optional().describe("Maximum number of transcriptions. Default 50."),
@@ -563,10 +577,10 @@ class McpServerManager {
       }
     );
 
-    server.registerTool(
-      "openwhispr_get_transcription",
+    registerTool(
+      "get_transcription",
       {
-        title: "Get OpenWhispr transcription",
+        title: "Get SuperTing transcription",
         description: "Get a local transcription text record with audio metadata only.",
         inputSchema: {
           id: z.number().describe("Transcription ID."),
@@ -586,10 +600,10 @@ class McpServerManager {
       }
     );
 
-    server.registerTool(
-      "openwhispr_get_dictionary",
+    registerTool(
+      "get_dictionary",
       {
-        title: "Get OpenWhispr dictionary",
+        title: "Get SuperTing dictionary",
         description: "Get custom dictionary words used by local transcription correction.",
         inputSchema: {},
         annotations: { readOnlyHint: true },
@@ -597,10 +611,10 @@ class McpServerManager {
       async () => sendMcpToolResult({ success: true, data: db.getDictionary() })
     );
 
-    server.registerTool(
-      "openwhispr_get_dictionary_aliases",
+    registerTool(
+      "get_dictionary_aliases",
       {
-        title: "Get OpenWhispr dictionary aliases",
+        title: "Get SuperTing dictionary aliases",
         description:
           "Get custom dictionary alias replacements used by local transcription correction.",
         inputSchema: {},

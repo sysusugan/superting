@@ -125,7 +125,7 @@ test("safeExportBaseName removes path-unsafe characters and includes note id", (
 });
 
 test("uniqueExportPath avoids overwriting existing files", (t) => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-export-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-export-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.writeFileSync(path.join(root, "Planning-42.md"), "existing");
 

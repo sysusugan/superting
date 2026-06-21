@@ -15,11 +15,11 @@ const SCAN_ROOTS = [
 ];
 
 const FORBIDDEN = [
-  /OpenWhispr Cloud/i,
-  /api\.openwhispr\.com/i,
-  /auth\.openwhispr\.com/i,
-  /notes\.openwhispr\.com/i,
-  /mcp\.openwhispr\.com/i,
+  /SuperTing Cloud/i,
+  /api\.superting\.com/i,
+  /auth\.superting\.com/i,
+  /notes\.superting\.com/i,
+  /mcp\.superting\.com/i,
   /stripe/i,
   /checkout/i,
   /billing portal/i,
@@ -32,10 +32,10 @@ const FORBIDDEN = [
 ];
 
 const FORBIDDEN_PATHS = [
-  "src/config/openwhisprCloud.js",
+  "src/config/supertingCloud.js",
   "src/services/cloudApi.ts",
   "src/services/SyncService.ts",
-  "src/services/ai/inferenceProviders/openwhispr.ts",
+  "src/services/ai/inferenceProviders/superting.ts",
   "src/components/UpgradePrompt.tsx",
   "src/components/UsageDisplay.tsx",
   "src/components/ReferralDashboard.tsx",
@@ -69,7 +69,7 @@ function* walk(target) {
   yield target;
 }
 
-test("repo does not contain official OpenWhispr commercial cloud content", () => {
+test("repo does not contain official SuperTing commercial cloud content", () => {
   const matches = [];
   for (const file of SCAN_ROOTS.flatMap((root) => [...walk(root)])) {
     if (ALLOWED_FILES.has(file)) continue;

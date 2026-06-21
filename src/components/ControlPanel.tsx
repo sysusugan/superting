@@ -50,7 +50,7 @@ const IntegrationsView = React.lazy(() => import("./IntegrationsView"));
 const ChatView = React.lazy(() => import("./chat/ChatView"));
 const CommandSearch = React.lazy(() => import("./CommandSearch"));
 
-const PRIMARY_SIDEBAR_WIDTH_KEY = "openwhispr.primarySidebarWidth";
+const PRIMARY_SIDEBAR_WIDTH_KEY = "superting.primarySidebarWidth";
 const PRIMARY_SIDEBAR_DEFAULT_WIDTH = 224;
 const PRIMARY_SIDEBAR_MIN_WIDTH = 200;
 const PRIMARY_SIDEBAR_MAX_WIDTH = 340;

@@ -86,8 +86,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
-          VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
+          VITE_SUPERTING_API_URL: ${{ vars.VITE_SUPERTING_API_URL }}
+          VITE_SUPERTING_OAUTH_CALLBACK_URL: ${{ vars.VITE_SUPERTING_OAUTH_CALLBACK_URL }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -182,8 +182,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
-          VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
+          VITE_SUPERTING_API_URL: ${{ vars.VITE_SUPERTING_API_URL }}
+          VITE_SUPERTING_OAUTH_CALLBACK_URL: ${{ vars.VITE_SUPERTING_OAUTH_CALLBACK_URL }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -305,8 +305,8 @@ jobs:
           TARGET_ARCH: ${{ matrix.arch }}
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           VITE_NEON_AUTH_URL: ${{ vars.VITE_NEON_AUTH_URL }}
-          VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
-          VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
+          VITE_SUPERTING_API_URL: ${{ vars.VITE_SUPERTING_API_URL }}
+          VITE_SUPERTING_OAUTH_CALLBACK_URL: ${{ vars.VITE_SUPERTING_OAUTH_CALLBACK_URL }}
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ github.event_name != 'pull_request' && 'true' || 'false' }}
           CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
@@ -315,7 +315,7 @@ jobs:
 
       - name: Verify packaged macOS native binaries
         run: |
-          APP_PATH=$(ls -d dist/mac*/OpenWhispr.app | head -n1)
+          APP_PATH=$(ls -d dist/mac*/SuperTing.app | head -n1)
           for bin in macos-audio-tap macos-globe-listener macos-fast-paste macos-mic-listener macos-text-monitor macos-media-remote; do
             test -x "$APP_PATH/Contents/Resources/bin/$bin" || { echo "Missing in bundle: $bin"; exit 1; }
           done

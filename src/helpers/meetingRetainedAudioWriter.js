@@ -65,7 +65,7 @@ class MeetingRetainedAudioWriter {
   createSourceState(source) {
     return {
       source,
-      path: path.join(this.tmpDir, `openwhispr-meeting-retained-${this.id}-${source}.pcm`),
+      path: path.join(this.tmpDir, `superting-meeting-retained-${this.id}-${source}.pcm`),
       firstTimestampMs: null,
       bytesWritten: 0,
       peak: 0,
@@ -128,7 +128,7 @@ class MeetingRetainedAudioWriter {
     const selected = audibleCandidates.length > 0 ? audibleCandidates : [candidates[0]];
     const mixedPcm = selected.length === 1 ? selected[0].pcm : mixPcmBuffers(selected.map((c) => c.pcm));
     const sourceMix = selected.length === 1 ? selected[0].source : "mixed";
-    const outputPath = path.join(this.tmpDir, `openwhispr-meeting-retained-${this.id}-mixed.pcm`);
+    const outputPath = path.join(this.tmpDir, `superting-meeting-retained-${this.id}-mixed.pcm`);
     fs.writeFileSync(outputPath, mixedPcm);
     this.finalizedPath = outputPath;
 

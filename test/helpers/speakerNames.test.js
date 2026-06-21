@@ -7,7 +7,7 @@ const path = require("node:path");
 const DatabaseManager = require("../../src/helpers/database");
 
 function createDatabase(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openwhispr-speaker-names-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "superting-speaker-names-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
   const db = new DatabaseManager({ dbPath: path.join(root, "transcriptions.db") });

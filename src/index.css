@@ -3,7 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* OpenWhispr IBM-blue desktop theme.
+  /* SuperTing IBM-blue desktop theme.
      Carbon-inspired: crisp blue accent, cool-blue canvas, stronger hairlines. */
   --color-primary: #0f62fe;
   --color-primary-foreground: #ffffff;
@@ -473,7 +473,7 @@
   }
 }
 
-/* OpenWhispr Brand Typography */
+/* SuperTing Brand Typography */
 .brand-heading {
   font-family: var(--font-family-sans);
   font-weight: 600;
