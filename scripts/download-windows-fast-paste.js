@@ -19,7 +19,7 @@ const {
   setExecutable,
 } = require("./lib/download-utils");
 
-const REPO = process.env.SUPERTING_RELEASE_REPO || "sysusugan/openwhispr";
+const REPO = process.env.SUPERTING_RELEASE_REPO || "sysusugan/superting";
 const TAG_PREFIX = "windows-fast-paste-v";
 const ZIP_NAME = "windows-fast-paste-win32-x64.zip";
 const BINARY_NAME = "windows-fast-paste.exe";

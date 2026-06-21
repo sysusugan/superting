@@ -4,10 +4,9 @@ SuperTing is an independent fork based on the MIT-licensed OpenWhispr project.
 The fork keeps upstream attribution, but does not treat `OpenWhispr/openwhispr`
 as an upstream branch for routine merges or rebases.
 
-The repository remains at `sysusugan/openwhispr` until the SuperTing cutover is
-validated. After validation, the GitHub repository can be renamed to
-`sysusugan/superting`, and code defaults should be updated in a small follow-up
-change.
+The repository lives at `sysusugan/superting`. It started as an MIT-licensed
+fork of `OpenWhispr/openwhispr`; after the rebrand it remains a fork of that
+upstream but is published under its own GitHub identity.
 
 ## Maintenance Rules
 

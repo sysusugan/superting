@@ -5,11 +5,11 @@
 <h1 align="center">SuperTing</h1>
 
 <p align="center">
-  <a href="https://github.com/sysusugan/openwhispr/blob/main/LICENSE"><img src="https://img.shields.io/github/license/sysusugan/openwhispr?style=flat" alt="License" /></a>
+  <a href="https://github.com/sysusugan/superting/blob/main/LICENSE"><img src="https://img.shields.io/github/license/sysusugan/superting?style=flat" alt="License" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey?style=flat" alt="Platform" />
-  <a href="https://github.com/sysusugan/openwhispr/releases/latest"><img src="https://img.shields.io/github/v/release/sysusugan/openwhispr?style=flat&sort=semver" alt="GitHub release" /></a>
-  <a href="https://github.com/sysusugan/openwhispr/releases"><img src="https://img.shields.io/github/downloads/sysusugan/openwhispr/total?style=flat&color=blue" alt="Downloads" /></a>
-  <a href="https://github.com/sysusugan/openwhispr/stargazers"><img src="https://img.shields.io/github/stars/sysusugan/openwhispr?style=flat" alt="GitHub stars" /></a>
+  <a href="https://github.com/sysusugan/superting/releases/latest"><img src="https://img.shields.io/github/v/release/sysusugan/superting?style=flat&sort=semver" alt="GitHub release" /></a>
+  <a href="https://github.com/sysusugan/superting/releases"><img src="https://img.shields.io/github/downloads/sysusugan/superting/total?style=flat&color=blue" alt="Downloads" /></a>
+  <a href="https://github.com/sysusugan/superting/stargazers"><img src="https://img.shields.io/github/stars/sysusugan/superting?style=flat" alt="GitHub stars" /></a>
 </p>
 
 <p align="center">
@@ -18,9 +18,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sysusugan/openwhispr#readme">Docs</a> &middot;
-  <a href="https://github.com/sysusugan/openwhispr/releases/latest">Download</a> &middot;
-  <a href="https://github.com/sysusugan/openwhispr/blob/main/CHANGELOG.md">Changelog</a>
+  <a href="https://github.com/sysusugan/superting#readme">Docs</a> &middot;
+  <a href="https://github.com/sysusugan/superting/releases/latest">Download</a> &middot;
+  <a href="https://github.com/sysusugan/superting/blob/main/CHANGELOG.md">Changelog</a>
 </p>
 
 ---
@@ -31,10 +31,10 @@ SuperTing turns your voice into text, notes, and actions from your desktop. Pres
 
 | Platform | Download |
 |----------|----------|
-| macOS (Apple Silicon) | [`.dmg`](https://github.com/sysusugan/openwhispr/releases/latest) |
-| macOS (Intel) | [`.dmg`](https://github.com/sysusugan/openwhispr/releases/latest) |
-| Windows | [`.exe`](https://github.com/sysusugan/openwhispr/releases/latest) |
-| Linux | [`.AppImage`](https://github.com/sysusugan/openwhispr/releases/latest) / [`.deb`](https://github.com/sysusugan/openwhispr/releases/latest) / [`.rpm`](https://github.com/sysusugan/openwhispr/releases/latest) |
+| macOS (Apple Silicon) | [`.dmg`](https://github.com/sysusugan/superting/releases/latest) |
+| macOS (Intel) | [`.dmg`](https://github.com/sysusugan/superting/releases/latest) |
+| Windows | [`.exe`](https://github.com/sysusugan/superting/releases/latest) |
+| Linux | [`.AppImage`](https://github.com/sysusugan/superting/releases/latest) / [`.deb`](https://github.com/sysusugan/superting/releases/latest) / [`.rpm`](https://github.com/sysusugan/superting/releases/latest) |
 
 ## Features
 
@@ -48,7 +48,7 @@ SuperTing turns your voice into text, notes, and actions from your desktop. Pres
 ## Quick start
 
 ```bash
-git clone https://github.com/sysusugan/openwhispr.git
+git clone https://github.com/sysusugan/superting.git
 cd openwhispr
 npm install
 npm run dev
@@ -66,7 +66,7 @@ React 19, TypeScript, Tailwind CSS v4, Electron 41, better-sqlite3, whisper.cpp,
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=sysusugan/openwhispr&type=date&legend=top-left)](https://www.star-history.com/#sysusugan/openwhispr&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=sysusugan/superting&type=date&legend=top-left)](https://www.star-history.com/#sysusugan/superting&type=date&legend=top-left)
 
 ## Contributing
 
