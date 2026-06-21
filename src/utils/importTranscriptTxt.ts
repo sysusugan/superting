@@ -22,7 +22,7 @@ function hashSpeakerName(value: string): string {
 }
 
 function buildSpeakerPatch(label: string): Partial<TranscriptSegment> {
-  const generic = label.match(/^发言(?:人|者)\s*(\d+)$/);
+  const generic = label.match(/^(?:发言(?:人|者)|说话人)\s*(\d+)$/);
   if (generic) {
     const n = Math.max(1, Number(generic[1]) || 1);
     return {
@@ -47,7 +47,7 @@ export function parseImportedTranscriptTxt(raw: string): ImportedTranscriptTxt {
     .replace(/^\uFEFF/, "")
     .split(/\r?\n/);
   const title = lines.find((line) => line.trim())?.trim() || null;
-  const headerPattern = /^(.+?)\s+(\d{1,2}:\d{2}:\d{2})\s*$/;
+  const headerPattern = /^(.+?)\s+(\d{1,2}:\d{2}:\d{2})(.*)$/;
   const segments: TranscriptSegment[] = [];
   let current: {
     label: string;
@@ -81,7 +81,7 @@ export function parseImportedTranscriptTxt(raw: string): ImportedTranscriptTxt {
       current = {
         label: match[1].trim(),
         timestamp: seconds,
-        textLines: [],
+        textLines: match[3].trim() ? [match[3].trim()] : [],
       };
       continue;
     }
