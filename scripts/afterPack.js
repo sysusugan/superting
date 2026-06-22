@@ -6,7 +6,10 @@
 //
 // 1. Strips non-target platform/arch binaries from onnxruntime-node
 //    (saves 150–180 MB per build).
-// 2. Wraps the Linux binary in a shell script that forces XWayland and
+// 2. Prunes cross-platform resource binaries from resources/bin/
+//    (saves ~350 MB on macOS arm64: removes Windows .exe, Linux ELF,
+//    and Darwin x64 sidecars left by multi-platform download scripts).
+// 3. Wraps the Linux binary in a shell script that forces XWayland and
 //    reads user flags from ~/.config/superting-flags.conf.
 
 const fs = require("fs");
@@ -308,10 +311,132 @@ function verifyMeetingAecHelper(context) {
 }
 
 // ---------------------------------------------------------------------------
+// Cross-platform resource binary pruning
+// ---------------------------------------------------------------------------
+//
+// electron-builder's `files` / `extraResources` config doesn't filter
+// `resources/bin/` by platform, so a macOS build ends up shipping the
+// Windows .exe, Linux ELF, and Darwin x64 binaries that the download
+// scripts (run with --all for cross-platform CI) left in the tree.
+//
+// This pass walks `Contents/Resources/bin/` (or `resources/bin/`) and
+// removes every file that is not a match for the target platform/arch.
+// Saves ~350MB on a typical macOS arm64 build.
+//
+// Rules:
+//   - Directory entries are left untouched (diarization-models/ and
+//     whisper-vad/ contain platform-agnostic ONNX/GGML models used by all
+//     three platforms; .swift-module-cache/ is a build artifact).
+//   - File extension is a hard platform signal: .dylib => darwin only,
+//     .so* => linux only, .dll => win32 only. Files with no extension or
+//     "platform-neutral" names (e.g. macos-globe-listener, which lacks
+//     an arch suffix) are matched by an explicit platform-prefix allow
+//     list per target.
+//   - Files carrying a `-<platform>-<arch>` infix keep only the target
+//     platform+arch pair.
+
+const PLATFORM_TOKEN = ["darwin", "linux", "win32"];
+
+function getPrunablePlatformFromName(fileName) {
+  // Order matters: check darwin first because "darwin" is a substring of
+  // nothing else here, but linux/win32 don't conflict either.
+  if (fileName.includes("-darwin-")) return "darwin";
+  if (fileName.includes("-linux-")) return "linux";
+  if (fileName.includes("-win32-")) return "win32";
+  return null;
+}
+
+function getPrunableArchFromName(fileName) {
+  if (fileName.includes("-arm64")) return "arm64";
+  if (fileName.includes("-x64") || fileName.includes("-x86_64") || fileName.includes("-ia32")) {
+    // Multiple suffixes can map to x64: "-x64", "-x86_64"; "ia32" is also
+    // 32-bit x86 which we keep alongside x64 because whisper.cpp's
+    // Windows .dll tree only ships x64 today, so this is a no-op there.
+    return "x64";
+  }
+  return null;
+}
+
+function shouldKeepResourceBinary(fileName, platform, archName) {
+  // 1. Extension-based filter (covers libs that don't carry a platform
+  //    infix in their name: libonnxruntime.*, libggml-*, libllama*, etc.)
+  if (fileName.endsWith(".dylib")) {
+    if (platform !== "darwin") return false;
+  } else if (fileName.endsWith(".dll")) {
+    if (platform !== "win32") return false;
+  } else if (/\.so(\.|$)/.test(fileName)) {
+    if (platform !== "linux") return false;
+  }
+
+  // 2. Platform-infix filter (covers qdrant, llama-server, whisper-server,
+  //    sherpa-onnx, meeting-aec-helper).
+  const infixPlatform = getPrunablePlatformFromName(fileName);
+  if (infixPlatform) {
+    if (infixPlatform !== platform) return false;
+
+    // Right platform — also check arch if the name carries one.
+    if (archName !== "universal") {
+      const infixArch = getPrunableArchFromName(fileName);
+      if (infixArch && infixArch !== archName) return false;
+    }
+  }
+
+  // 3. Bare-platform prefix filter (macos-*, linux-*, windows-*) for
+  //    native helpers that lack an arch suffix.
+  if (platform !== "darwin" && fileName.startsWith("macos-")) return false;
+  if (platform !== "linux" && fileName.startsWith("linux-")) return false;
+  if (platform !== "win32" && fileName.startsWith("windows-")) return false;
+  if (platform !== "win32" && fileName.endsWith(".exe")) return false;
+
+  return true;
+}
+
+function pruneCrossPlatformBinaries(context) {
+  const platform = context.electronPlatformName; // darwin | linux | win32
+  const archName = Arch[context.arch]; // x64 | arm64 | universal
+
+  if (!PLATFORM_TOKEN.includes(platform)) {
+    return;
+  }
+
+  const resourcesDir = resolveResourcesDir(context);
+  const binDir = path.join(resourcesDir, "bin");
+
+  if (!fs.existsSync(binDir)) {
+    return;
+  }
+
+  let removedCount = 0;
+  let keptCount = 0;
+
+  for (const entry of fs.readdirSync(binDir, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      // diarization-models/, whisper-vad/, .swift-module-cache/ — leave as-is.
+      continue;
+    }
+
+    if (entry.isFile() && !shouldKeepResourceBinary(entry.name, platform, archName)) {
+      fs.rmSync(path.join(binDir, entry.name), { force: true });
+      removedCount++;
+      continue;
+    }
+
+    keptCount++;
+  }
+
+  if (removedCount > 0) {
+    console.log(
+      `  afterPack: pruned ${removedCount} non-target resource binaries from bin/ (kept ${keptCount} for ${platform}/${archName})`
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main hook
 // ---------------------------------------------------------------------------
 
 exports.default = async function (context) {
+  pruneCrossPlatformBinaries(context);
   stripOnnxruntimeBinaries(context);
   linkResourceOnnxruntimeToNodeModule(context);
   wrapLinuxBinary(context);
