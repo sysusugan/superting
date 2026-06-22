@@ -146,14 +146,28 @@ function downloadFile(url, dest, retryCount = 0) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
     let activeRequest = null;
+    let activeResponse = null;
     let idleTimer = null;
 
-    const cleanup = () => {
+    const clearIdleTimer = () => {
       if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = null;
+    };
+
+    const destroyActiveConnection = () => {
+      if (activeResponse) {
+        activeResponse.destroy();
+        activeResponse = null;
+      }
       if (activeRequest) {
         activeRequest.destroy();
         activeRequest = null;
       }
+    };
+
+    const cleanup = () => {
+      clearIdleTimer();
+      destroyActiveConnection();
       file.close();
     };
 
@@ -164,7 +178,8 @@ function downloadFile(url, dest, retryCount = 0) {
         return;
       }
 
-      activeRequest = https.get(currentUrl, (response) => {
+      activeRequest = https.get(currentUrl, { agent: false }, (response) => {
+        activeResponse = response;
         if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
           const location = response.headers.location;
           if (!location) {
@@ -211,7 +226,8 @@ function downloadFile(url, dest, retryCount = 0) {
 
         response.pipe(file);
         file.on("finish", () => {
-          if (idleTimer) clearTimeout(idleTimer);
+          clearIdleTimer();
+          destroyActiveConnection();
           file.close();
           console.log(" Done");
           resolve();
