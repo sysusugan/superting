@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import CliIntegrationCard from "./CliIntegrationCard";
 import McpIntegrationCard from "./McpIntegrationCard";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -27,11 +26,6 @@ export default function IntegrationsView() {
           <section className="ow-section max-w-3xl">
             <SectionLabel>{t("integrations.sections.mcp")}</SectionLabel>
             <McpIntegrationCard />
-          </section>
-
-          <section className="ow-section max-w-3xl">
-            <SectionLabel>{t("integrations.sections.cli")}</SectionLabel>
-            <CliIntegrationCard />
           </section>
         </div>
       </div>
