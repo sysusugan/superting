@@ -1,52 +1,94 @@
-# SuperTing Logo Variants
+# SuperTing Logo
 
-Three logo concepts for **超级听记 / SuperTing**, each targeting a different
-visual register. All assets are 256×256 viewBox SVG with no external dependencies.
+`超级听记 / SuperTing` — single brand mark, 256×256 viewBox SVG, no external
+dependencies. **This is the only logo.** Variants are produced by re-exporting
+to PNG / WebP at the size you need; do not introduce parallel SVG variants.
 
-## Variant 1 — Soundwave Ring  (`superting-logo-wave.svg`)
+## The mark  (`superting-logo-smark.svg`)
 
-**Style:** Minimal, modern, neutral.
-**Palette:** Carbon-blue gradient (`#0f62fe` → `#4589ff`) on a translucent
-focus ring. Light background.
+A blue rounded-square chip holds a white **S** with a soft cyan halo, flanked
+by three short audio waves on each side that taper outward in amplitude.
 
-- Outer ring suggests *focus / listening*.
-- Five symmetric vertical bars evoke a soundwave with a small center notch
-  (a quiet moment inside the rhythm).
-- Works on white backgrounds; safe for app icon, splash, docs hero.
-- No Chinese type, so it pairs cleanly with a separate Chinese wordmark.
+### Palette
 
-## Variant 2 — Mic Seal  (`superting-logo-seal.svg`)
+| Role                 | Hex          | Notes                                 |
+| -------------------- | ------------ | ------------------------------------- |
+| Chip top             | `#0B3D91`    | Deep navy                             |
+| Chip bottom          | `#0A2E6E`    | Slightly darker for vertical depth    |
+| Letterform fill      | `#FFFFFF`    | Solid white                           |
+| Letterform halo      | `#67B8E8`    | Soft cyan, 35% opacity, 9px stroke    |
+| Audio waves          | `#FFFFFF`    | White, three opacity tiers per side   |
 
-**Style:** Chinese seal / chop, distinctly *中文* feel.
-**Palette:** Vermilion red (`#dc2626` → `#991b1b`) on `#fef2f2` paper.
+The cyan halo is **not** a separate decoration — it's the same S glyph
+re-rendered with a wider, semi-transparent stroke behind the white fill.
+That single trick is what gives the letter its hand-painted, brushstroke
+feel.
 
-- Rounded square frame plus an inner double border, mimicking a personal seal.
-- Centered microphone icon built from primitive shapes (no font dependency).
-- Single bold `听` character below, set in a Songti / serif fallback chain.
-- Best for marketing surfaces that lean into Chinese identity — app store
-  screenshots, Chinese-language release notes, packaging stickers.
+### Audio waves
 
-## Variant 3 — Neural Letters  (`superting-logo-neural.svg`)
+Six waves total — three on each side of the S, sitting strictly in the
+empty space at the chip's left and right edges. They never touch the
+letter, never cross it. They read as sound radiating outward.
 
-**Style:** Tech-forward, dark mode, brand mark.
-**Palette:** Deep `#0a0a0f` background; `ST` monogram in blue→violet gradient
-(`#5eb1ff` → `#a972ff`).
+| Position (left side) | Stroke width | Opacity |
+| -------------------- | ------------ | ------- |
+| inner (closer to S)  | 3.5          | 0.9     |
+| middle               | 2.5          | 0.55    |
+| outer (chip edge)    | 2.0          | 0.3     |
 
-- Geometric `ST` wordmark with rounded corners.
-- Neural mesh: 8 small nodes around the corners with thin connecting lines,
-  hinting at the AI / transcription side of the product.
-- Bottom soundwave underline echoes Variant 1 but in the tech palette.
-- Best for splash screen on dark UI, developer docs, GitHub social card,
-  conference swag.
+Right side mirrors the left. All waves are single quadratic béziers
+with `stroke-linecap="round"`.
 
-## Suggested usage
+### Typography
 
-| Surface               | Variant                          |
-| --------------------- | -------------------------------- |
-| macOS `.icns` icon    | 1 (wave) — keep parity with light mode |
-| Tray / menu bar icon  | 1 (wave)                         |
-| Control panel header  | 1 (wave) on light, 3 (neural) on dark |
-| Marketing & docs      | 2 (seal) for CN, 1 (wave) for EN  |
-| Splash / hero         | 3 (neural)                       |
+The S is rendered with `<text>`, not a hand-drawn `<path>`, so the
+letterform is guaranteed correct across every renderer. Font stack is
+system-only:
 
-Re-export any of the three to PNG / WebP at the sizes you need.
+```
+'Futura', 'Avenir Next', 'Avenir', 'Trebuchet MS', sans-serif
+```
+
+No web font, no embed, no missing-glyph risk on any platform.
+
+### Canvas
+
+- **256 × 256** viewBox.
+- Chip: full canvas with `rx="40"` rounded corners.
+- The S is centred horizontally at `x=128`; the letter's optical centre
+  sits at roughly `y=130` (the `y="200"` attribute on the `<text>`
+  element is the baseline, which places the cap height around the
+  chip's vertical centre for `font-size="200"`).
+
+## Where to use it
+
+| Surface               | Notes                                              |
+| --------------------- | -------------------------------------------------- |
+| macOS `.icns` icon    | Primary app icon — export to PNG at 1024, downscale |
+| Control panel header  | Drop in as-is                                       |
+| Marketing & docs      | Hero on light backgrounds                            |
+| Business card / press | Drop in as-is                                       |
+| Dark UI placeholders  | The cyan halo carries well on dark; the chip itself provides contrast |
+
+**Avoid** on a busy photographic background — the chip's clean rounded
+square is meant to read as a confident brand mark, not float on a
+collage. On a photo, place the chip on a flat coloured panel first.
+
+## Implementation notes
+
+- **Adjust the audio waves**: each wave is a single `<path>` with
+  `Q controlX controlY endX endY`. The control point's Y value
+  sets the amplitude — pull it toward 128 for a flatter wave, push
+  it away (to 100 or 156) for a taller one.
+- **Adjust the halo**: the halo is the same `<text>` element rendered
+  with `fill="none"`, `stroke="#67B8E8"`, `stroke-width="9"`,
+  `opacity="0.35"`. Bumping the opacity to 0.5 makes the S feel more
+  painterly; dropping it to 0.2 makes the S feel more like a logo
+  lockup.
+- **Need a flat-mark variant** (no chip background)? Delete the
+  `<rect width="256" height="256" rx="40" ry="40" fill="url(#bgA)"/>`
+  element. The white S and white waves will sit on whatever the chip
+  was sitting on.
+- **Need a light-on-light variant**? Swap `#0B3D91 → #0A2E6E` for a
+  pale wash, change the S to `#0B3D91` (deep navy ink), and the
+  waves to the same navy. The cyan halo still works.
