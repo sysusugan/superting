@@ -10,7 +10,6 @@ import {
   Settings,
   Shield,
   Command,
-  UserCircle,
 } from "lucide-react";
 import TitleBar from "./TitleBar";
 import WindowControls from "./WindowControls";
@@ -136,7 +135,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const steps = useMemo(
     () => [
-      { id: "welcome", title: t("onboarding.steps.welcome"), icon: UserCircle },
       { id: "setup", title: t("onboarding.steps.setup"), icon: Settings },
       { id: "permissions", title: t("onboarding.steps.permissions"), icon: Shield },
       { id: "activation", title: t("onboarding.steps.activation"), icon: Command },
@@ -144,8 +142,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     [t]
   );
 
-  // Only show progress for signed-up users after account creation step
-  const showProgress = currentStep > 0;
+  const showProgress = true;
 
   useEffect(() => {
     const checkHotkeyMode = async () => {
@@ -199,7 +196,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     checkStatus();
   }, [useLocalWhisper, whisperModel, parakeetModel, localTranscriptionProvider]);
 
-  const activationStepIndex = 3;
+  const activationStepIndex = 2;
 
   useEffect(() => {
     if (currentStep !== activationStepIndex) {
@@ -654,11 +651,11 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         </div>
       )}
 
-      {/* Progress Bar - hidden on welcome/auth step */}
+      {/* Progress Bar */}
       {showProgress && (
         <div className="shrink-0 bg-background border-b border-border/60 px-6 md:px-12 py-3 z-10">
           <div className="max-w-3xl mx-auto">
-            <StepProgress steps={steps.slice(1)} currentStep={currentStep - 1} />
+            <StepProgress steps={steps} currentStep={currentStep} />
           </div>
         </div>
       )}
@@ -676,7 +673,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         </div>
       </div>
 
-      {/* Footer Navigation - hidden on welcome/auth step */}
+      {/* Footer Navigation */}
       {showProgress && (
         <div className="shrink-0 bg-background border-t border-border/60 px-6 md:px-12 py-3 z-10">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
