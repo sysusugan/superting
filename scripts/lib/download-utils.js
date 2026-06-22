@@ -7,6 +7,7 @@ const REQUEST_TIMEOUT = 30000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
 const MAX_REDIRECTS = 5;
+const IDLE_TIMEOUT = 60000; // abort + retry if no new bytes for this long
 
 /**
  * Fetch JSON from a URL with proper error handling.
@@ -145,8 +146,10 @@ function downloadFile(url, dest, retryCount = 0) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(dest);
     let activeRequest = null;
+    let idleTimer = null;
 
     const cleanup = () => {
+      if (idleTimer) clearTimeout(idleTimer);
       if (activeRequest) {
         activeRequest.destroy();
         activeRequest = null;
@@ -185,11 +188,21 @@ function downloadFile(url, dest, retryCount = 0) {
         const total = parseInt(response.headers["content-length"], 10);
         let downloaded = 0;
 
+        const resetIdleTimer = () => {
+          if (idleTimer) clearTimeout(idleTimer);
+          idleTimer = setTimeout(() => {
+            cleanup();
+            reject(new Error(`Idle timeout: no progress for ${IDLE_TIMEOUT / 1000}s at ${total ? Math.round((downloaded / total) * 100) : downloaded} bytes`));
+          }, IDLE_TIMEOUT);
+        };
+
         response.on("data", (chunk) => {
           downloaded += chunk.length;
           const pct = total ? Math.round((downloaded / total) * 100) : 0;
           process.stdout.write(`\r  Downloading: ${pct}%`);
+          resetIdleTimer();
         });
+        resetIdleTimer();
 
         response.on("error", (err) => {
           cleanup();
@@ -198,6 +211,7 @@ function downloadFile(url, dest, retryCount = 0) {
 
         response.pipe(file);
         file.on("finish", () => {
+          if (idleTimer) clearTimeout(idleTimer);
           file.close();
           console.log(" Done");
           resolve();
@@ -224,6 +238,7 @@ function downloadFile(url, dest, retryCount = 0) {
   }).catch(async (error) => {
     const isTransient =
       error.message.includes("timed out") ||
+      error.message.includes("Idle timeout") ||
       error.code === "ECONNRESET" ||
       error.code === "ETIMEDOUT";
 
