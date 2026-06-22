@@ -152,12 +152,6 @@
   "win": {
     "target": ["nsis", "portable"],
     "icon": "src/assets/icon.ico",
-    "azureSignOptions": {
-      "endpoint": "https://eus.codesigning.azure.net/",
-      "certificateProfileName": "superting-release",
-      "codeSigningAccountName": "SuperTing",
-      "publisherName": ""
-    },
     "extraResources": [
       {
         "from": "resources/bin/nircmd.exe",
