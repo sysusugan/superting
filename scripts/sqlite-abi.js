@@ -91,9 +91,21 @@ function rebuildForElectron() {
     process.exit(1);
   }
   console.log("  electron version:", electronVersion);
+  // Run @electron/rebuild's CLI directly through node. Going via `npx` fails on
+  // GitHub-hosted Windows runners where npx isn't on PATH. @electron/rebuild
+  // uses `exports` in its package.json, so we can't `require.resolve` into
+  // lib/cli.js — instead, resolve the package root and append lib/cli.js.
+  const rebuildCli = path.join(
+    PROJECT_ROOT,
+    "node_modules",
+    "@electron",
+    "rebuild",
+    "lib",
+    "cli.js"
+  );
   execFileSync(
-    "npx",
-    ["--no-install", "@electron/rebuild", "-f", "-w", "better-sqlite3", "-v", electronVersion],
+    process.execPath,
+    [rebuildCli, "-f", "-w", "better-sqlite3", "-v", electronVersion],
     { cwd: PROJECT_ROOT, stdio: "inherit" }
   );
   console.log("✓ rebuild complete (electron ABI)");
