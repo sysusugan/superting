@@ -133,7 +133,7 @@ export const useAudioRecording = (toast, options = {}) => {
           }
 
           setTranscript(result.text);
-          window.electronAPI?.completeDictationPreview?.({
+          await window.electronAPI?.completeDictationPreview?.({
             text: result.text,
             warning: result.warning,
           });

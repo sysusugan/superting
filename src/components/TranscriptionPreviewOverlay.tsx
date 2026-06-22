@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { getPreviewPhaseForResult, getPreviewStatusKey } from "../utils/transcriptionPreviewState";
+import {
+  getPreviewDisplayText,
+  getPreviewPhaseForResult,
+  getPreviewStatusKey,
+} from "../utils/transcriptionPreviewState";
 
 type PreviewPhase = "listening" | "live" | "cleanup" | "fallback" | "final";
 
@@ -60,7 +64,7 @@ export default function TranscriptionPreviewOverlay() {
     }, delayMs);
   }, []);
 
-  const activeText = phase === "final" ? finalText || rawText : rawText;
+  const activeText = getPreviewDisplayText(phase, rawText, finalText);
 
   useEffect(() => {
     if (phase === "final") {
@@ -77,6 +81,7 @@ export default function TranscriptionPreviewOverlay() {
       }
 
       clearLifecycleTimers();
+      setRawText(trimmed);
       setFinalText(trimmed);
       setPhase(nextPhase);
       setCopied(false);

@@ -57,6 +57,18 @@ test("rejects source-code hallucinations from realtime preview chunks", () => {
   assert.equal(isUsablePreviewTranscript(text), false);
 });
 
+test("rejects common low-information preview noise chunks", () => {
+  assert.equal(isUsablePreviewTranscript("好好好"), false);
+  assert.equal(isUsablePreviewTranscript("谢谢大家"), false);
+  assert.equal(isUsablePreviewTranscript("感谢观看"), false);
+  assert.equal(isUsablePreviewTranscript("字幕由 Amara.org 社区提供"), false);
+});
+
 test("allows normal dictated preview text", () => {
   assert.equal(isUsablePreviewTranscript("Please send the meeting notes after lunch."), true);
+});
+
+test("allows meaningful phrases that contain common preview noise words", () => {
+  assert.equal(isUsablePreviewTranscript("好，帮我总结一下这个项目"), true);
+  assert.equal(isUsablePreviewTranscript("谢谢大家，下面我继续说下一点"), true);
 });

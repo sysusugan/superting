@@ -8,3 +8,9 @@ export function getPreviewStatusKey(phase) {
   if (phase === "cleanup") return "transcriptionPreview.polishing";
   return "transcriptionPreview.listening";
 }
+
+export function getPreviewDisplayText(phase, rawText = "", finalText = "") {
+  const raw = String(rawText || "");
+  const final = String(finalText || "");
+  return phase === "final" || phase === "fallback" ? final || raw : raw;
+}
