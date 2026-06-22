@@ -2746,24 +2746,24 @@ export default function NoteEditor({
           if (!open && !isImportingNote) setPendingImportFile(null);
         }}
       >
-        <DialogContent className="sm:max-w-105 p-6 gap-5">
-          <DialogHeader>
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] sm:max-w-105 p-6 gap-5 overflow-hidden">
+          <DialogHeader className="min-w-0">
             <DialogTitle>{t("notes.editor.importTargetTitle")}</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="min-w-0 break-words">
               {t("notes.editor.importTargetDescription", {
                 file: pendingImportFile?.name || "",
               })}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-2">
+          <div className="grid min-w-0 max-w-full gap-2">
             <button
               type="button"
               onClick={() => void handleChooseImportTarget("transcript")}
               disabled={isImportingNote || !canImportTranscriptFile}
-              className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-muted/60 disabled:opacity-50"
+              className="flex w-full min-w-0 max-w-full items-center gap-3 rounded-lg border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-muted/60 disabled:opacity-50"
             >
-              <MessageSquareText size={18} className="text-primary" />
-              <span className="min-w-0">
+              <MessageSquareText size={18} className="shrink-0 text-primary" />
+              <span className="min-w-0 flex-1">
                 <span className="block text-sm font-medium text-foreground">
                   {t("notes.editor.importToTranscript")}
                 </span>
@@ -2776,10 +2776,10 @@ export default function NoteEditor({
               type="button"
               onClick={() => void handleChooseImportTarget("note")}
               disabled={isImportingNote || !canImportNoteFile}
-              className="flex items-center gap-3 rounded-lg border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-muted/60 disabled:opacity-50"
+              className="flex w-full min-w-0 max-w-full items-center gap-3 rounded-lg border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-muted/60 disabled:opacity-50"
             >
-              <AlignLeft size={18} className="text-primary" />
-              <span className="min-w-0">
+              <AlignLeft size={18} className="shrink-0 text-primary" />
+              <span className="min-w-0 flex-1">
                 <span className="block text-sm font-medium text-foreground">
                   {t("notes.editor.importToNote")}
                 </span>
