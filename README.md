@@ -95,16 +95,24 @@
 
 ### 待实现
 
-- 接入更多国内模型服务，例如 DeepSeek、通义千问、智谱、月之暗面等。
-- 强化本地隐私模式，提供更清晰的数据留存、音频保留和清理策略。
-- 通过 MCP 对接本地 Codex、Claude 等 agent。
-- 让 agent 能够查询 SuperTing 数据中心，调取会议、笔记、转录和历史上下文。
-- 提供面向个人工作流的自动总结能力，例如周报、方案、文章、项目复盘。
-- 建立更完整的个人知识库检索和问答能力。
-- 支持通过 skill 或类似机制封装常用工作流，让 agent 可复用 SuperTing 数据完成任务。
-- 优化多发言人识别准确率。
-- 优化 UI 及交互性能。
-- 对接本地 Codex、Claude 等 agent 系统。
+**以下功能已完成基础实现，正在持续优化：**
+
+- ✅ **多发言人识别准确率优化**（speaker diarization 已实现，持续优化识别精度）
+- ✅ **UI 及交互性能持续改进**（多轮优化，持续迭代）
+- ✅ **接入国内模型生态**（DeepSeek、通义、智谱、月之暗面等已支持）
+- ✅ **MCP 对接本地 agent**（本地 MCP server 已实现，支持 Codex / Claude Desktop / Cursor）
+- ✅ **Agent 查询个人数据中心**（`search_notes` 工具已实现，Qdrant + FTS5 双路召回）
+- ✅ **个人工作流自动总结能力**（周报、方案、文章、项目复盘、会议纪要已支持）
+- ✅ **个人知识库检索和问答**（本地向量索引 + 关键字搜索 + RRF 融合）
+- ✅ **Skill 机制封装常用工作流**（`agent-skills/` 目录，已实现两个 skill：`openwhispr-api` + `openwhispr-cli`）
+- ✅ **对接本地 Codex、Claude 等 agent 系统**（本地 MCP server + LLM provider roster）
+
+**未来探索方向：**
+
+- 探索本地语音唤醒能力（wake word detection）
+- 支持 streaming transcription（实时边说边转）
+- 增强 agent 自主决策能力，让 agent 能主动建议工作流
+- 探索本地 LLM（GGUF 格式）推理能力
 
 ## 项目简介
 
