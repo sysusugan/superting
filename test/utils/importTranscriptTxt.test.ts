@@ -35,3 +35,31 @@ test("imported transcript parses speaker labels with inline text after timestamp
   assert.equal(imported.segments[1].timestamp, 584);
   assert.equal(imported.segments[1].text, "嗯，其实这一块的话，我感觉功能层面还是比较完善的。");
 });
+
+test("imported transcript parses speaker labels with bracketed timestamps", () => {
+  const imported = parseImportedTranscriptTxt(
+    [
+      "田文杰(00:00:56): 我。哎哈喽。",
+      "",
+      "张嫱 (00:01:03)： Hello.",
+      "",
+      "张嫱(00:01:09): 哦，没有，就我们两个人。",
+    ].join("\n")
+  );
+
+  assert.equal(imported.title, null);
+  assert.equal(imported.segments.length, 3);
+  assert.equal(imported.segments[0].speakerName, "田文杰");
+  assert.equal(imported.segments[0].speakerIsPlaceholder, false);
+  assert.equal(imported.segments[0].speakerLocked, true);
+  assert.equal(imported.segments[0].speakerStatus, "locked");
+  assert.equal(imported.segments[0].speakerLockSource, "user");
+  assert.equal(imported.segments[0].timestamp, 56);
+  assert.equal(imported.segments[0].text, "我。哎哈喽。");
+  assert.equal(imported.segments[1].speakerName, "张嫱");
+  assert.equal(imported.segments[1].timestamp, 63);
+  assert.equal(imported.segments[1].text, "Hello.");
+  assert.equal(imported.segments[2].speakerName, "张嫱");
+  assert.equal(imported.segments[2].timestamp, 69);
+  assert.equal(imported.segments[2].text, "哦，没有，就我们两个人。");
+});

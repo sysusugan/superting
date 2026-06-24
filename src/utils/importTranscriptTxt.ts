@@ -42,12 +42,30 @@ function buildSpeakerPatch(label: string): Partial<TranscriptSegment> {
   };
 }
 
+function parseHeaderLine(line: string): {
+  label: string;
+  timestamp: number;
+  inlineText: string;
+} | null {
+  const bracketedMatch = line.match(/^(.+?)\s*\(\s*(\d{1,2}:\d{2}:\d{2})\s*\)\s*[:：]?\s*(.*)$/);
+  const legacyMatch = line.match(/^(.+?)\s+(\d{1,2}:\d{2}:\d{2})(.*)$/);
+  const match = bracketedMatch || legacyMatch;
+  const seconds = match ? parseTimestampSeconds(match[2]) : null;
+  if (!match || seconds === null) return null;
+
+  return {
+    label: match[1].trim(),
+    timestamp: seconds,
+    inlineText: match[3].trim(),
+  };
+}
+
 export function parseImportedTranscriptTxt(raw: string): ImportedTranscriptTxt {
   const lines = String(raw || "")
     .replace(/^\uFEFF/, "")
     .split(/\r?\n/);
-  const title = lines.find((line) => line.trim())?.trim() || null;
-  const headerPattern = /^(.+?)\s+(\d{1,2}:\d{2}:\d{2})(.*)$/;
+  const firstNonEmptyLine = lines.find((line) => line.trim())?.trim() || null;
+  const title = firstNonEmptyLine && !parseHeaderLine(firstNonEmptyLine) ? firstNonEmptyLine : null;
   const segments: TranscriptSegment[] = [];
   let current: {
     label: string;
@@ -74,14 +92,13 @@ export function parseImportedTranscriptTxt(raw: string): ImportedTranscriptTxt {
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
-    const match = line.match(headerPattern);
-    const seconds = match ? parseTimestampSeconds(match[2]) : null;
-    if (match && seconds !== null) {
+    const header = parseHeaderLine(line);
+    if (header) {
       flush();
       current = {
-        label: match[1].trim(),
-        timestamp: seconds,
-        textLines: match[3].trim() ? [match[3].trim()] : [],
+        label: header.label,
+        timestamp: header.timestamp,
+        textLines: header.inlineText ? [header.inlineText] : [],
       };
       continue;
     }
