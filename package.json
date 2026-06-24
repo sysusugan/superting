@@ -1,7 +1,7 @@
 {
   "name": "superting",
-  "version": "1.7.2",
-  "description": "A desktop dictation application using whisper.cpp for speech-to-text transcription",
+  "version": "1.0.0",
+  "description": "Open-source alternative to 飞书妙记/钉钉听记 — privacy-first voice-to-text, meeting transcription, and personal knowledge base with local AI agents",
   "main": "main.js",
   "private": true,
   "engines": {
