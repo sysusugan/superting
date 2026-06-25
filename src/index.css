@@ -1439,8 +1439,6 @@ body:has(.agent-overlay-window) #root {
   overflow-y: hidden;
   border: 1px solid color-mix(in oklab, var(--color-border) 82%, var(--color-foreground) 18%);
   border-radius: 0.5rem;
-  background: var(--color-background);
-  box-shadow: 0 1px 2px oklch(0 0 0 / 0.04);
 }
 
 .rich-text-editor-content table {
@@ -1476,7 +1474,7 @@ body:has(.agent-overlay-window) #root {
 }
 
 .rich-text-editor-content th {
-  background: color-mix(in oklab, var(--color-muted) 76%, var(--color-background) 24%);
+  background: color-mix(in oklab, var(--color-muted) 48%, var(--color-background) 52%);
   font-weight: 600;
 }
 
