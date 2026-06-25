@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import {
   Download,
   FileAudio,
-  FileCode,
   Loader2,
   FileText,
   Sparkles,
@@ -2177,34 +2176,6 @@ export default function NoteEditor({
                     </button>
                   )}
                 </div>
-                {viewMode !== "transcript" && (
-                  <div className="ow-segmented flex shrink-0 items-center gap-0.5 shadow-none">
-                    <button
-                      data-segment-button
-                      data-segment-value="rich"
-                      onClick={() => setEditorMode("rich")}
-                      className={cn(
-                        "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
-                        editorMode === "rich" && "ow-segmented-item-active"
-                      )}
-                    >
-                      <AlignLeft size={10} />
-                      {t("notes.editor.richText")}
-                    </button>
-                    <button
-                      data-segment-button
-                      data-segment-value="markdown"
-                      onClick={() => setEditorMode("markdown")}
-                      className={cn(
-                        "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
-                        editorMode === "markdown" && "ow-segmented-item-active"
-                      )}
-                    >
-                      <FileCode size={10} />
-                      {t("notes.editor.markdownSource")}
-                    </button>
-                  </div>
-                )}
                 <input
                   ref={importInputRef}
                   type="file"
@@ -2216,36 +2187,31 @@ export default function NoteEditor({
                   className="hidden"
                   onChange={handleImportInput}
                 />
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      disabled={!canImportNoteFile}
-                      className="shrink-0 h-6 w-6 inline-flex items-center justify-center rounded-md bg-foreground/4 dark:bg-white/5 text-foreground/45 dark:text-foreground/35 hover:text-foreground/70 hover:bg-foreground/8 dark:hover:bg-white/8 disabled:opacity-40 disabled:pointer-events-none transition-colors duration-150"
-                      aria-label={t("notes.editor.importFile")}
-                      title={t("notes.editor.importFile")}
-                    >
-                      <FileUp size={11} />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" sideOffset={4}>
-                    <DropdownMenuItem
-                      onClick={() => openImportFilePicker("transcript")}
-                      disabled={!canImportTranscriptFile}
-                      className="text-xs gap-2"
-                    >
-                      <MessageSquareText size={13} className="text-foreground/40" />
-                      {t("notes.editor.importToTranscript")}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => openImportFilePicker("note")}
-                      className="text-xs gap-2"
-                    >
-                      <AlignLeft size={13} className="text-foreground/40" />
-                      {t("notes.editor.importToNote")}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {viewMode === "transcript" && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        disabled={!canImportTranscriptFile}
+                        className="shrink-0 h-6 w-6 inline-flex items-center justify-center rounded-md bg-foreground/4 dark:bg-white/5 text-foreground/45 dark:text-foreground/35 hover:text-foreground/70 hover:bg-foreground/8 dark:hover:bg-white/8 disabled:opacity-40 disabled:pointer-events-none transition-colors duration-150"
+                        aria-label={t("notes.editor.importFile")}
+                        title={t("notes.editor.importFile")}
+                      >
+                        <FileUp size={11} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" sideOffset={4}>
+                      <DropdownMenuItem
+                        onClick={() => openImportFilePicker("transcript")}
+                        disabled={!canImportTranscriptFile}
+                        className="text-xs gap-2"
+                      >
+                        <MessageSquareText size={13} className="text-foreground/40" />
+                        {t("notes.editor.importToTranscript")}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
                 {hasTranscriptEditControls && isTranscriptEditing && (
                   <div className="flex shrink-0 items-center gap-1">
                     <button
@@ -2607,6 +2573,9 @@ export default function NoteEditor({
                   value={enhancement.content}
                   onChange={handleEnhancedChange}
                   onImageUpload={handleImageUpload}
+                  toolbarMode={editorMode}
+                  onEditorModeChange={setEditorMode}
+                  onImportFile={() => openImportFilePicker("note")}
                   className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm"
                   findQuery={findText}
                   findActiveIndex={activeFindIndex}
@@ -2620,6 +2589,9 @@ export default function NoteEditor({
                   value={enhancement.content}
                   onChange={handleEnhancedChange}
                   onImageUpload={handleImageUpload}
+                  toolbarMode={editorMode}
+                  onEditorModeChange={setEditorMode}
+                  onImportFile={() => openImportFilePicker("note")}
                   className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm"
                   findQuery={findText}
                   findActiveIndex={activeFindIndex}
@@ -2636,6 +2608,9 @@ export default function NoteEditor({
                     value={note.content}
                     onChange={handleContentChange}
                     onImageUpload={handleImageUpload}
+                    toolbarMode={editorMode}
+                    onEditorModeChange={setEditorMode}
+                    onImportFile={() => openImportFilePicker("note")}
                     placeholder={t("notes.editor.startWriting")}
                     disabled={actionProcessingState === "processing"}
                     className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm transition-colors focus-within:border-ring/50 focus-within:ring-2 focus-within:ring-ring/10"
@@ -2651,6 +2626,9 @@ export default function NoteEditor({
                     value={note.content}
                     onChange={handleContentChange}
                     onImageUpload={handleImageUpload}
+                    toolbarMode={editorMode}
+                    onEditorModeChange={setEditorMode}
+                    onImportFile={() => openImportFilePicker("note")}
                     editorRef={editorRef}
                     placeholder={t("notes.editor.startWriting")}
                     disabled={actionProcessingState === "processing"}

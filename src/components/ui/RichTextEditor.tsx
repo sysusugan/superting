@@ -5,16 +5,33 @@ import {
   ArrowLeftToLine,
   ArrowRightToLine,
   ArrowUpToLine,
+  Bold,
   Columns3,
   Combine,
+  Code2,
+  Heading1,
+  Heading2,
+  Heading3,
+  Italic,
+  List,
+  ListChecks,
+  ListOrdered,
+  Minus,
   PanelLeft,
   PanelTop,
+  Quote,
+  Redo2,
   Rows3,
   Split,
+  SquareCode,
+  Strikethrough,
   Table2,
   Trash2,
+  Type,
+  Underline as UnderlineIcon,
+  Undo2,
 } from "lucide-react";
-import { Extension } from "@tiptap/core";
+import { Extension, Mark, mergeAttributes } from "@tiptap/core";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TaskList from "@tiptap/extension-task-list";
@@ -26,7 +43,7 @@ import { Markdown } from "tiptap-markdown";
 import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { cn } from "../lib/utils";
-import { Tooltip } from "./tooltip";
+import { EditorToolbar, type EditorToolbarAction, type EditorToolbarMode } from "./EditorToolbar";
 import { makeCurrentPageFindPattern, type FindMatch } from "../../utils/currentPageFind";
 
 interface FindHighlightState {
@@ -146,12 +163,56 @@ const FindHighlight = Extension.create({
   },
 });
 
+const Underline = Mark.create({
+  name: "underline",
+
+  parseHTML() {
+    return [
+      { tag: "u" },
+      {
+        style: "text-decoration",
+        getAttrs: (value) =>
+          typeof value === "string" && value.includes("underline") ? {} : false,
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ["u", mergeAttributes(HTMLAttributes), 0];
+  },
+
+  addCommands() {
+    return {
+      toggleUnderline:
+        () =>
+        ({ commands }: any) =>
+          commands.toggleMark(this.name),
+    } as any;
+  },
+
+  addStorage() {
+    return {
+      markdown: {
+        serialize: {
+          open: "<u>",
+          close: "</u>",
+          mixable: true,
+        },
+        parse: {},
+      },
+    };
+  },
+});
+
 interface RichTextEditorProps {
   value: string;
   onChange?: (value: string) => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  toolbarMode?: EditorToolbarMode;
+  onEditorModeChange?: (mode: EditorToolbarMode) => void;
+  onImportFile?: () => void;
   editorRef?: MutableRefObject<Editor | null>;
   findQuery?: string;
   findActiveIndex?: number;
@@ -178,40 +239,15 @@ function getFirstImageFile(fileList?: FileList | null): File | null {
   );
 }
 
-function TableToolbarButton({
-  label,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <Tooltip content={label}>
-      <button
-        type="button"
-        aria-label={label}
-        title={label}
-        disabled={disabled}
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={onClick}
-        className="rich-text-table-button"
-      >
-        {children}
-      </button>
-    </Tooltip>
-  );
-}
-
 export function RichTextEditor({
   value,
   onChange,
   placeholder,
   className,
   disabled,
+  toolbarMode = "rich",
+  onEditorModeChange,
+  onImportFile,
   editorRef,
   findQuery = "",
   findActiveIndex = -1,
@@ -252,6 +288,7 @@ export function RichTextEditor({
         bulletList: { keepMarks: true },
         orderedList: { keepMarks: true },
       }),
+      Underline,
       TaskList,
       TaskItem.configure({ nested: true }),
       Placeholder.configure({
@@ -410,6 +447,23 @@ export function RichTextEditor({
     }
   }, [editor, disabled]);
 
+  const insertImageAtSelection = useCallback(
+    async (file: File) => {
+      if (!editor || editor.isDestroyed || disabled) return;
+      editor.commands.focus();
+      await insertImageFile(editor.view, file);
+    },
+    [disabled, editor, insertImageFile]
+  );
+
+  const runEditorCommand = useCallback(
+    (command: string, ...args: any[]) => {
+      const chain = editor?.chain().focus() as any;
+      chain?.[command]?.(...args).run();
+    },
+    [editor]
+  );
+
   const tableCan = editor?.can() as any;
   const tableCommands = editor?.chain().focus() as any;
   const canEditTable = !!editor && !editor.isDestroyed && !disabled;
@@ -425,99 +479,261 @@ export function RichTextEditor({
   const canToggleHeaderRow = canEditTable && isTableActive && !!tableCan?.toggleHeaderRow?.();
   const canToggleHeaderColumn = canEditTable && isTableActive && !!tableCan?.toggleHeaderColumn?.();
   const canMergeOrSplit = canEditTable && isTableActive && !!tableCan?.mergeOrSplit?.();
+  const showToolbar = !!onChange || !!onEditorModeChange || !!onImportFile || !!onImageUpload;
+  const canEditRichText = !!editor && !editor.isDestroyed && !disabled;
+  const canUndo = canEditRichText && !!(editor.can() as any).undo?.();
+  const canRedo = canEditRichText && !!(editor.can() as any).redo?.();
+
+  const blockActions: EditorToolbarAction[] = [
+    {
+      key: "paragraph",
+      label: t("notes.editor.paragraph"),
+      icon: <Type size={15} />,
+      active: !!editor?.isActive("paragraph"),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("setParagraph"),
+    },
+    {
+      key: "heading1",
+      label: t("notes.editor.heading1"),
+      icon: <Heading1 size={15} />,
+      active: !!editor?.isActive("heading", { level: 1 }),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleHeading", { level: 1 }),
+    },
+    {
+      key: "heading2",
+      label: t("notes.editor.heading2"),
+      icon: <Heading2 size={15} />,
+      active: !!editor?.isActive("heading", { level: 2 }),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleHeading", { level: 2 }),
+    },
+    {
+      key: "heading3",
+      label: t("notes.editor.heading3"),
+      icon: <Heading3 size={15} />,
+      active: !!editor?.isActive("heading", { level: 3 }),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleHeading", { level: 3 }),
+    },
+  ];
+
+  const inlineActions: EditorToolbarAction[] = [
+    {
+      key: "bold",
+      label: t("notes.editor.bold"),
+      icon: <Bold size={15} />,
+      active: !!editor?.isActive("bold"),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleBold"),
+    },
+    {
+      key: "italic",
+      label: t("notes.editor.italic"),
+      icon: <Italic size={15} />,
+      active: !!editor?.isActive("italic"),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleItalic"),
+    },
+    {
+      key: "underline",
+      label: t("notes.editor.underline"),
+      icon: <UnderlineIcon size={15} />,
+      active: !!editor?.isActive("underline"),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleUnderline"),
+    },
+    {
+      key: "strike",
+      label: t("notes.editor.strike"),
+      icon: <Strikethrough size={15} />,
+      active: !!editor?.isActive("strike"),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleStrike"),
+    },
+    {
+      key: "code",
+      label: t("notes.editor.inlineCode"),
+      icon: <Code2 size={15} />,
+      active: !!editor?.isActive("code"),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleCode"),
+    },
+  ];
+
+  const listActions: EditorToolbarAction[] = [
+    {
+      key: "bulletList",
+      label: t("notes.editor.bulletList"),
+      icon: <List size={15} />,
+      active: !!editor?.isActive("bulletList"),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleBulletList"),
+    },
+    {
+      key: "orderedList",
+      label: t("notes.editor.orderedList"),
+      icon: <ListOrdered size={15} />,
+      active: !!editor?.isActive("orderedList"),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleOrderedList"),
+    },
+    {
+      key: "taskList",
+      label: t("notes.editor.taskList"),
+      icon: <ListChecks size={15} />,
+      active: !!editor?.isActive("taskList"),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleTaskList"),
+    },
+    {
+      key: "blockquote",
+      label: t("notes.editor.blockquote"),
+      icon: <Quote size={15} />,
+      active: !!editor?.isActive("blockquote"),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleBlockquote"),
+    },
+    {
+      key: "codeBlock",
+      label: t("notes.editor.codeBlock"),
+      icon: <SquareCode size={15} />,
+      active: !!editor?.isActive("codeBlock"),
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("toggleCodeBlock"),
+    },
+  ];
+
+  const insertActions: EditorToolbarAction[] = [
+    {
+      key: "horizontalRule",
+      label: t("notes.editor.horizontalRule"),
+      icon: <Minus size={15} />,
+      disabled: !canEditRichText,
+      onClick: () => runEditorCommand("setHorizontalRule"),
+    },
+    {
+      key: "insertTable",
+      label: t("notes.editor.insertTable"),
+      icon: <Table2 size={15} />,
+      disabled: !canInsertTable,
+      onClick: () =>
+        tableCommands?.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+    },
+  ];
+
+  const tableActions: EditorToolbarAction[] = isTableActive
+    ? [
+        {
+          key: "addRowAbove",
+          label: t("notes.editor.addRowAbove"),
+          icon: <ArrowUpToLine size={15} />,
+          disabled: !canAddRowBefore,
+          onClick: () => tableCommands?.addRowBefore().run(),
+        },
+        {
+          key: "addRowBelow",
+          label: t("notes.editor.addRowBelow"),
+          icon: <ArrowDownToLine size={15} />,
+          disabled: !canAddRowAfter,
+          onClick: () => tableCommands?.addRowAfter().run(),
+        },
+        {
+          key: "deleteRow",
+          label: t("notes.editor.deleteRow"),
+          icon: <Rows3 size={15} />,
+          disabled: !canDeleteRow,
+          onClick: () => tableCommands?.deleteRow().run(),
+        },
+        {
+          key: "addColumnLeft",
+          label: t("notes.editor.addColumnLeft"),
+          icon: <ArrowLeftToLine size={15} />,
+          disabled: !canAddColumnBefore,
+          onClick: () => tableCommands?.addColumnBefore().run(),
+        },
+        {
+          key: "addColumnRight",
+          label: t("notes.editor.addColumnRight"),
+          icon: <ArrowRightToLine size={15} />,
+          disabled: !canAddColumnAfter,
+          onClick: () => tableCommands?.addColumnAfter().run(),
+        },
+        {
+          key: "deleteColumn",
+          label: t("notes.editor.deleteColumn"),
+          icon: <Columns3 size={15} />,
+          disabled: !canDeleteColumn,
+          onClick: () => tableCommands?.deleteColumn().run(),
+        },
+        {
+          key: "toggleHeaderRow",
+          label: t("notes.editor.toggleHeaderRow"),
+          icon: <PanelTop size={15} />,
+          disabled: !canToggleHeaderRow,
+          onClick: () => tableCommands?.toggleHeaderRow().run(),
+        },
+        {
+          key: "toggleHeaderColumn",
+          label: t("notes.editor.toggleHeaderColumn"),
+          icon: <PanelLeft size={15} />,
+          disabled: !canToggleHeaderColumn,
+          onClick: () => tableCommands?.toggleHeaderColumn().run(),
+        },
+        {
+          key: "mergeOrSplitCells",
+          label: t("notes.editor.mergeOrSplitCells"),
+          icon: tableCan?.splitCell?.() ? <Split size={15} /> : <Combine size={15} />,
+          disabled: !canMergeOrSplit,
+          onClick: () => tableCommands?.mergeOrSplit().run(),
+        },
+        {
+          key: "deleteTable",
+          label: t("notes.editor.deleteTable"),
+          icon: <Trash2 size={15} />,
+          danger: true,
+          disabled: !canDeleteTable,
+          onClick: () => tableCommands?.deleteTable().run(),
+        },
+      ]
+    : [];
 
   return (
-    <div className={cn("relative w-full h-full", className)} onClick={handleClick}>
-      <div className="rich-text-table-toolbar" onClick={(event) => event.stopPropagation()}>
-        <TableToolbarButton
-          label={t("notes.editor.insertTable")}
-          disabled={!canInsertTable}
-          onClick={() =>
-            tableCommands?.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
-          }
-        >
-          <Table2 size={13} />
-        </TableToolbarButton>
-        {isTableActive && (
-          <>
-            <span className="rich-text-table-separator" />
-            <TableToolbarButton
-              label={t("notes.editor.addRowAbove")}
-              disabled={!canAddRowBefore}
-              onClick={() => tableCommands?.addRowBefore().run()}
-            >
-              <ArrowUpToLine size={13} />
-            </TableToolbarButton>
-            <TableToolbarButton
-              label={t("notes.editor.addRowBelow")}
-              disabled={!canAddRowAfter}
-              onClick={() => tableCommands?.addRowAfter().run()}
-            >
-              <ArrowDownToLine size={13} />
-            </TableToolbarButton>
-            <TableToolbarButton
-              label={t("notes.editor.deleteRow")}
-              disabled={!canDeleteRow}
-              onClick={() => tableCommands?.deleteRow().run()}
-            >
-              <Rows3 size={13} />
-            </TableToolbarButton>
-            <TableToolbarButton
-              label={t("notes.editor.addColumnLeft")}
-              disabled={!canAddColumnBefore}
-              onClick={() => tableCommands?.addColumnBefore().run()}
-            >
-              <ArrowLeftToLine size={13} />
-            </TableToolbarButton>
-            <TableToolbarButton
-              label={t("notes.editor.addColumnRight")}
-              disabled={!canAddColumnAfter}
-              onClick={() => tableCommands?.addColumnAfter().run()}
-            >
-              <ArrowRightToLine size={13} />
-            </TableToolbarButton>
-            <TableToolbarButton
-              label={t("notes.editor.deleteColumn")}
-              disabled={!canDeleteColumn}
-              onClick={() => tableCommands?.deleteColumn().run()}
-            >
-              <Columns3 size={13} />
-            </TableToolbarButton>
-            <span className="rich-text-table-separator" />
-            <TableToolbarButton
-              label={t("notes.editor.toggleHeaderRow")}
-              disabled={!canToggleHeaderRow}
-              onClick={() => tableCommands?.toggleHeaderRow().run()}
-            >
-              <PanelTop size={13} />
-            </TableToolbarButton>
-            <TableToolbarButton
-              label={t("notes.editor.toggleHeaderColumn")}
-              disabled={!canToggleHeaderColumn}
-              onClick={() => tableCommands?.toggleHeaderColumn().run()}
-            >
-              <PanelLeft size={13} />
-            </TableToolbarButton>
-            <TableToolbarButton
-              label={t("notes.editor.mergeOrSplitCells")}
-              disabled={!canMergeOrSplit}
-              onClick={() => tableCommands?.mergeOrSplit().run()}
-            >
-              {tableCan?.splitCell?.() ? <Split size={13} /> : <Combine size={13} />}
-            </TableToolbarButton>
-            <TableToolbarButton
-              label={t("notes.editor.deleteTable")}
-              disabled={!canDeleteTable}
-              onClick={() => tableCommands?.deleteTable().run()}
-            >
-              <Trash2 size={13} />
-            </TableToolbarButton>
-          </>
-        )}
-      </div>
+    <div className={cn("relative flex h-full w-full flex-col overflow-hidden", className)} onClick={handleClick}>
+      {showToolbar && (
+        <EditorToolbar
+          mode="rich"
+          currentMode={toolbarMode}
+          onModeChange={onEditorModeChange}
+          disabled={disabled}
+          canInsertImage={!!onImageUpload}
+          onImageFile={insertImageAtSelection}
+          onImportFile={onImportFile}
+          undoAction={{
+            key: "undo",
+            label: t("notes.editor.undo"),
+            icon: <Undo2 size={15} />,
+            disabled: !canUndo,
+            onClick: () => runEditorCommand("undo"),
+          }}
+          redoAction={{
+            key: "redo",
+            label: t("notes.editor.redo"),
+            icon: <Redo2 size={15} />,
+            disabled: !canRedo,
+            onClick: () => runEditorCommand("redo"),
+          }}
+          blockActions={blockActions}
+          inlineActions={inlineActions}
+          listActions={listActions}
+          insertActions={insertActions}
+          tableActions={tableActions}
+        />
+      )}
       <EditorContent
         editor={editor}
-        className={cn("h-full overflow-y-auto", disabled && "pointer-events-none opacity-70")}
+        className={cn("min-h-0 flex-1 overflow-y-auto", disabled && "pointer-events-none opacity-70")}
       />
     </div>
   );

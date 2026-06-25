@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
+import { Redo2, Undo2 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { EditorToolbar, type EditorToolbarMode } from "./EditorToolbar";
 import {
   applyMarkdownReplaceRequest,
   insertMarkdownImageReference,
@@ -12,6 +15,9 @@ interface MarkdownSourceEditorProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  toolbarMode?: EditorToolbarMode;
+  onEditorModeChange?: (mode: EditorToolbarMode) => void;
+  onImportFile?: () => void;
   findQuery?: string;
   findActiveIndex?: number;
   findIgnoreCase?: boolean;
@@ -43,6 +49,9 @@ export function MarkdownSourceEditor({
   placeholder,
   className,
   disabled,
+  toolbarMode = "markdown",
+  onEditorModeChange,
+  onImportFile,
   findQuery = "",
   findActiveIndex = -1,
   findIgnoreCase = true,
@@ -51,6 +60,7 @@ export function MarkdownSourceEditor({
   onReplaceRequestComplete,
   onImageUpload,
 }: MarkdownSourceEditorProps) {
+  const { t } = useTranslation();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastReplaceRequestIdRef = useRef<number | null>(null);
 
@@ -120,8 +130,46 @@ export function MarkdownSourceEditor({
     [insertImageFile, onImageUpload]
   );
 
+  const runNativeHistoryCommand = useCallback(
+    (command: "undo" | "redo") => {
+      if (disabled) return;
+      const textarea = textareaRef.current;
+      textarea?.focus();
+      document.execCommand(command);
+      if (textarea) onChange?.(textarea.value);
+    },
+    [disabled, onChange]
+  );
+
+  const showToolbar = !!onChange || !!onEditorModeChange || !!onImportFile || !!onImageUpload;
+
   return (
-    <div className={cn("relative w-full h-full", className)}>
+    <div className={cn("relative flex h-full w-full flex-col overflow-hidden", className)}>
+      {showToolbar && (
+        <EditorToolbar
+          mode="markdown"
+          currentMode={toolbarMode}
+          onModeChange={onEditorModeChange}
+          disabled={disabled}
+          canInsertImage={!!onImageUpload}
+          onImageFile={insertImageFile}
+          onImportFile={onImportFile}
+          undoAction={{
+            key: "undo",
+            label: t("notes.editor.undo"),
+            icon: <Undo2 size={15} />,
+            disabled: disabled,
+            onClick: () => runNativeHistoryCommand("undo"),
+          }}
+          redoAction={{
+            key: "redo",
+            label: t("notes.editor.redo"),
+            icon: <Redo2 size={15} />,
+            disabled: disabled,
+            onClick: () => runNativeHistoryCommand("redo"),
+          }}
+        />
+      )}
       <textarea
         ref={textareaRef}
         value={value}
@@ -131,7 +179,7 @@ export function MarkdownSourceEditor({
         placeholder={placeholder}
         disabled={disabled}
         spellCheck={false}
-        className="markdown-source-editor h-full w-full resize-none border-0 bg-transparent px-5 py-4 pb-24 font-mono text-[13px] leading-6 text-foreground outline-none"
+        className="markdown-source-editor min-h-0 flex-1 resize-none border-0 bg-transparent px-5 py-4 pb-24 font-mono text-[13px] leading-6 text-foreground outline-none"
       />
     </div>
   );
