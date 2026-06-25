@@ -1689,7 +1689,20 @@
       "audioRediarizeStatsUnmatched": "{{count}} segments unmatched",
       "audioRediarizeStatsMissingTimestamp": "{{count}} segments missing timestamps",
       "audioRediarizeStatsSkippedWindows": "{{count}} audio window(s) had no audible speech",
-      "audioRediarizeStatsRetriedWindows": "{{count}} low-signal window(s) retried with gain"
+      "audioRediarizeStatsRetriedWindows": "{{count}} low-signal window(s) retried with gain",
+      "richText": "Форматированный текст",
+      "markdownSource": "Markdown",
+      "insertTable": "Вставить таблицу",
+      "addRowAbove": "Добавить строку выше",
+      "addRowBelow": "Добавить строку ниже",
+      "deleteRow": "Удалить строку",
+      "addColumnLeft": "Добавить столбец слева",
+      "addColumnRight": "Добавить столбец справа",
+      "deleteColumn": "Удалить столбец",
+      "deleteTable": "Удалить таблицу",
+      "toggleHeaderRow": "Переключить строку заголовка",
+      "toggleHeaderColumn": "Переключить столбец заголовка",
+      "mergeOrSplitCells": "Объединить или разделить ячейки"
     },
     "bulkExport": {
       "select": "Select",

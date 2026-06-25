@@ -1661,7 +1661,20 @@
       "audioRediarizeStatsUnmatched": "{{count}} segments unmatched",
       "audioRediarizeStatsMissingTimestamp": "{{count}} segments missing timestamps",
       "audioRediarizeStatsSkippedWindows": "{{count}} audio window(s) had no audible speech",
-      "audioRediarizeStatsRetriedWindows": "{{count}} low-signal window(s) retried with gain"
+      "audioRediarizeStatsRetriedWindows": "{{count}} low-signal window(s) retried with gain",
+      "richText": "リッチテキスト",
+      "markdownSource": "Markdown",
+      "insertTable": "表を挿入",
+      "addRowAbove": "上に行を追加",
+      "addRowBelow": "下に行を追加",
+      "deleteRow": "行を削除",
+      "addColumnLeft": "左に列を追加",
+      "addColumnRight": "右に列を追加",
+      "deleteColumn": "列を削除",
+      "deleteTable": "表を削除",
+      "toggleHeaderRow": "ヘッダー行を切り替え",
+      "toggleHeaderColumn": "ヘッダー列を切り替え",
+      "mergeOrSplitCells": "セルを結合または分割"
     },
     "bulkExport": {
       "select": "Select",

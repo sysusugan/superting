@@ -1689,7 +1689,20 @@
       "audioRediarizeStatsUnmatched": "{{count}} segments unmatched",
       "audioRediarizeStatsMissingTimestamp": "{{count}} segments missing timestamps",
       "audioRediarizeStatsSkippedWindows": "{{count}} audio window(s) had no audible speech",
-      "audioRediarizeStatsRetriedWindows": "{{count}} low-signal window(s) retried with gain"
+      "audioRediarizeStatsRetriedWindows": "{{count}} low-signal window(s) retried with gain",
+      "richText": "Testo formattato",
+      "markdownSource": "Markdown",
+      "insertTable": "Inserisci tabella",
+      "addRowAbove": "Aggiungi riga sopra",
+      "addRowBelow": "Aggiungi riga sotto",
+      "deleteRow": "Elimina riga",
+      "addColumnLeft": "Aggiungi colonna a sinistra",
+      "addColumnRight": "Aggiungi colonna a destra",
+      "deleteColumn": "Elimina colonna",
+      "deleteTable": "Elimina tabella",
+      "toggleHeaderRow": "Attiva/disattiva riga intestazione",
+      "toggleHeaderColumn": "Attiva/disattiva colonna intestazione",
+      "mergeOrSplitCells": "Unisci o dividi celle"
     },
     "bulkExport": {
       "select": "Select",

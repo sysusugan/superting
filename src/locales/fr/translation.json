@@ -1730,7 +1730,20 @@
       "audioRediarizeStatsUnmatched": "{{count}} segments unmatched",
       "audioRediarizeStatsMissingTimestamp": "{{count}} segments missing timestamps",
       "audioRediarizeStatsSkippedWindows": "{{count}} audio window(s) had no audible speech",
-      "audioRediarizeStatsRetriedWindows": "{{count}} low-signal window(s) retried with gain"
+      "audioRediarizeStatsRetriedWindows": "{{count}} low-signal window(s) retried with gain",
+      "richText": "Texte enrichi",
+      "markdownSource": "Markdown",
+      "insertTable": "Insérer un tableau",
+      "addRowAbove": "Ajouter une ligne au-dessus",
+      "addRowBelow": "Ajouter une ligne en dessous",
+      "deleteRow": "Supprimer la ligne",
+      "addColumnLeft": "Ajouter une colonne à gauche",
+      "addColumnRight": "Ajouter une colonne à droite",
+      "deleteColumn": "Supprimer la colonne",
+      "deleteTable": "Supprimer le tableau",
+      "toggleHeaderRow": "Basculer la ligne d'en-tête",
+      "toggleHeaderColumn": "Basculer la colonne d'en-tête",
+      "mergeOrSplitCells": "Fusionner ou scinder les cellules"
     },
     "bulkExport": {
       "select": "Select",

@@ -1,4 +1,19 @@
-import { useEffect, useRef, useCallback, type MutableRefObject } from "react";
+import { useEffect, useRef, useCallback, useState, type MutableRefObject } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  ArrowDownToLine,
+  ArrowLeftToLine,
+  ArrowRightToLine,
+  ArrowUpToLine,
+  Columns3,
+  Combine,
+  PanelLeft,
+  PanelTop,
+  Rows3,
+  Split,
+  Table2,
+  Trash2,
+} from "lucide-react";
 import { Extension } from "@tiptap/core";
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -11,6 +26,7 @@ import { Markdown } from "tiptap-markdown";
 import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { cn } from "../lib/utils";
+import { Tooltip } from "./tooltip";
 import { makeCurrentPageFindPattern, type FindMatch } from "../../utils/currentPageFind";
 
 interface FindHighlightState {
@@ -162,6 +178,34 @@ function getFirstImageFile(fileList?: FileList | null): File | null {
   );
 }
 
+function TableToolbarButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip content={label}>
+      <button
+        type="button"
+        aria-label={label}
+        title={label}
+        disabled={disabled}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={onClick}
+        className="rich-text-table-button"
+      >
+        {children}
+      </button>
+    </Tooltip>
+  );
+}
+
 export function RichTextEditor({
   value,
   onChange,
@@ -177,10 +221,12 @@ export function RichTextEditor({
   onReplaceRequestComplete,
   onImageUpload,
 }: RichTextEditorProps) {
+  const { t } = useTranslation();
   const internalValueRef = useRef(value);
   const suppressUpdateRef = useRef(false);
   const lastReplaceRequestIdRef = useRef<number | null>(null);
   const imageUploadRef = useRef(onImageUpload);
+  const [isTableActive, setIsTableActive] = useState(false);
 
   useEffect(() => {
     imageUploadRef.current = onImageUpload;
@@ -237,6 +283,12 @@ export function RichTextEditor({
       const md = (ed.storage as any).markdown.getMarkdown() as string;
       internalValueRef.current = md;
       onChange?.(md);
+    },
+    onSelectionUpdate: ({ editor: ed }) => {
+      setIsTableActive(ed.isActive("table"));
+    },
+    onTransaction: ({ editor: ed }) => {
+      setIsTableActive(ed.isActive("table"));
     },
     editorProps: {
       attributes: {
@@ -358,8 +410,111 @@ export function RichTextEditor({
     }
   }, [editor, disabled]);
 
+  const tableCan = editor?.can() as any;
+  const tableCommands = editor?.chain().focus() as any;
+  const canEditTable = !!editor && !editor.isDestroyed && !disabled;
+  const canInsertTable =
+    canEditTable && !!tableCan?.insertTable?.({ rows: 3, cols: 3, withHeaderRow: true });
+  const canAddRowBefore = canEditTable && isTableActive && !!tableCan?.addRowBefore?.();
+  const canAddRowAfter = canEditTable && isTableActive && !!tableCan?.addRowAfter?.();
+  const canDeleteRow = canEditTable && isTableActive && !!tableCan?.deleteRow?.();
+  const canAddColumnBefore = canEditTable && isTableActive && !!tableCan?.addColumnBefore?.();
+  const canAddColumnAfter = canEditTable && isTableActive && !!tableCan?.addColumnAfter?.();
+  const canDeleteColumn = canEditTable && isTableActive && !!tableCan?.deleteColumn?.();
+  const canDeleteTable = canEditTable && isTableActive && !!tableCan?.deleteTable?.();
+  const canToggleHeaderRow = canEditTable && isTableActive && !!tableCan?.toggleHeaderRow?.();
+  const canToggleHeaderColumn = canEditTable && isTableActive && !!tableCan?.toggleHeaderColumn?.();
+  const canMergeOrSplit = canEditTable && isTableActive && !!tableCan?.mergeOrSplit?.();
+
   return (
     <div className={cn("relative w-full h-full", className)} onClick={handleClick}>
+      <div className="rich-text-table-toolbar" onClick={(event) => event.stopPropagation()}>
+        <TableToolbarButton
+          label={t("notes.editor.insertTable")}
+          disabled={!canInsertTable}
+          onClick={() =>
+            tableCommands?.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+          }
+        >
+          <Table2 size={13} />
+        </TableToolbarButton>
+        {isTableActive && (
+          <>
+            <span className="rich-text-table-separator" />
+            <TableToolbarButton
+              label={t("notes.editor.addRowAbove")}
+              disabled={!canAddRowBefore}
+              onClick={() => tableCommands?.addRowBefore().run()}
+            >
+              <ArrowUpToLine size={13} />
+            </TableToolbarButton>
+            <TableToolbarButton
+              label={t("notes.editor.addRowBelow")}
+              disabled={!canAddRowAfter}
+              onClick={() => tableCommands?.addRowAfter().run()}
+            >
+              <ArrowDownToLine size={13} />
+            </TableToolbarButton>
+            <TableToolbarButton
+              label={t("notes.editor.deleteRow")}
+              disabled={!canDeleteRow}
+              onClick={() => tableCommands?.deleteRow().run()}
+            >
+              <Rows3 size={13} />
+            </TableToolbarButton>
+            <TableToolbarButton
+              label={t("notes.editor.addColumnLeft")}
+              disabled={!canAddColumnBefore}
+              onClick={() => tableCommands?.addColumnBefore().run()}
+            >
+              <ArrowLeftToLine size={13} />
+            </TableToolbarButton>
+            <TableToolbarButton
+              label={t("notes.editor.addColumnRight")}
+              disabled={!canAddColumnAfter}
+              onClick={() => tableCommands?.addColumnAfter().run()}
+            >
+              <ArrowRightToLine size={13} />
+            </TableToolbarButton>
+            <TableToolbarButton
+              label={t("notes.editor.deleteColumn")}
+              disabled={!canDeleteColumn}
+              onClick={() => tableCommands?.deleteColumn().run()}
+            >
+              <Columns3 size={13} />
+            </TableToolbarButton>
+            <span className="rich-text-table-separator" />
+            <TableToolbarButton
+              label={t("notes.editor.toggleHeaderRow")}
+              disabled={!canToggleHeaderRow}
+              onClick={() => tableCommands?.toggleHeaderRow().run()}
+            >
+              <PanelTop size={13} />
+            </TableToolbarButton>
+            <TableToolbarButton
+              label={t("notes.editor.toggleHeaderColumn")}
+              disabled={!canToggleHeaderColumn}
+              onClick={() => tableCommands?.toggleHeaderColumn().run()}
+            >
+              <PanelLeft size={13} />
+            </TableToolbarButton>
+            <TableToolbarButton
+              label={t("notes.editor.mergeOrSplitCells")}
+              disabled={!canMergeOrSplit}
+              onClick={() => tableCommands?.mergeOrSplit().run()}
+            >
+              {tableCan?.splitCell?.() ? <Split size={13} /> : <Combine size={13} />}
+            </TableToolbarButton>
+            <TableToolbarButton
+              label={t("notes.editor.deleteTable")}
+              disabled={!canDeleteTable}
+              onClick={() => tableCommands?.deleteTable().run()}
+            >
+              <Trash2 size={13} />
+            </TableToolbarButton>
+          </>
+        )}
+      </div>
       <EditorContent
         editor={editor}
         className={cn("h-full overflow-y-auto", disabled && "pointer-events-none opacity-70")}

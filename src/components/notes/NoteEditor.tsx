@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   Download,
   FileAudio,
+  FileCode,
   Loader2,
   FileText,
   Sparkles,
@@ -25,6 +26,7 @@ import {
   RotateCw,
 } from "lucide-react";
 import { RichTextEditor } from "../ui/RichTextEditor";
+import { MarkdownSourceEditor } from "../ui/MarkdownSourceEditor";
 import type { Editor } from "@tiptap/react";
 import { MeetingTranscriptChat, type TranscriptSeekTarget } from "./MeetingTranscriptChat";
 import type { TranscriptSegment } from "../../stores/meetingRecordingStore";
@@ -442,6 +444,13 @@ export interface Enhancement {
 }
 
 type MeetingViewMode = "raw" | "transcript" | "enhanced";
+type EditorMode = "rich" | "markdown";
+const EDITOR_MODE_STORAGE_KEY = "superting.notesEditorMode";
+
+function readEditorModePreference(): EditorMode {
+  if (typeof window === "undefined") return "rich";
+  return window.localStorage.getItem(EDITOR_MODE_STORAGE_KEY) === "markdown" ? "markdown" : "rich";
+}
 type ImportTarget = "transcript" | "note";
 type RediarizeSpeakerMode = "auto" | "more" | "fixed";
 export type RediarizeAudioOptions = {
@@ -658,6 +667,7 @@ export default function NoteEditor({
   const { t } = useTranslation();
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<MeetingViewMode>("raw");
+  const [editorMode, setEditorMode] = useState<EditorMode>(readEditorModePreference);
   const [chatMode, setChatMode] = useState<EmbeddedChatMode>("hidden");
   const [folderSearch, setFolderSearch] = useState("");
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -799,6 +809,10 @@ export default function NoteEditor({
         : (folders ?? []),
     [folders, folderSearch]
   );
+
+  useEffect(() => {
+    window.localStorage.setItem(EDITOR_MODE_STORAGE_KEY, editorMode);
+  }, [editorMode]);
 
   const displaySegments = useMemo<TranscriptSegment[]>(() => {
     if (isRecording) return meetingSegments ?? [];
@@ -2163,6 +2177,34 @@ export default function NoteEditor({
                     </button>
                   )}
                 </div>
+                {viewMode !== "transcript" && (
+                  <div className="ow-segmented flex shrink-0 items-center gap-0.5 shadow-none">
+                    <button
+                      data-segment-button
+                      data-segment-value="rich"
+                      onClick={() => setEditorMode("rich")}
+                      className={cn(
+                        "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
+                        editorMode === "rich" && "ow-segmented-item-active"
+                      )}
+                    >
+                      <AlignLeft size={10} />
+                      {t("notes.editor.richText")}
+                    </button>
+                    <button
+                      data-segment-button
+                      data-segment-value="markdown"
+                      onClick={() => setEditorMode("markdown")}
+                      className={cn(
+                        "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
+                        editorMode === "markdown" && "ow-segmented-item-active"
+                      )}
+                    >
+                      <FileCode size={10} />
+                      {t("notes.editor.markdownSource")}
+                    </button>
+                  </div>
+                )}
                 <input
                   ref={importInputRef}
                   type="file"
@@ -2560,34 +2602,68 @@ export default function NoteEditor({
                 </button>
               </div>
             ) : viewMode === "enhanced" && enhancement ? (
-              <RichTextEditor
-                value={enhancement.content}
-                onChange={handleEnhancedChange}
-                onImageUpload={handleImageUpload}
-                className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm"
-                findQuery={findText}
-                findActiveIndex={activeFindIndex}
-                findIgnoreCase={ignoreCase}
-                onFindMatchCountChange={handleFindMatchCountChange}
-                replaceRequest={viewMode === "enhanced" ? richTextReplaceRequest : null}
-                onReplaceRequestComplete={handleRichTextReplaceComplete}
-              />
+              editorMode === "markdown" ? (
+                <MarkdownSourceEditor
+                  value={enhancement.content}
+                  onChange={handleEnhancedChange}
+                  onImageUpload={handleImageUpload}
+                  className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm"
+                  findQuery={findText}
+                  findActiveIndex={activeFindIndex}
+                  findIgnoreCase={ignoreCase}
+                  onFindMatchCountChange={handleFindMatchCountChange}
+                  replaceRequest={viewMode === "enhanced" ? richTextReplaceRequest : null}
+                  onReplaceRequestComplete={handleRichTextReplaceComplete}
+                />
+              ) : (
+                <RichTextEditor
+                  value={enhancement.content}
+                  onChange={handleEnhancedChange}
+                  onImageUpload={handleImageUpload}
+                  className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm"
+                  findQuery={findText}
+                  findActiveIndex={activeFindIndex}
+                  findIgnoreCase={ignoreCase}
+                  onFindMatchCountChange={handleFindMatchCountChange}
+                  replaceRequest={viewMode === "enhanced" ? richTextReplaceRequest : null}
+                  onReplaceRequestComplete={handleRichTextReplaceComplete}
+                />
+              )
             ) : (
-              <RichTextEditor
-                value={note.content}
-                onChange={handleContentChange}
-                onImageUpload={handleImageUpload}
-                editorRef={editorRef}
-                placeholder={t("notes.editor.startWriting")}
-                disabled={actionProcessingState === "processing"}
-                className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm transition-colors focus-within:border-ring/50 focus-within:ring-2 focus-within:ring-ring/10"
-                findQuery={findText}
-                findActiveIndex={activeFindIndex}
-                findIgnoreCase={ignoreCase}
-                onFindMatchCountChange={handleFindMatchCountChange}
-                replaceRequest={viewMode === "raw" ? richTextReplaceRequest : null}
-                onReplaceRequestComplete={handleRichTextReplaceComplete}
-              />
+              <>
+                {editorMode === "markdown" ? (
+                  <MarkdownSourceEditor
+                    value={note.content}
+                    onChange={handleContentChange}
+                    onImageUpload={handleImageUpload}
+                    placeholder={t("notes.editor.startWriting")}
+                    disabled={actionProcessingState === "processing"}
+                    className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm transition-colors focus-within:border-ring/50 focus-within:ring-2 focus-within:ring-ring/10"
+                    findQuery={findText}
+                    findActiveIndex={activeFindIndex}
+                    findIgnoreCase={ignoreCase}
+                    onFindMatchCountChange={handleFindMatchCountChange}
+                    replaceRequest={viewMode === "raw" ? richTextReplaceRequest : null}
+                    onReplaceRequestComplete={handleRichTextReplaceComplete}
+                  />
+                ) : (
+                  <RichTextEditor
+                    value={note.content}
+                    onChange={handleContentChange}
+                    onImageUpload={handleImageUpload}
+                    editorRef={editorRef}
+                    placeholder={t("notes.editor.startWriting")}
+                    disabled={actionProcessingState === "processing"}
+                    className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm transition-colors focus-within:border-ring/50 focus-within:ring-2 focus-within:ring-ring/10"
+                    findQuery={findText}
+                    findActiveIndex={activeFindIndex}
+                    findIgnoreCase={ignoreCase}
+                    onFindMatchCountChange={handleFindMatchCountChange}
+                    replaceRequest={viewMode === "raw" ? richTextReplaceRequest : null}
+                    onReplaceRequestComplete={handleRichTextReplaceComplete}
+                  />
+                )}
+              </>
             )}
           </div>
           <ActionProcessingOverlay

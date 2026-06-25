@@ -1689,7 +1689,20 @@
       "audioRediarizeStatsUnmatched": "{{count}} 個片段未匹配",
       "audioRediarizeStatsMissingTimestamp": "{{count}} 個片段缺少時間戳",
       "audioRediarizeStatsSkippedWindows": "{{count}} 個音訊片段沒有可識別的人聲",
-      "audioRediarizeStatsRetriedWindows": "{{count}} 個低音量片段已增強後重試"
+      "audioRediarizeStatsRetriedWindows": "{{count}} 個低音量片段已增強後重試",
+      "richText": "富文字",
+      "markdownSource": "Markdown",
+      "insertTable": "插入表格",
+      "addRowAbove": "在上方新增列",
+      "addRowBelow": "在下方新增列",
+      "deleteRow": "刪除列",
+      "addColumnLeft": "在左側新增欄",
+      "addColumnRight": "在右側新增欄",
+      "deleteColumn": "刪除欄",
+      "deleteTable": "刪除表格",
+      "toggleHeaderRow": "切換標題列",
+      "toggleHeaderColumn": "切換標題欄",
+      "mergeOrSplitCells": "合併或拆分儲存格"
     },
     "bulkExport": {
       "select": "選擇",

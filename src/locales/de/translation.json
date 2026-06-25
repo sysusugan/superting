@@ -1690,7 +1690,20 @@
       "audioRediarizeStatsUnmatched": "{{count}} segments unmatched",
       "audioRediarizeStatsMissingTimestamp": "{{count}} segments missing timestamps",
       "audioRediarizeStatsSkippedWindows": "{{count}} audio window(s) had no audible speech",
-      "audioRediarizeStatsRetriedWindows": "{{count}} low-signal window(s) retried with gain"
+      "audioRediarizeStatsRetriedWindows": "{{count}} low-signal window(s) retried with gain",
+      "richText": "Rich Text",
+      "markdownSource": "Markdown",
+      "insertTable": "Tabelle einfügen",
+      "addRowAbove": "Zeile oberhalb hinzufügen",
+      "addRowBelow": "Zeile unterhalb hinzufügen",
+      "deleteRow": "Zeile löschen",
+      "addColumnLeft": "Spalte links hinzufügen",
+      "addColumnRight": "Spalte rechts hinzufügen",
+      "deleteColumn": "Spalte löschen",
+      "deleteTable": "Tabelle löschen",
+      "toggleHeaderRow": "Kopfzeile umschalten",
+      "toggleHeaderColumn": "Kopfspalte umschalten",
+      "mergeOrSplitCells": "Zellen verbinden oder teilen"
     },
     "bulkExport": {
       "select": "Select",
