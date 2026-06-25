@@ -71,12 +71,15 @@ test("editor toolbar keeps compact vertical spacing and smaller format icons", (
 });
 
 test("rich editor tables render with a complete visible grid", () => {
-  assert.match(appStyles, /\.rich-text-editor-content table\s*\{[\s\S]*border-collapse:\s*collapse;/);
-  assert.match(appStyles, /\.rich-text-editor-content table\s*\{[\s\S]*border:\s*1px solid var\(--rich-text-table-border\);/);
+  assert.match(appStyles, /\.rich-text-editor-content \.tableWrapper\s*\{[\s\S]*border-radius:\s*0\.5rem;/);
+  assert.match(appStyles, /\.rich-text-editor-content \.tableWrapper\s*\{[\s\S]*overflow-x:\s*auto;/);
+  assert.match(appStyles, /\.rich-text-editor-content \.tableWrapper\s*\{[\s\S]*box-shadow:\s*0 1px 2px/);
+  assert.match(appStyles, /\.rich-text-editor-content table\s*\{[\s\S]*border-collapse:\s*separate;/);
+  assert.match(appStyles, /\.rich-text-editor-content table\s*\{[\s\S]*border-spacing:\s*0;/);
   assert.match(
     appStyles,
-    /\.rich-text-editor-content th,\s*\n\.rich-text-editor-content td\s*\{[\s\S]*border:\s*1px solid var\(--rich-text-table-border\);/
+    /\.rich-text-editor-content th,\s*\n\.rich-text-editor-content td\s*\{[\s\S]*border-right:\s*1px solid var\(--rich-text-table-border\);[\s\S]*border-bottom:\s*1px solid var\(--rich-text-table-border\);/
   );
-  assert.doesNotMatch(appStyles, /\.rich-text-editor-content th:last-child/);
-  assert.doesNotMatch(appStyles, /\.rich-text-editor-content tr:last-child td/);
+  assert.match(appStyles, /\.rich-text-editor-content th:last-child/);
+  assert.match(appStyles, /\.rich-text-editor-content tr:last-child th/);
 });

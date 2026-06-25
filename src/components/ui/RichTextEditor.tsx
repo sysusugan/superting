@@ -226,6 +226,7 @@ interface RichTextEditorProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  readOnly?: boolean;
   toolbarMode?: EditorToolbarMode;
   onEditorModeChange?: (mode: EditorToolbarMode) => void;
   onImportFile?: () => void;
@@ -261,6 +262,7 @@ export function RichTextEditor({
   placeholder,
   className,
   disabled,
+  readOnly,
   toolbarMode = "rich",
   onEditorModeChange,
   onImportFile,
@@ -317,6 +319,7 @@ export function RichTextEditor({
       }),
       MarkdownTable.configure({
         resizable: false,
+        renderWrapper: true,
         allowTableNodeSelection: true,
       }),
       TableKit.configure({
@@ -330,7 +333,7 @@ export function RichTextEditor({
       }),
     ],
     content: value,
-    editable: !disabled,
+    editable: !disabled && !readOnly,
     onUpdate: ({ editor: ed }) => {
       if (suppressUpdateRef.current) return;
 
@@ -454,9 +457,9 @@ export function RichTextEditor({
   // Sync editable state
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
-      editor.setEditable(!disabled);
+      editor.setEditable(!disabled && !readOnly);
     }
-  }, [disabled, editor]);
+  }, [disabled, editor, readOnly]);
 
   const handleClick = useCallback(() => {
     if (editor && !editor.isFocused && !disabled) {
@@ -466,11 +469,11 @@ export function RichTextEditor({
 
   const insertImageAtSelection = useCallback(
     async (file: File) => {
-      if (!editor || editor.isDestroyed || disabled) return;
+      if (!editor || editor.isDestroyed || disabled || readOnly) return;
       editor.commands.focus();
       await insertImageFile(editor.view, file);
     },
-    [disabled, editor, insertImageFile]
+    [disabled, editor, insertImageFile, readOnly]
   );
 
   const runEditorCommand = useCallback(
@@ -483,7 +486,7 @@ export function RichTextEditor({
 
   const tableCan = editor?.can() as any;
   const tableCommands = editor?.chain().focus() as any;
-  const canEditTable = !!editor && !editor.isDestroyed && !disabled;
+  const canEditTable = !!editor && !editor.isDestroyed && !disabled && !readOnly;
   const canInsertTable =
     canEditTable && !!tableCan?.insertTable?.({ rows: 3, cols: 3, withHeaderRow: true });
   const canAddRowBefore = canEditTable && isTableActive && !!tableCan?.addRowBefore?.();
@@ -497,7 +500,7 @@ export function RichTextEditor({
   const canToggleHeaderColumn = canEditTable && isTableActive && !!tableCan?.toggleHeaderColumn?.();
   const canMergeOrSplit = canEditTable && isTableActive && !!tableCan?.mergeOrSplit?.();
   const showToolbar = !!onChange || !!onEditorModeChange || !!onImportFile || !!onImageUpload;
-  const canEditRichText = !!editor && !editor.isDestroyed && !disabled;
+  const canEditRichText = !!editor && !editor.isDestroyed && !disabled && !readOnly;
   const canUndo = canEditRichText && !!(editor.can() as any).undo?.();
   const canRedo = canEditRichText && !!(editor.can() as any).redo?.();
 

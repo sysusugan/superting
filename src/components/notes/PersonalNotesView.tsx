@@ -585,7 +585,9 @@ export default function PersonalNotesView({
       const oldNoteId = activeNoteRef.current;
       const oldTitle = localTitleRef.current;
       const oldContent = localContentRef.current;
+      const oldEnhancedContent = localEnhancedContentRef.current;
       const hadPendingSave = !!saveTimeoutRef.current;
+      const hadPendingEnhancedSave = !!enhancedSaveTimeoutRef.current;
 
       // 2. Clear all pending timers
       if (saveTimeoutRef.current) {
@@ -608,9 +610,17 @@ export default function PersonalNotesView({
       localEnhancedContentRef.current = activeNote.enhanced_content ?? null;
 
       // 4. Flush old note data fire-and-forget (uses captured values, not refs)
-      if (hadPendingSave && oldNoteId) {
+      if ((hadPendingSave || hadPendingEnhancedSave) && oldNoteId) {
+        const updates: { title?: string; content?: string; enhanced_content?: string | null } = {};
+        if (hadPendingSave) {
+          updates.title = oldTitle;
+          updates.content = oldContent;
+        }
+        if (hadPendingEnhancedSave) {
+          updates.enhanced_content = oldEnhancedContent;
+        }
         window.electronAPI
-          .updateNote(oldNoteId, { title: oldTitle, content: oldContent })
+          .updateNote(oldNoteId, updates)
           .catch((err: unknown) => {
             logger.warn(
               "Failed to flush note on switch",

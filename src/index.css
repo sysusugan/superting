@@ -1436,16 +1436,21 @@ body:has(.agent-overlay-window) #root {
   max-width: 100%;
   overflow-x: auto;
   margin: 0.75rem 0;
-  border-radius: 0.375rem;
+  overflow-y: hidden;
+  border: 1px solid color-mix(in oklab, var(--color-border) 82%, var(--color-foreground) 18%);
+  border-radius: 0.5rem;
+  background: var(--color-background);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.04);
 }
 
 .rich-text-editor-content table {
-  --rich-text-table-border: color-mix(in oklab, var(--color-border) 72%, var(--color-foreground) 28%);
+  --rich-text-table-border: color-mix(in oklab, var(--color-border) 82%, var(--color-foreground) 18%);
 
   width: 100%;
   min-width: max-content;
-  border-collapse: collapse;
-  border: 1px solid var(--rich-text-table-border);
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 0;
   table-layout: auto;
   font-size: 0.8125rem;
   line-height: 1.5;
@@ -1453,14 +1458,25 @@ body:has(.agent-overlay-window) #root {
 
 .rich-text-editor-content th,
 .rich-text-editor-content td {
-  border: 1px solid var(--rich-text-table-border);
-  padding: 0.5rem 0.625rem;
+  border-right: 1px solid var(--rich-text-table-border);
+  border-bottom: 1px solid var(--rich-text-table-border);
+  padding: 0.45rem 0.625rem;
   vertical-align: top;
   text-align: left;
 }
 
+.rich-text-editor-content th:last-child,
+.rich-text-editor-content td:last-child {
+  border-right: 0;
+}
+
+.rich-text-editor-content tr:last-child th,
+.rich-text-editor-content tr:last-child td {
+  border-bottom: 0;
+}
+
 .rich-text-editor-content th {
-  background: oklch(0.5 0 0 / 0.05);
+  background: color-mix(in oklab, var(--color-muted) 76%, var(--color-background) 24%);
   font-weight: 600;
 }
 

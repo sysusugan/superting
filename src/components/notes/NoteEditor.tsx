@@ -78,6 +78,7 @@ import {
   replaceAllFindMatches,
   replaceFindMatchAt,
 } from "../../utils/currentPageFind";
+import { setActiveNoteChangeGuard } from "../../stores/noteStore";
 import {
   applyTranscriptSpeakerPatch,
   lockTranscriptSpeaker,
@@ -444,6 +445,7 @@ export interface Enhancement {
 
 type MeetingViewMode = "raw" | "transcript" | "enhanced";
 type EditorMode = "rich" | "markdown";
+type ContentEditTarget = "raw" | "enhanced";
 const EDITOR_MODE_STORAGE_KEY = "superting.notesEditorMode";
 
 function readEditorModePreference(): EditorMode {
@@ -677,6 +679,10 @@ export default function NoteEditor({
   const [isDiarizing, setIsDiarizing] = useState(false);
   const [diarizationNow, setDiarizationNow] = useState(() => Date.now());
   const [isTranscriptEditing, setIsTranscriptEditing] = useState(false);
+  const [contentEditTarget, setContentEditTarget] = useState<ContentEditTarget | null>(null);
+  const [contentDraft, setContentDraft] = useState(note.content);
+  const [enhancedDraft, setEnhancedDraft] = useState(enhancement?.content ?? "");
+  const [isSavingContentDraft, setIsSavingContentDraft] = useState(false);
   const [isTranscriptSaving, setIsTranscriptSaving] = useState(false);
   const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
   const [queuedImportTarget, setQueuedImportTarget] = useState<ImportTarget | null>(null);
@@ -730,6 +736,18 @@ export default function NoteEditor({
     meetingTranscript,
     savedTranscript: note.transcript,
   });
+  const currentContentTarget: ContentEditTarget | null =
+    viewMode === "raw" || (viewMode === "enhanced" && enhancement) ? viewMode : null;
+  const isEditingCurrentContent =
+    !!currentContentTarget && contentEditTarget === currentContentTarget;
+  const hasUnsavedContentDraft =
+    contentEditTarget === "raw"
+      ? contentDraft !== note.content
+      : contentEditTarget === "enhanced"
+        ? enhancedDraft !== (enhancement?.content ?? "")
+        : false;
+  const canEditCurrentContent =
+    !!currentContentTarget && actionProcessingState !== "processing" && !isRecording;
 
   const embeddedChat = useEmbeddedChat({
     noteId: note.id,
@@ -813,6 +831,34 @@ export default function NoteEditor({
     window.localStorage.setItem(EDITOR_MODE_STORAGE_KEY, editorMode);
   }, [editorMode]);
 
+  useEffect(() => {
+    if (contentEditTarget !== "raw") {
+      setContentDraft(note.content);
+    }
+  }, [contentEditTarget, note.content]);
+
+  useEffect(() => {
+    if (contentEditTarget !== "enhanced") {
+      setEnhancedDraft(enhancement?.content ?? "");
+    }
+  }, [contentEditTarget, enhancement?.content]);
+
+  useEffect(() => {
+    setContentEditTarget(null);
+    setContentDraft(note.content);
+    setEnhancedDraft(enhancement?.content ?? "");
+  }, [note.id]);
+
+  useEffect(() => {
+    if (!hasUnsavedContentDraft) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedContentDraft]);
+
   const displaySegments = useMemo<TranscriptSegment[]>(() => {
     if (isRecording) return meetingSegments ?? [];
     if (diarizedSegments && diarizedSegments.length > 0) return diarizedSegments;
@@ -859,7 +905,7 @@ export default function NoteEditor({
   );
   const hasTranscriptEditControls = !!effectiveTranscript;
   const canEditTranscript = hasTranscriptEditControls && !isRecording;
-  const canImportNoteFile = !isTranscriptEditing;
+  const canImportNoteFile = !isTranscriptEditing && contentEditTarget !== null;
   const canImportTranscriptFile = !isRecording && !isTranscriptEditing;
 
   const knownSpeakers = useMemo<SpeakerOption[]>(() => {
@@ -1416,16 +1462,110 @@ export default function NoteEditor({
 
   const handleContentChange = useCallback(
     (newValue: string) => {
-      onContentChange(newValue);
+      setContentDraft(newValue);
     },
-    [onContentChange]
+    []
   );
 
   const handleEnhancedChange = useCallback(
     (value: string) => {
-      enhancement?.onChange(value);
+      setEnhancedDraft(value);
     },
-    [enhancement]
+    []
+  );
+
+  const saveContentDraft = useCallback(
+    (target: ContentEditTarget | null = contentEditTarget) => {
+      if (!target) return false;
+      setIsSavingContentDraft(true);
+      try {
+        if (target === "raw") {
+          if (contentDraft !== note.content) {
+            onContentChange(contentDraft);
+          }
+        } else {
+          if (!enhancement) return false;
+          if (enhancedDraft !== enhancement.content) {
+            enhancement.onChange(enhancedDraft);
+          }
+        }
+        setContentEditTarget(null);
+        toast({ title: t("notes.editor.noteContentSaved") });
+        return true;
+      } finally {
+        setIsSavingContentDraft(false);
+      }
+    },
+    [
+      contentDraft,
+      contentEditTarget,
+      enhancedDraft,
+      enhancement,
+      note.content,
+      onContentChange,
+      t,
+      toast,
+    ]
+  );
+
+  const confirmSaveContentDraft = useCallback(() => {
+    if (!hasUnsavedContentDraft) {
+      setContentEditTarget(null);
+      return true;
+    }
+    const shouldSave = window.confirm(t("notes.editor.unsavedContentSaveConfirm"));
+    return shouldSave ? saveContentDraft(contentEditTarget) : false;
+  }, [contentEditTarget, hasUnsavedContentDraft, saveContentDraft, t]);
+
+  useEffect(() => {
+    if (!contentEditTarget) return;
+    return setActiveNoteChangeGuard((nextId, currentId) => {
+      if (currentId !== note.id || nextId === currentId) return true;
+      return confirmSaveContentDraft();
+    });
+  }, [confirmSaveContentDraft, contentEditTarget, note.id]);
+
+  const startContentEdit = useCallback(() => {
+    if (!canEditCurrentContent || !currentContentTarget) return;
+    if (contentEditTarget && contentEditTarget !== currentContentTarget) {
+      const canLeaveCurrentDraft = confirmSaveContentDraft();
+      if (!canLeaveCurrentDraft) return;
+    }
+    if (currentContentTarget === "raw") {
+      setContentDraft(note.content);
+    } else {
+      setEnhancedDraft(enhancement?.content ?? "");
+    }
+    setContentEditTarget(currentContentTarget);
+  }, [
+    canEditCurrentContent,
+    confirmSaveContentDraft,
+    contentEditTarget,
+    currentContentTarget,
+    enhancement?.content,
+    note.content,
+  ]);
+
+  const cancelContentEdit = useCallback(() => {
+    if (hasUnsavedContentDraft && !window.confirm(t("notes.editor.unsavedContentDiscardConfirm"))) {
+      return;
+    }
+    setContentDraft(note.content);
+    setEnhancedDraft(enhancement?.content ?? "");
+    setContentEditTarget(null);
+  }, [enhancement?.content, hasUnsavedContentDraft, note.content, t]);
+
+  const requestViewMode = useCallback(
+    (nextMode: MeetingViewMode) => {
+      if (viewMode === nextMode) return;
+      if (isTranscriptEditing && nextMode !== "transcript") return;
+      if (contentEditTarget && nextMode !== contentEditTarget) {
+        const canLeaveCurrentDraft = confirmSaveContentDraft();
+        if (!canLeaveCurrentDraft) return;
+      }
+      setViewMode(nextMode);
+    },
+    [confirmSaveContentDraft, contentEditTarget, isTranscriptEditing, viewMode]
   );
 
   const handleImageUpload = useCallback(
@@ -1547,8 +1687,10 @@ export default function NoteEditor({
 
       setIsImportingNote(true);
       try {
-        const result = await window.electronAPI?.importNoteFile?.(note.id, filePath);
-        if (!result?.success || !result.note) {
+        const result = await window.electronAPI?.importNoteFile?.(note.id, filePath, {
+          dryRun: true,
+        });
+        if (!result?.success || result.imported?.content == null) {
           toast({
             title: t("notes.editor.noteImportFailed"),
             description: result?.error,
@@ -1557,7 +1699,12 @@ export default function NoteEditor({
           return;
         }
 
-        setViewMode("raw");
+        if (currentContentTarget === "enhanced") {
+          setEnhancedDraft(result.imported.content);
+        } else {
+          setContentDraft(result.imported.content);
+          setViewMode("raw");
+        }
         toast({
           title: t("notes.editor.noteImportSuccess", {
             count: result.imported?.imageCount ?? 0,
@@ -1567,7 +1714,7 @@ export default function NoteEditor({
         setIsImportingNote(false);
       }
     },
-    [note.id, t, toast]
+    [currentContentTarget, note.id, t, toast]
   );
 
   const handleImportInput = useCallback(
@@ -1895,8 +2042,8 @@ export default function NoteEditor({
   }, [note.id, onRecordedAtChange, recordedDateInput, t, toast]);
   const showFindBar = isFindOpen || (isTranscriptEditing && viewMode === "transcript");
   const showReplaceControls =
-    (viewMode === "raw" && actionProcessingState !== "processing") ||
-    (viewMode === "enhanced" && !!enhancement) ||
+    (viewMode === "raw" && isEditingCurrentContent) ||
+    (viewMode === "enhanced" && isEditingCurrentContent) ||
     (viewMode === "transcript" && isTranscriptEditing);
   const findStatusText = findText
     ? t("notes.editor.findMatchPosition", {
@@ -2125,7 +2272,7 @@ export default function NoteEditor({
                     <button
                       data-segment-button
                       data-segment-value="transcript"
-                      onClick={() => setViewMode("transcript")}
+                      onClick={() => requestViewMode("transcript")}
                       className={cn(
                         "ow-segmented-item h-6 shrink-0 whitespace-nowrap rounded-r-none px-2 py-0 text-[11px]",
                         viewMode === "transcript" && "bg-transparent text-foreground shadow-none"
@@ -2138,9 +2285,7 @@ export default function NoteEditor({
                   <button
                     data-segment-button
                     data-segment-value="raw"
-                    onClick={() => {
-                      if (!isTranscriptEditing) setViewMode("raw");
-                    }}
+                    onClick={() => requestViewMode("raw")}
                     className={cn(
                       "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
                       viewMode === "raw" && "ow-segmented-item-active",
@@ -2154,9 +2299,7 @@ export default function NoteEditor({
                     <button
                       data-segment-button
                       data-segment-value="enhanced"
-                      onClick={() => {
-                        if (!isTranscriptEditing) setViewMode("enhanced");
-                      }}
+                      onClick={() => requestViewMode("enhanced")}
                       className={cn(
                         "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
                         viewMode === "enhanced" && "ow-segmented-item-active",
@@ -2238,6 +2381,57 @@ export default function NoteEditor({
                     >
                       <X size={10} />
                     </button>
+                  </div>
+                )}
+                {currentContentTarget && (
+                  <div className="flex shrink-0 items-center gap-1">
+                    {isEditingCurrentContent ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => saveContentDraft(currentContentTarget)}
+                          disabled={isSavingContentDraft}
+                          className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+                          aria-label={t("notes.editor.saveNoteContent")}
+                          title={t("notes.editor.saveNoteContent")}
+                        >
+                          {isSavingContentDraft ? (
+                            <Loader2 size={10} className="animate-spin" />
+                          ) : (
+                            <Check size={10} />
+                          )}
+                          {t("notes.editor.saveNoteContent")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelContentEdit}
+                          disabled={isSavingContentDraft}
+                          className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-foreground/4 px-2 text-[11px] font-medium text-foreground/55 transition-colors hover:bg-foreground/8 hover:text-foreground/75 disabled:pointer-events-none disabled:opacity-50 dark:bg-white/5 dark:hover:bg-white/8"
+                          aria-label={t("notes.editor.cancelNoteContent")}
+                          title={t("notes.editor.cancelNoteContent")}
+                        >
+                          <X size={10} />
+                          {t("notes.editor.cancelNoteContent")}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={startContentEdit}
+                        disabled={!canEditCurrentContent}
+                        className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md bg-foreground/4 px-2 text-[11px] font-medium text-foreground/55 transition-colors hover:bg-foreground/8 hover:text-foreground/75 disabled:pointer-events-none disabled:opacity-40 dark:bg-white/5 dark:hover:bg-white/8"
+                        aria-label={t("notes.editor.editNoteContent")}
+                        title={t("notes.editor.editNoteContent")}
+                      >
+                        <Pencil size={10} />
+                        {t("notes.editor.editNoteContent")}
+                      </button>
+                    )}
+                    {isEditingCurrentContent && hasUnsavedContentDraft && (
+                      <span className="text-[11px] text-amber-600/80 dark:text-amber-300/80">
+                        {t("notes.editor.unsavedContentIndicator")}
+                      </span>
+                    )}
                   </div>
                 )}
                 {(onExportNote || onExportTranscript || onDownloadOriginalAudio) && (
@@ -2568,9 +2762,19 @@ export default function NoteEditor({
                 </button>
               </div>
             ) : viewMode === "enhanced" && enhancement ? (
-              editorMode === "markdown" ? (
-                <MarkdownSourceEditor
+              !isEditingCurrentContent ? (
+                <RichTextEditor
                   value={enhancement.content}
+                  readOnly
+                  className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm"
+                  findQuery={findText}
+                  findActiveIndex={activeFindIndex}
+                  findIgnoreCase={ignoreCase}
+                  onFindMatchCountChange={handleFindMatchCountChange}
+                />
+              ) : editorMode === "markdown" ? (
+                <MarkdownSourceEditor
+                  value={enhancedDraft}
                   onChange={handleEnhancedChange}
                   onImageUpload={handleImageUpload}
                   toolbarMode={editorMode}
@@ -2586,7 +2790,7 @@ export default function NoteEditor({
                 />
               ) : (
                 <RichTextEditor
-                  value={enhancement.content}
+                  value={enhancedDraft}
                   onChange={handleEnhancedChange}
                   onImageUpload={handleImageUpload}
                   toolbarMode={editorMode}
@@ -2603,9 +2807,21 @@ export default function NoteEditor({
               )
             ) : (
               <>
-                {editorMode === "markdown" ? (
-                  <MarkdownSourceEditor
+                {!isEditingCurrentContent ? (
+                  <RichTextEditor
                     value={note.content}
+                    readOnly
+                    editorRef={editorRef}
+                    placeholder={t("notes.editor.startWriting")}
+                    className="mx-5 mt-5 mb-24 h-[calc(100%-7rem)] w-[calc(100%-2.5rem)] rounded-xl border border-slate-200 bg-white shadow-sm transition-colors"
+                    findQuery={findText}
+                    findActiveIndex={activeFindIndex}
+                    findIgnoreCase={ignoreCase}
+                    onFindMatchCountChange={handleFindMatchCountChange}
+                  />
+                ) : editorMode === "markdown" ? (
+                  <MarkdownSourceEditor
+                    value={contentDraft}
                     onChange={handleContentChange}
                     onImageUpload={handleImageUpload}
                     toolbarMode={editorMode}
@@ -2623,7 +2839,7 @@ export default function NoteEditor({
                   />
                 ) : (
                   <RichTextEditor
-                    value={note.content}
+                    value={contentDraft}
                     onChange={handleContentChange}
                     onImageUpload={handleImageUpload}
                     toolbarMode={editorMode}

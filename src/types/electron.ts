@@ -652,12 +652,14 @@ declare global {
       deleteNoteImageAsset: (assetId: string) => Promise<{ success: boolean; error?: string }>;
       importNoteFile: (
         noteId: number,
-        filePath: string
+        filePath: string,
+        options?: { dryRun?: boolean }
       ) => Promise<{
         success: boolean;
         note?: NoteItem;
         imported?: {
           title?: string;
+          content?: string;
           imageCount: number;
         };
         error?: string;

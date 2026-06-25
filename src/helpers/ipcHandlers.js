@@ -1627,13 +1627,24 @@ class IPCHandlers {
       }
     });
 
-    ipcMain.handle("import-note-file", async (_event, noteId, filePath) => {
+    ipcMain.handle("import-note-file", async (_event, noteId, filePath, options = {}) => {
       try {
         const note = this.databaseManager.getNote(noteId);
         if (!note) return { success: false, error: "Note not found" };
 
         const { buildImportedNoteUpdates, readImportedNoteFile } = require("./noteImport");
         const imported = await readImportedNoteFile(this.databaseManager, noteId, filePath);
+        if (options?.dryRun) {
+          return {
+            success: true,
+            imported: {
+              title: imported.title,
+              content: imported.content,
+              imageCount: imported.imageCount,
+            },
+          };
+        }
+
         const updates = buildImportedNoteUpdates(note, imported);
         const result = this.databaseManager.updateNote(noteId, updates);
 

@@ -7,6 +7,8 @@ interface NoteState {
   activeFolderId: number | null;
 }
 
+type ActiveNoteChangeGuard = (nextId: number | null, currentId: number | null) => boolean;
+
 const useNoteStore = create<NoteState>()(() => ({
   notes: [],
   activeNoteId: null,
@@ -17,6 +19,7 @@ let hasBoundIpcListeners = false;
 const DEFAULT_LIMIT = 50;
 let currentLimit = DEFAULT_LIMIT;
 let loadGeneration = 0;
+let activeNoteChangeGuard: ActiveNoteChangeGuard | null = null;
 
 function getTimestampMs(value: string | null | undefined): number {
   const timestamp = Date.parse(String(value || ""));
@@ -134,8 +137,19 @@ export function removeNote(id: number): void {
 }
 
 export function setActiveNoteId(id: number | null): void {
-  if (useNoteStore.getState().activeNoteId === id) return;
+  const currentId = useNoteStore.getState().activeNoteId;
+  if (currentId === id) return;
+  if (activeNoteChangeGuard && !activeNoteChangeGuard(id, currentId)) return;
   useNoteStore.setState({ activeNoteId: id });
+}
+
+export function setActiveNoteChangeGuard(guard: ActiveNoteChangeGuard | null): () => void {
+  activeNoteChangeGuard = guard;
+  return () => {
+    if (activeNoteChangeGuard === guard) {
+      activeNoteChangeGuard = null;
+    }
+  };
 }
 
 export function setActiveFolderId(id: number | null): void {
