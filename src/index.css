@@ -1201,18 +1201,18 @@ body:has(.agent-overlay-window) #root {
   min-width: 0;
   flex: 0 0 auto;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.25rem;
   border-bottom: 1px solid var(--color-border);
   background: color-mix(in oklab, var(--color-background) 96%, white 4%);
-  padding: 0.5rem 0.625rem;
-  box-shadow: 0 10px 22px oklch(0 0 0 / 0.05);
+  padding: 0.375rem 0.5rem;
+  box-shadow: 0 8px 18px oklch(0 0 0 / 0.04);
 }
 
 .editor-toolbar-row {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.25rem;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -1222,9 +1222,9 @@ body:has(.agent-overlay-window) #root {
 }
 
 .editor-toolbar-row-format {
-  border-radius: 0.5rem;
+  border-radius: 0.4375rem;
   background: oklch(0.5 0 0 / 0.045);
-  padding: 0.25rem;
+  padding: 0.1875rem;
 }
 
 .editor-toolbar-group {
@@ -1232,31 +1232,46 @@ body:has(.agent-overlay-window) #root {
   min-width: max-content;
   flex: 0 0 auto;
   align-items: center;
-  gap: 0.125rem;
+  gap: 0.0625rem;
 }
 
 .editor-toolbar-group:not(:last-child)::after {
   content: "";
   width: 1px;
-  height: 1rem;
-  margin-left: 0.25rem;
+  height: 0.875rem;
+  margin-left: 0.1875rem;
   background: var(--color-border);
 }
 
 .editor-toolbar-button {
   display: inline-flex;
-  width: 1.875rem;
-  height: 1.875rem;
+  width: 1.625rem;
+  height: 1.625rem;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border-radius: 0.375rem;
+  border-radius: 0.3125rem;
   color: var(--color-muted-foreground);
   transition:
     background-color 120ms,
     color 120ms,
     box-shadow 120ms,
     opacity 120ms;
+}
+
+.editor-toolbar-button svg {
+  width: 0.8125rem;
+  height: 0.8125rem;
+}
+
+.editor-toolbar-row-format .editor-toolbar-button {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.editor-toolbar-row-format .editor-toolbar-button svg {
+  width: 0.75rem;
+  height: 0.75rem;
 }
 
 .editor-toolbar-button:hover:not(:disabled) {
@@ -1284,21 +1299,21 @@ body:has(.agent-overlay-window) #root {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 0.125rem;
+  gap: 0.0625rem;
   border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: 0.4375rem;
   background: oklch(0.5 0 0 / 0.035);
   padding: 0.125rem;
 }
 
 .editor-toolbar-mode-button {
   display: inline-flex;
-  height: 1.875rem;
+  height: 1.625rem;
   align-items: center;
-  gap: 0.375rem;
-  border-radius: 0.375rem;
-  padding: 0 0.625rem;
-  font-size: 0.75rem;
+  gap: 0.25rem;
+  border-radius: 0.3125rem;
+  padding: 0 0.5rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--color-muted-foreground);
   white-space: nowrap;
@@ -1306,6 +1321,11 @@ body:has(.agent-overlay-window) #root {
     background-color 120ms,
     color 120ms,
     box-shadow 120ms;
+}
+
+.editor-toolbar-mode-button svg {
+  width: 0.75rem;
+  height: 0.75rem;
 }
 
 .editor-toolbar-mode-button:hover {
@@ -1416,14 +1436,16 @@ body:has(.agent-overlay-window) #root {
   max-width: 100%;
   overflow-x: auto;
   margin: 0.75rem 0;
-  border: 1px solid var(--color-border);
-  border-radius: 0.5rem;
+  border-radius: 0.375rem;
 }
 
 .rich-text-editor-content table {
+  --rich-text-table-border: color-mix(in oklab, var(--color-border) 72%, var(--color-foreground) 28%);
+
   width: 100%;
   min-width: max-content;
   border-collapse: collapse;
+  border: 1px solid var(--rich-text-table-border);
   table-layout: auto;
   font-size: 0.8125rem;
   line-height: 1.5;
@@ -1431,20 +1453,10 @@ body:has(.agent-overlay-window) #root {
 
 .rich-text-editor-content th,
 .rich-text-editor-content td {
-  border-right: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
+  border: 1px solid var(--rich-text-table-border);
   padding: 0.5rem 0.625rem;
   vertical-align: top;
   text-align: left;
-}
-
-.rich-text-editor-content th:last-child,
-.rich-text-editor-content td:last-child {
-  border-right: none;
-}
-
-.rich-text-editor-content tr:last-child td {
-  border-bottom: none;
 }
 
 .rich-text-editor-content th {
