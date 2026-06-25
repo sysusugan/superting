@@ -1985,7 +1985,14 @@
     "aliasFromPlaceholder": "Ошибочный текст",
     "aliasToPlaceholder": "Правильный термин",
     "aliasAdd": "Добавить",
-    "removeAlias": "Удалить {{from}} на {{to}}"
+    "removeAlias": "Удалить {{from}} на {{to}}",
+    "searchPlaceholder": "Поиск по словарю и исправлениям...",
+    "searchAriaLabel": "Поиск по словарю и исправлениям",
+    "clearSearch": "Очистить поиск по словарю",
+    "itemTypeWord": "Термин",
+    "itemTypeAlias": "Исправление",
+    "emptySearchTitle": "Нет подходящей лексики",
+    "emptySearchDescription": "Попробуйте другое слово, ошибку или исправление."
   },
   "sidebar": {
     "home": "Главная",

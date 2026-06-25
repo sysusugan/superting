@@ -1983,7 +1983,14 @@
     "aliasFromPlaceholder": "誤認識テキスト",
     "aliasToPlaceholder": "正しい辞書語",
     "aliasAdd": "追加",
-    "removeAlias": "{{from}} から {{to}} への変換を削除"
+    "removeAlias": "{{from}} から {{to}} への変換を削除",
+    "searchPlaceholder": "辞書と修正語彙を検索...",
+    "searchAriaLabel": "辞書と修正語彙を検索",
+    "clearSearch": "辞書検索をクリア",
+    "itemTypeWord": "単語",
+    "itemTypeAlias": "修正",
+    "emptySearchTitle": "一致する語彙がありません",
+    "emptySearchDescription": "別の単語、誤認識、または修正語で試してください。"
   },
   "sidebar": {
     "home": "ホーム",

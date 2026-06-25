@@ -1,11 +1,17 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { BookOpen, X, CornerDownLeft, Info, Users, ArrowRight } from "lucide-react";
+import { BookOpen, X, CornerDownLeft, Info, Users, ArrowRight, Search } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { ConfirmDialog } from "./ui/dialog";
+import { cn } from "./lib/utils";
 import { useSettings } from "../hooks/useSettings";
 import { getAgentName } from "../utils/agentName";
+import {
+  buildDictionaryDisplayItems,
+  filterDictionaryDisplayItems,
+  type DictionaryDisplayItem,
+} from "../utils/dictionaryListItems";
 
 interface SpeakerNameEntry {
   id: number;
@@ -23,6 +29,7 @@ export default function DictionaryView() {
   } = useSettings();
   const agentName = getAgentName();
   const [activeTab, setActiveTab] = useState<"dictionary" | "people">("dictionary");
+  const [dictionarySearch, setDictionarySearch] = useState("");
   const [newWord, setNewWord] = useState("");
   const [aliasFrom, setAliasFrom] = useState("");
   const [aliasTo, setAliasTo] = useState("");
@@ -31,7 +38,20 @@ export default function DictionaryView() {
   const [showInfo, setShowInfo] = useState(false);
   const [speakerNames, setSpeakerNames] = useState<SpeakerNameEntry[]>([]);
 
-  const isEmpty = customDictionary.length === 0;
+  const dictionaryItems = useMemo(
+    () =>
+      buildDictionaryDisplayItems({
+        dictionary: customDictionary,
+        aliases: customDictionaryAliases,
+      }),
+    [customDictionary, customDictionaryAliases]
+  );
+  const filteredDictionaryItems = useMemo(
+    () => filterDictionaryDisplayItems(dictionaryItems, dictionarySearch),
+    [dictionaryItems, dictionarySearch]
+  );
+  const isDictionaryEmpty = dictionaryItems.length === 0;
+  const hasSearchQuery = dictionarySearch.trim().length > 0;
   const activeTabDescription =
     activeTab === "dictionary" ? t("dictionary.dictionaryUsage") : t("dictionary.peopleUsage");
 
@@ -73,6 +93,7 @@ export default function DictionaryView() {
   const handleClearDictionary = useCallback(() => {
     setCustomDictionary(customDictionary.filter((w) => w === agentName));
     setCustomDictionaryAliases([]);
+    setDictionarySearch("");
   }, [agentName, customDictionary, setCustomDictionary, setCustomDictionaryAliases]);
 
   const handleAddAlias = useCallback(() => {
@@ -160,6 +181,70 @@ export default function DictionaryView() {
     </div>
   );
 
+  const renderDictionaryRow = (item: DictionaryDisplayItem) => {
+    if (item.type === "word") {
+      const isAgentName = item.word === agentName;
+
+      return (
+        <div
+          key={item.id}
+          className="group flex min-h-11 items-center gap-3 px-4 py-2 transition-colors duration-150 hover:bg-muted/35"
+          title={isAgentName ? t("dictionary.autoManaged") : undefined}
+        >
+          <span className="inline-flex shrink-0 items-center rounded-sm border border-border/60 bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground dark:border-white/10 dark:bg-white/[0.03]">
+            {t("dictionary.itemTypeWord")}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-semibold text-foreground">{item.word}</div>
+          </div>
+          {!isAgentName ? (
+            <button
+              onClick={() => handleRemove(item.word)}
+              aria-label={t("dictionary.removeWord", { word: item.word })}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-100 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
+            >
+              <X size={13} strokeWidth={2} />
+            </button>
+          ) : (
+            <span className="h-7 w-7 shrink-0" />
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={item.id}
+        className="group flex min-h-11 items-center gap-3 px-4 py-2 transition-colors duration-150 hover:bg-muted/35"
+      >
+        <span className="inline-flex shrink-0 items-center rounded-sm border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary dark:border-primary/25 dark:bg-primary/15 dark:text-primary">
+          {t("dictionary.itemTypeAlias")}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+            <span className="min-w-0 max-w-full break-words text-muted-foreground">
+              {item.from}
+            </span>
+            <ArrowRight size={13} className="shrink-0 text-muted-foreground/70" />
+            <span className="min-w-0 max-w-full break-words font-semibold text-foreground">
+              {item.to}
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={() => handleRemoveAlias(item.from)}
+          aria-label={t("dictionary.removeAlias", {
+            from: item.from,
+            to: item.to,
+          })}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-100 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
+        >
+          <X size={13} strokeWidth={2} />
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="ow-workspace-page">
       <div className="ow-page-column">
@@ -198,155 +283,105 @@ export default function DictionaryView() {
         </div>
 
         <div className="ow-page-body">
-        {activeTab === "people" ? (
-          <>
+          {activeTab === "people" ? (
             <div className="ow-section">
-            <div className="ow-section-header">
-              <div className="flex items-baseline gap-2">
-                <h2 className="ow-section-title">
-                  {t("dictionary.peopleTitle")}
-                </h2>
-                <span className="text-xs text-muted-foreground font-mono tabular-nums">
-                  {speakerNames.length}
-                </span>
-              </div>
-            </div>
-            <div className="ow-section-muted">
-              {renderAddInput(
-                newSpeakerName,
-                setNewSpeakerName,
-                handleAddSpeakerName,
-                t("dictionary.addPersonPlaceholder"),
-                t("dictionary.addPerson")
-              )}
-            </div>
-            {speakerNames.length === 0 ? (
-              <div className="ow-empty-state-card mx-auto mt-4">
-                <div className="ow-empty-state-visual mx-auto h-11 w-11">
-                  <Users size={17} strokeWidth={1.5} className="text-muted-foreground" />
-                </div>
-                <h2 className="ow-empty-state-title">
-                  {t("dictionary.peopleTitle")}
-                </h2>
-                <p className="ow-empty-state-description mx-auto">
-                  {t("dictionary.peopleDescription")}
-                </p>
-              </div>
-            ) : (
-              <div className="ow-section-muted mt-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {speakerNames.map((entry) => (
-                    <span
-                      key={entry.id}
-                      className="group inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors duration-150 hover:border-border-hover hover:bg-muted/60 hover:text-foreground dark:border-white/8 dark:bg-white/[0.03] dark:hover:bg-white/[0.06]"
-                    >
-                      {entry.display_name}
-                      <button
-                        onClick={() => handleRemoveSpeakerName(entry.id)}
-                        aria-label={t("dictionary.removePerson", { name: entry.display_name })}
-                        className="p-0.5 rounded-sm opacity-0 group-hover:opacity-100 text-foreground/25 hover:!text-destructive/70 transition-colors duration-150"
-                      >
-                        <X size={10} strokeWidth={2} />
-                      </button>
-                    </span>
-                  ))}
+              <div className="ow-section-header">
+                <div className="flex items-baseline gap-2">
+                  <h2 className="ow-section-title">{t("dictionary.peopleTitle")}</h2>
+                  <span className="text-xs text-muted-foreground font-mono tabular-nums">
+                    {speakerNames.length}
+                  </span>
                 </div>
               </div>
-            )}
-            </div>
-          </>
-        ) : isEmpty ? (
-          /* ─── Empty state ─── */
-          <div className="ow-empty-state-card mx-auto mt-8">
-            <div className="ow-empty-state-visual mx-auto h-11 w-11">
-              <BookOpen size={17} strokeWidth={1.5} className="text-foreground/35" />
-            </div>
-
-            <h2 className="ow-empty-state-title">
-              {t("dictionary.title")}
-            </h2>
-            <p className="ow-empty-state-description mx-auto mb-5">
-              {t("dictionary.description")}
-            </p>
-
-            <div className="w-full max-w-[300px] relative">
-              <Input
-                placeholder={t("dictionary.addPlaceholder")}
-                value={newWord}
-                onChange={(e) => setNewWord(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAdd();
-                }}
-                className="w-full pr-8"
-              />
-              {newWord.trim() ? (
-                <button
-                  onClick={handleAdd}
-                  aria-label={t("dictionary.addWord")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-foreground/45 hover:text-foreground transition-colors"
-                >
-                  <CornerDownLeft size={11} />
-                </button>
-              ) : (
-                <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-foreground/12 font-mono select-none pointer-events-none">
-                  ⏎
-                </kbd>
-              )}
-            </div>
-
-            <div className="flex max-w-[360px] flex-wrap items-center justify-center gap-1.5 mt-3">
-              {["SuperTing", "Dr. Smith", "gRPC"].map((ex) => (
-                <span
-                  key={ex}
-                  className="text-xs text-muted-foreground px-2 py-1 rounded-md border border-border/70 bg-background"
-                >
-                  {ex}
-                </span>
-              ))}
-            </div>
-
-            <div className="mt-8 w-full max-w-[260px]">
-              <button
-                onClick={() => setShowInfo(!showInfo)}
-                aria-expanded={showInfo}
-                aria-label={t("dictionary.howItWorks")}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto"
-              >
-                <Info size={9} />
-                {t("dictionary.howItWorks")}
-              </button>
-              {showInfo && (
-                <div className="mt-2.5 rounded-md bg-muted/50 border border-border/70 px-3 py-2.5">
-                  <p className="text-xs text-muted-foreground leading-[1.6]">
-                    {t("dictionary.howItWorksDetail")}
+              <div className="ow-section-muted">
+                {renderAddInput(
+                  newSpeakerName,
+                  setNewSpeakerName,
+                  handleAddSpeakerName,
+                  t("dictionary.addPersonPlaceholder"),
+                  t("dictionary.addPerson")
+                )}
+              </div>
+              {speakerNames.length === 0 ? (
+                <div className="ow-empty-state-card mx-auto mt-4">
+                  <div className="ow-empty-state-visual mx-auto h-11 w-11">
+                    <Users size={17} strokeWidth={1.5} className="text-muted-foreground" />
+                  </div>
+                  <h2 className="ow-empty-state-title">{t("dictionary.peopleTitle")}</h2>
+                  <p className="ow-empty-state-description mx-auto">
+                    {t("dictionary.peopleDescription")}
                   </p>
                 </div>
+              ) : (
+                <div className="ow-section-muted mt-3">
+                  <div className="flex flex-wrap gap-1.5">
+                    {speakerNames.map((entry) => (
+                      <span
+                        key={entry.id}
+                        className="group inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-2.5 py-1 text-xs text-muted-foreground transition-colors duration-150 hover:border-border-hover hover:bg-muted/60 hover:text-foreground dark:border-white/8 dark:bg-white/[0.03] dark:hover:bg-white/[0.06]"
+                      >
+                        {entry.display_name}
+                        <button
+                          onClick={() => handleRemoveSpeakerName(entry.id)}
+                          aria-label={t("dictionary.removePerson", { name: entry.display_name })}
+                          className="p-0.5 rounded-sm opacity-0 group-hover:opacity-100 text-foreground/25 hover:!text-destructive/70 transition-colors duration-150"
+                        >
+                          <X size={10} strokeWidth={2} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
-          </div>
-        ) : (
-          /* ─── Populated state ─── */
-          <>
+          ) : (
             <div className="ow-section flex min-h-0 max-w-full flex-col p-0">
               <div className="ow-section-header mb-0 px-4 pt-4">
                 <div className="flex items-baseline gap-2">
                   <h2 className="ow-section-title">{t("dictionary.title")}</h2>
                   <span className="text-xs text-muted-foreground font-mono tabular-nums">
-                    {customDictionary.length}
+                    {dictionaryItems.length}
                   </span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setConfirmClear(true)}
-                  aria-label={t("dictionary.clearAll")}
-                  className="text-xs text-muted-foreground hover:text-destructive"
-                >
-                  {t("dictionary.clearAll")}
-                </Button>
+                {!isDictionaryEmpty && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmClear(true)}
+                    aria-label={t("dictionary.clearAll")}
+                    className="text-xs text-muted-foreground hover:text-destructive"
+                  >
+                    {t("dictionary.clearAll")}
+                  </Button>
+                )}
               </div>
 
               <div className="ow-section-flat">
+                <div className="relative">
+                  <Search
+                    size={14}
+                    className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  />
+                  <Input
+                    aria-label={t("dictionary.searchAriaLabel")}
+                    placeholder={t("dictionary.searchPlaceholder")}
+                    value={dictionarySearch}
+                    onChange={(e) => setDictionarySearch(e.target.value)}
+                    className="h-9 pl-8 pr-8 text-xs"
+                  />
+                  {hasSearchQuery && (
+                    <button
+                      onClick={() => setDictionarySearch("")}
+                      aria-label={t("dictionary.clearSearch")}
+                      className="absolute right-2 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <X size={12} strokeWidth={2} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="ow-section-divider ow-section-flat space-y-3">
                 <div className="relative">
                   <Input
                     placeholder={t("dictionary.addPlaceholder")}
@@ -371,66 +406,8 @@ export default function DictionaryView() {
                     </kbd>
                   )}
                 </div>
-                <div className="mt-2 flex items-start gap-1.5 px-1">
-                  <Info size={12} className="text-muted-foreground mt-px shrink-0" />
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {t("dictionary.inputHint")}
-                  </p>
-                </div>
-              </div>
 
-              <div className="ow-section-divider ow-section-flat">
-                <div className="flex flex-wrap gap-2">
-                  {customDictionary.map((word) => {
-                    const isAgentName = word === agentName;
-                    return (
-                      <span
-                        key={word}
-                        className={`group inline-flex items-center gap-1 py-[3px]
-                      rounded-[5px] text-xs
-                      border transition-colors duration-150
-                      ${
-                        isAgentName
-                          ? "pl-2.5 pr-2.5 bg-muted text-foreground border-border dark:border-white/10"
-                          : "pl-2.5 pr-1 bg-card dark:bg-white/[0.04] text-muted-foreground border-border hover:border-border-hover hover:bg-muted hover:text-foreground"
-                      }`}
-                        title={isAgentName ? t("dictionary.autoManaged") : undefined}
-                      >
-                        {word}
-                        {!isAgentName && (
-                          <button
-                            onClick={() => handleRemove(word)}
-                            aria-label={t("dictionary.removeWord", { word })}
-                            className="p-0.5 rounded-sm
-                          opacity-0 group-hover:opacity-100
-                          text-muted-foreground hover:!text-destructive
-                          transition-colors duration-150"
-                          >
-                            <X size={10} strokeWidth={2} />
-                          </button>
-                        )}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="ow-section-divider ow-section-flat">
-                <div className="mb-2 flex items-baseline justify-between gap-3">
-                  <div>
-                    <h3 className="text-xs font-semibold text-foreground">
-                      {t("dictionary.aliasesTitle")}
-                    </h3>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      {t("dictionary.aliasesDescription")}
-                    </p>
-                  </div>
-                  <span className="text-xs text-muted-foreground font-mono tabular-nums">
-                    {customDictionaryAliases.length}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2">
+                <div className="grid grid-cols-1 items-center gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto]">
                   <Input
                     placeholder={t("dictionary.aliasFromPlaceholder")}
                     value={aliasFrom}
@@ -440,7 +417,7 @@ export default function DictionaryView() {
                     }}
                     className="h-8 text-xs"
                   />
-                  <ArrowRight size={13} className="text-muted-foreground" />
+                  <ArrowRight size={13} className="hidden text-muted-foreground md:block" />
                   <Input
                     placeholder={t("dictionary.aliasToPlaceholder")}
                     value={aliasTo}
@@ -455,40 +432,74 @@ export default function DictionaryView() {
                     size="sm"
                     onClick={handleAddAlias}
                     disabled={!aliasFrom.trim() || !aliasTo.trim()}
-                    className="h-8 px-2 text-xs"
+                    className="h-8 w-full px-3 text-xs md:w-auto"
                   >
                     {t("dictionary.aliasAdd")}
                   </Button>
                 </div>
 
-                {customDictionaryAliases.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {customDictionaryAliases.map((alias) => (
-                      <span
-                        key={`${alias.from}->${alias.to}`}
-                        className="group inline-flex items-center gap-1.5 rounded-[5px] border border-border bg-card px-2.5 py-[3px] text-xs text-muted-foreground transition-colors duration-150 hover:border-border-hover hover:bg-muted hover:text-foreground dark:bg-white/[0.04]"
-                      >
-                        <span>{alias.from}</span>
-                        <ArrowRight size={10} className="text-muted-foreground/70" />
-                        <span className="text-foreground">{alias.to}</span>
-                        <button
-                          onClick={() => handleRemoveAlias(alias.from)}
-                          aria-label={t("dictionary.removeAlias", {
-                            from: alias.from,
-                            to: alias.to,
-                          })}
-                          className="p-0.5 rounded-sm opacity-0 group-hover:opacity-100 text-muted-foreground hover:!text-destructive transition-colors duration-150"
+                <div className="flex items-start gap-1.5 px-1">
+                  <Info size={12} className="text-muted-foreground mt-px shrink-0" />
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t("dictionary.inputHint")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="ow-section-divider min-h-0">
+                {isDictionaryEmpty ? (
+                  <div className="px-4 py-8 text-center">
+                    <div className="ow-empty-state-visual mx-auto h-11 w-11">
+                      <BookOpen size={17} strokeWidth={1.5} className="text-foreground/35" />
+                    </div>
+                    <h2 className="ow-empty-state-title">{t("dictionary.title")}</h2>
+                    <p className="ow-empty-state-description mx-auto mb-5">
+                      {t("dictionary.description")}
+                    </p>
+                    <div className="mx-auto flex max-w-[360px] flex-wrap items-center justify-center gap-1.5">
+                      {["SuperTing", "Dr. Smith", "gRPC"].map((example) => (
+                        <span
+                          key={example}
+                          className="text-xs text-muted-foreground px-2 py-1 rounded-md border border-border/70 bg-background"
                         >
-                          <X size={10} strokeWidth={2} />
-                        </button>
-                      </span>
-                    ))}
+                          {example}
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setShowInfo(!showInfo)}
+                      aria-expanded={showInfo}
+                      aria-label={t("dictionary.howItWorks")}
+                      className="mt-5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto"
+                    >
+                      <Info size={9} />
+                      {t("dictionary.howItWorks")}
+                    </button>
+                    {showInfo && (
+                      <div className="mx-auto mt-2.5 max-w-[360px] rounded-md bg-muted/50 border border-border/70 px-3 py-2.5">
+                        <p className="text-xs text-muted-foreground leading-[1.6]">
+                          {t("dictionary.howItWorksDetail")}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : filteredDictionaryItems.length === 0 ? (
+                  <div className="px-4 py-8 text-center">
+                    <p className="text-sm font-semibold text-foreground">
+                      {t("dictionary.emptySearchTitle")}
+                    </p>
+                    <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-muted-foreground">
+                      {t("dictionary.emptySearchDescription")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className={cn("divide-y divide-border/60 dark:divide-white/8")}>
+                    {filteredDictionaryItems.map(renderDictionaryRow)}
                   </div>
                 )}
               </div>
             </div>
-          </>
-        )}
+          )}
         </div>
       </div>
     </div>

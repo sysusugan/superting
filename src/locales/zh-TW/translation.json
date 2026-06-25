@@ -1983,7 +1983,14 @@
     "aliasFromPlaceholder": "錯誤識別",
     "aliasToPlaceholder": "正確寫法",
     "aliasAdd": "新增",
-    "removeAlias": "移除 {{from}} 到 {{to}}"
+    "removeAlias": "移除 {{from}} 到 {{to}}",
+    "searchPlaceholder": "搜尋字典和糾錯詞彙...",
+    "searchAriaLabel": "搜尋字典和糾錯詞彙",
+    "clearSearch": "清除字典搜尋",
+    "itemTypeWord": "字典",
+    "itemTypeAlias": "糾錯",
+    "emptySearchTitle": "沒有符合的詞彙",
+    "emptySearchDescription": "換個詞語、錯誤識別或正確寫法試試。"
   },
   "sidebar": {
     "home": "首頁",

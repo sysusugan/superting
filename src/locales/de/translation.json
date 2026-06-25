@@ -1984,7 +1984,14 @@
     "aliasFromPlaceholder": "Falscher Text",
     "aliasToPlaceholder": "Korrekter Begriff",
     "aliasAdd": "Hinzufügen",
-    "removeAlias": "{{from}} zu {{to}} entfernen"
+    "removeAlias": "{{from}} zu {{to}} entfernen",
+    "searchPlaceholder": "Wörterbuch und Korrekturen suchen...",
+    "searchAriaLabel": "Wörterbuch und Korrekturen suchen",
+    "clearSearch": "Wörterbuchsuche löschen",
+    "itemTypeWord": "Begriff",
+    "itemTypeAlias": "Korrektur",
+    "emptySearchTitle": "Kein passender Wortschatz",
+    "emptySearchDescription": "Versuchen Sie ein anderes Wort, einen Fehler oder eine Korrektur."
   },
   "sidebar": {
     "home": "Startseite",

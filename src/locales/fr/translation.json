@@ -2024,7 +2024,14 @@
     "aliasFromPlaceholder": "Texte incorrect",
     "aliasToPlaceholder": "Terme correct",
     "aliasAdd": "Ajouter",
-    "removeAlias": "Supprimer {{from}} vers {{to}}"
+    "removeAlias": "Supprimer {{from}} vers {{to}}",
+    "searchPlaceholder": "Rechercher dans le dictionnaire et les corrections...",
+    "searchAriaLabel": "Rechercher dans le dictionnaire et les corrections",
+    "clearSearch": "Effacer la recherche du dictionnaire",
+    "itemTypeWord": "Terme",
+    "itemTypeAlias": "Correction",
+    "emptySearchTitle": "Aucun vocabulaire correspondant",
+    "emptySearchDescription": "Essayez un autre mot, une erreur ou une correction."
   },
   "support": {
     "documentation": "Documentation",

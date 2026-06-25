@@ -1983,7 +1983,14 @@
     "aliasFromPlaceholder": "Texto incorrecto",
     "aliasToPlaceholder": "Término correcto",
     "aliasAdd": "Añadir",
-    "removeAlias": "Eliminar {{from}} a {{to}}"
+    "removeAlias": "Eliminar {{from}} a {{to}}",
+    "searchPlaceholder": "Buscar en el diccionario y correcciones...",
+    "searchAriaLabel": "Buscar en el diccionario y correcciones",
+    "clearSearch": "Borrar búsqueda del diccionario",
+    "itemTypeWord": "Término",
+    "itemTypeAlias": "Corrección",
+    "emptySearchTitle": "No hay vocabulario coincidente",
+    "emptySearchDescription": "Prueba con otra palabra, error o corrección."
   },
   "sidebar": {
     "home": "Inicio",

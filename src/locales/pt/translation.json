@@ -1983,7 +1983,14 @@
     "aliasFromPlaceholder": "Texto incorreto",
     "aliasToPlaceholder": "Termo correto",
     "aliasAdd": "Adicionar",
-    "removeAlias": "Remover {{from}} para {{to}}"
+    "removeAlias": "Remover {{from}} para {{to}}",
+    "searchPlaceholder": "Pesquisar dicionário e correções...",
+    "searchAriaLabel": "Pesquisar dicionário e correções",
+    "clearSearch": "Limpar pesquisa do dicionário",
+    "itemTypeWord": "Termo",
+    "itemTypeAlias": "Correção",
+    "emptySearchTitle": "Nenhum vocabulário correspondente",
+    "emptySearchDescription": "Tente outra palavra, erro ou correção."
   },
   "sidebar": {
     "home": "Início",

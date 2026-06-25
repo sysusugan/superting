@@ -1987,7 +1987,14 @@
     "aliasFromPlaceholder": "错误识别",
     "aliasToPlaceholder": "正确写法",
     "aliasAdd": "添加",
-    "removeAlias": "移除 {{from}} 到 {{to}}"
+    "removeAlias": "移除 {{from}} 到 {{to}}",
+    "searchPlaceholder": "搜索词典和纠错词汇...",
+    "searchAriaLabel": "搜索词典和纠错词汇",
+    "clearSearch": "清除词典搜索",
+    "itemTypeWord": "词典",
+    "itemTypeAlias": "纠错",
+    "emptySearchTitle": "没有匹配的词汇",
+    "emptySearchDescription": "换个词语、错误识别或正确写法试试。"
   },
   "sidebar": {
     "home": "首页",

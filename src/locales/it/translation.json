@@ -1983,7 +1983,14 @@
     "aliasFromPlaceholder": "Testo errato",
     "aliasToPlaceholder": "Termine corretto",
     "aliasAdd": "Aggiungi",
-    "removeAlias": "Rimuovi {{from}} verso {{to}}"
+    "removeAlias": "Rimuovi {{from}} verso {{to}}",
+    "searchPlaceholder": "Cerca nel dizionario e nelle correzioni...",
+    "searchAriaLabel": "Cerca nel dizionario e nelle correzioni",
+    "clearSearch": "Cancella ricerca dizionario",
+    "itemTypeWord": "Termine",
+    "itemTypeAlias": "Correzione",
+    "emptySearchTitle": "Nessun vocabolo corrispondente",
+    "emptySearchDescription": "Prova un'altra parola, errore o correzione."
   },
   "sidebar": {
     "home": "Home",
