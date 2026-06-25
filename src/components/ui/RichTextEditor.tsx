@@ -38,13 +38,14 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
-import { TableKit } from "@tiptap/extension-table";
+import { Table, TableKit } from "@tiptap/extension-table";
 import { Markdown } from "tiptap-markdown";
 import { Plugin, PluginKey, TextSelection } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { cn } from "../lib/utils";
 import { EditorToolbar, type EditorToolbarAction, type EditorToolbarMode } from "./EditorToolbar";
 import { makeCurrentPageFindPattern, type FindMatch } from "../../utils/currentPageFind";
+import { serializeMarkdownTableNode } from "../../utils/markdownTable";
 
 interface FindHighlightState {
   decorations: DecorationSet;
@@ -204,6 +205,21 @@ const Underline = Mark.create({
   },
 });
 
+const MarkdownTable = Table.extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize(state: any, node: any) {
+          const markdown = serializeMarkdownTableNode(node);
+          if (markdown) state.write(markdown);
+          state.closeBlock(node);
+        },
+        parse: {},
+      },
+    };
+  },
+});
+
 interface RichTextEditorProps {
   value: string;
   onChange?: (value: string) => void;
@@ -299,11 +315,12 @@ export function RichTextEditor({
         inline: false,
         allowBase64: false,
       }),
+      MarkdownTable.configure({
+        resizable: false,
+        allowTableNodeSelection: true,
+      }),
       TableKit.configure({
-        table: {
-          resizable: false,
-          allowTableNodeSelection: true,
-        },
+        table: false,
       }),
       FindHighlight,
       Markdown.configure({
