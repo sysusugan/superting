@@ -53,3 +53,10 @@ test("rich text editor disables editing commands when read-only", () => {
   assert.match(richTextSource, /disabled \|\| readOnly/);
   assert.match(richTextSource, /const canEditTable = [\s\S]*!readOnly/);
 });
+
+test("rich text editor does not mark initial markdown normalization as a user edit", () => {
+  assert.match(richTextSource, /const\s+canUndoUpdate\s*=/);
+  assert.match(richTextSource, /const\s+previousInternalValue\s*=\s*internalValueRef\.current;/);
+  assert.match(richTextSource, /if \(!canUndoUpdate && previousInternalValue === value\)/);
+  assert.match(richTextSource, /return;\s*\n\s*\}\s*\n\s*onChange\?\.\(md\);/);
+});

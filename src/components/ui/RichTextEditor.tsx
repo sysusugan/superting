@@ -338,7 +338,12 @@ export function RichTextEditor({
       if (suppressUpdateRef.current) return;
 
       const md = (ed.storage as any).markdown.getMarkdown() as string;
+      const canUndoUpdate = !!(ed.can() as any).undo?.();
+      const previousInternalValue = internalValueRef.current;
       internalValueRef.current = md;
+      if (!canUndoUpdate && previousInternalValue === value) {
+        return;
+      }
       onChange?.(md);
     },
     onSelectionUpdate: ({ editor: ed }) => {
