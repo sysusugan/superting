@@ -55,8 +55,12 @@ test("rich text editor disables editing commands when read-only", () => {
 });
 
 test("rich text editor does not mark initial markdown normalization as a user edit", () => {
-  assert.match(richTextSource, /const\s+canUndoUpdate\s*=/);
-  assert.match(richTextSource, /const\s+previousInternalValue\s*=\s*internalValueRef\.current;/);
-  assert.match(richTextSource, /if \(!canUndoUpdate && previousInternalValue === value\)/);
-  assert.match(richTextSource, /return;\s*\n\s*\}\s*\n\s*onChange\?\.\(md\);/);
+  assert.match(richTextSource, /const\s+userEditPendingRef\s*=\s*useRef\(false\);/);
+  assert.match(richTextSource, /const\s+markUserEditPending\s*=\s*useCallback/);
+  assert.match(richTextSource, /if \(!userEditPendingRef\.current\)/);
+  assert.match(richTextSource, /userEditPendingRef\.current\s*=\s*false;\s*\n\s*onChange\?\.\(md\);/);
+  assert.match(richTextSource, /handleDOMEvents:\s*\{\s*beforeinput:/);
+  assert.match(richTextSource, /markUserEditPending\(\);\s*\n\s*chain\?\.\[command\]\?/);
+  assert.match(richTextSource, /markUserEditPending\(\);\s*\n\s*tableCommands\?\.\[command\]\?/);
+  assert.doesNotMatch(richTextSource, /const\s+canUndoUpdate\s*=/);
 });

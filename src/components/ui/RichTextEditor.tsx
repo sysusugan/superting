@@ -278,6 +278,7 @@ export function RichTextEditor({
   const { t } = useTranslation();
   const internalValueRef = useRef(value);
   const suppressUpdateRef = useRef(false);
+  const userEditPendingRef = useRef(false);
   const lastReplaceRequestIdRef = useRef<number | null>(null);
   const imageUploadRef = useRef(onImageUpload);
   const [isTableActive, setIsTableActive] = useState(false);
@@ -286,18 +287,26 @@ export function RichTextEditor({
     imageUploadRef.current = onImageUpload;
   }, [onImageUpload]);
 
-  const insertImageFile = useCallback(async (view: any, file: File) => {
-    const upload = imageUploadRef.current;
-    if (!upload) return;
-    const result = await upload(file);
-    if (!result?.src || view.isDestroyed) return;
-    const imageNode = view.state.schema.nodes.image?.create({
-      src: result.src,
-      alt: result.alt || file.name || "",
-    });
-    if (!imageNode) return;
-    view.dispatch(view.state.tr.replaceSelectionWith(imageNode).scrollIntoView());
+  const markUserEditPending = useCallback(() => {
+    userEditPendingRef.current = true;
   }, []);
+
+  const insertImageFile = useCallback(
+    async (view: any, file: File) => {
+      const upload = imageUploadRef.current;
+      if (!upload) return;
+      const result = await upload(file);
+      if (!result?.src || view.isDestroyed) return;
+      const imageNode = view.state.schema.nodes.image?.create({
+        src: result.src,
+        alt: result.alt || file.name || "",
+      });
+      if (!imageNode) return;
+      markUserEditPending();
+      view.dispatch(view.state.tr.replaceSelectionWith(imageNode).scrollIntoView());
+    },
+    [markUserEditPending]
+  );
 
   const editor = useEditor({
     extensions: [
@@ -338,12 +347,11 @@ export function RichTextEditor({
       if (suppressUpdateRef.current) return;
 
       const md = (ed.storage as any).markdown.getMarkdown() as string;
-      const canUndoUpdate = !!(ed.can() as any).undo?.();
-      const previousInternalValue = internalValueRef.current;
       internalValueRef.current = md;
-      if (!canUndoUpdate && previousInternalValue === value) {
+      if (!userEditPendingRef.current) {
         return;
       }
+      userEditPendingRef.current = false;
       onChange?.(md);
     },
     onSelectionUpdate: ({ editor: ed }) => {
@@ -356,18 +364,32 @@ export function RichTextEditor({
       attributes: {
         class: "rich-text-editor-content",
       },
+      handleDOMEvents: {
+        beforeinput: () => {
+          if (!disabled && !readOnly) markUserEditPending();
+          return false;
+        },
+      },
       handlePaste(view, event) {
-        if (disabled || !imageUploadRef.current) return false;
+        if (disabled || readOnly) return false;
         const imageFile = getFirstImageFile(event.clipboardData?.files);
-        if (!imageFile) return false;
+        if (!imageFile) {
+          markUserEditPending();
+          return false;
+        }
+        if (!imageUploadRef.current) return false;
         event.preventDefault();
         void insertImageFile(view, imageFile);
         return true;
       },
       handleDrop(view, event) {
-        if (disabled || !imageUploadRef.current) return false;
+        if (disabled || readOnly) return false;
         const imageFile = getFirstImageFile(event.dataTransfer?.files);
-        if (!imageFile) return false;
+        if (!imageFile) {
+          markUserEditPending();
+          return false;
+        }
+        if (!imageUploadRef.current) return false;
         const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
         if (pos) {
           view.dispatch(
@@ -394,6 +416,7 @@ export function RichTextEditor({
     if (value === internalValueRef.current) return;
 
     internalValueRef.current = value;
+    userEditPendingRef.current = false;
     suppressUpdateRef.current = true;
 
     const { from, to } = editor.state.selection;
@@ -430,6 +453,7 @@ export function RichTextEditor({
       return;
     }
 
+    markUserEditPending();
     let tr = editor.state.tr;
     for (const target of [...targets].reverse()) {
       tr = tr.insertText(replaceRequest.replacement, target.from, target.to);
@@ -484,13 +508,23 @@ export function RichTextEditor({
   const runEditorCommand = useCallback(
     (command: string, ...args: any[]) => {
       const chain = editor?.chain().focus() as any;
+      markUserEditPending();
       chain?.[command]?.(...args).run();
     },
-    [editor]
+    [editor, markUserEditPending]
   );
 
   const tableCan = editor?.can() as any;
   const tableCommands = editor?.chain().focus() as any;
+
+  const runTableCommand = useCallback(
+    (command: string, ...args: any[]) => {
+      markUserEditPending();
+      tableCommands?.[command]?.(...args).run();
+    },
+    [markUserEditPending, tableCommands]
+  );
+
   const canEditTable = !!editor && !editor.isDestroyed && !disabled && !readOnly;
   const canInsertTable =
     canEditTable && !!tableCan?.insertTable?.({ rows: 3, cols: 3, withHeaderRow: true });
@@ -643,8 +677,7 @@ export function RichTextEditor({
       label: t("notes.editor.insertTable"),
       icon: <Table2 size={15} />,
       disabled: !canInsertTable,
-      onClick: () =>
-        tableCommands?.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
+      onClick: () => runTableCommand("insertTable", { rows: 3, cols: 3, withHeaderRow: true }),
     },
   ];
 
@@ -655,63 +688,63 @@ export function RichTextEditor({
           label: t("notes.editor.addRowAbove"),
           icon: <ArrowUpToLine size={15} />,
           disabled: !canAddRowBefore,
-          onClick: () => tableCommands?.addRowBefore().run(),
+          onClick: () => runTableCommand("addRowBefore"),
         },
         {
           key: "addRowBelow",
           label: t("notes.editor.addRowBelow"),
           icon: <ArrowDownToLine size={15} />,
           disabled: !canAddRowAfter,
-          onClick: () => tableCommands?.addRowAfter().run(),
+          onClick: () => runTableCommand("addRowAfter"),
         },
         {
           key: "deleteRow",
           label: t("notes.editor.deleteRow"),
           icon: <Rows3 size={15} />,
           disabled: !canDeleteRow,
-          onClick: () => tableCommands?.deleteRow().run(),
+          onClick: () => runTableCommand("deleteRow"),
         },
         {
           key: "addColumnLeft",
           label: t("notes.editor.addColumnLeft"),
           icon: <ArrowLeftToLine size={15} />,
           disabled: !canAddColumnBefore,
-          onClick: () => tableCommands?.addColumnBefore().run(),
+          onClick: () => runTableCommand("addColumnBefore"),
         },
         {
           key: "addColumnRight",
           label: t("notes.editor.addColumnRight"),
           icon: <ArrowRightToLine size={15} />,
           disabled: !canAddColumnAfter,
-          onClick: () => tableCommands?.addColumnAfter().run(),
+          onClick: () => runTableCommand("addColumnAfter"),
         },
         {
           key: "deleteColumn",
           label: t("notes.editor.deleteColumn"),
           icon: <Columns3 size={15} />,
           disabled: !canDeleteColumn,
-          onClick: () => tableCommands?.deleteColumn().run(),
+          onClick: () => runTableCommand("deleteColumn"),
         },
         {
           key: "toggleHeaderRow",
           label: t("notes.editor.toggleHeaderRow"),
           icon: <PanelTop size={15} />,
           disabled: !canToggleHeaderRow,
-          onClick: () => tableCommands?.toggleHeaderRow().run(),
+          onClick: () => runTableCommand("toggleHeaderRow"),
         },
         {
           key: "toggleHeaderColumn",
           label: t("notes.editor.toggleHeaderColumn"),
           icon: <PanelLeft size={15} />,
           disabled: !canToggleHeaderColumn,
-          onClick: () => tableCommands?.toggleHeaderColumn().run(),
+          onClick: () => runTableCommand("toggleHeaderColumn"),
         },
         {
           key: "mergeOrSplitCells",
           label: t("notes.editor.mergeOrSplitCells"),
           icon: tableCan?.splitCell?.() ? <Split size={15} /> : <Combine size={15} />,
           disabled: !canMergeOrSplit,
-          onClick: () => tableCommands?.mergeOrSplit().run(),
+          onClick: () => runTableCommand("mergeOrSplit"),
         },
         {
           key: "deleteTable",
@@ -719,7 +752,7 @@ export function RichTextEditor({
           icon: <Trash2 size={15} />,
           danger: true,
           disabled: !canDeleteTable,
-          onClick: () => tableCommands?.deleteTable().run(),
+          onClick: () => runTableCommand("deleteTable"),
         },
       ]
     : [];

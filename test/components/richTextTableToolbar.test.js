@@ -20,6 +20,10 @@ test("rich text editor exposes table insertion and row/column commands", () => {
     "toggleHeaderColumn",
     "mergeOrSplit",
   ]) {
-    assert.match(source, new RegExp(`\\.${command}\\(`), `missing ${command} command`);
+    assert.match(
+      source,
+      new RegExp(`runTableCommand\\("${command}"`),
+      `missing ${command} command`
+    );
   }
 });
