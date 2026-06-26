@@ -54,6 +54,24 @@ test("search matches dictionary words and alias source or target text", () => {
   );
 });
 
+test("search only returns rows whose own text matches the query", () => {
+  const items = buildDictionaryDisplayItems({
+    dictionary: ["EntVerse", "arber"],
+    aliases: [
+      { from: "Antibus", to: "EntVerse" },
+      { from: "Enterverse", to: "Entverse" },
+      { from: "anders", to: "entverse" },
+      { from: "亚波", to: "arber" },
+      { from: "阿伯", to: "arber" },
+    ],
+  });
+
+  assert.deepEqual(
+    filterDictionaryDisplayItems(items, "arber").map((item) => item.id),
+    ["word:arber", "alias:亚波->arber", "alias:阿伯->arber"]
+  );
+});
+
 test("search returns an empty list when no dictionary rows match", () => {
   const items = buildDictionaryDisplayItems({
     dictionary: ["agent"],

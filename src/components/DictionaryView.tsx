@@ -12,6 +12,7 @@ import {
   filterDictionaryDisplayItems,
   type DictionaryDisplayItem,
 } from "../utils/dictionaryListItems";
+import { resolveDictionaryInputSubmission } from "../utils/dictionaryInput";
 
 interface SpeakerNameEntry {
   id: number;
@@ -30,7 +31,6 @@ export default function DictionaryView() {
   const agentName = getAgentName();
   const [activeTab, setActiveTab] = useState<"dictionary" | "people">("dictionary");
   const [dictionarySearch, setDictionarySearch] = useState("");
-  const [newWord, setNewWord] = useState("");
   const [aliasFrom, setAliasFrom] = useState("");
   const [aliasTo, setAliasTo] = useState("");
   const [newSpeakerName, setNewSpeakerName] = useState("");
@@ -71,17 +71,6 @@ export default function DictionaryView() {
     refreshSpeakerNames();
   }, [refreshSpeakerNames]);
 
-  const handleAdd = useCallback(() => {
-    const words = newWord
-      .split(",")
-      .map((w) => w.trim())
-      .filter((w) => w && !customDictionary.includes(w));
-    if (words.length > 0) {
-      setCustomDictionary([...customDictionary, ...words]);
-      setNewWord("");
-    }
-  }, [newWord, customDictionary, setCustomDictionary]);
-
   const handleRemove = useCallback(
     (word: string) => {
       if (word === agentName) return;
@@ -96,22 +85,30 @@ export default function DictionaryView() {
     setDictionarySearch("");
   }, [agentName, customDictionary, setCustomDictionary, setCustomDictionaryAliases]);
 
-  const handleAddAlias = useCallback(() => {
-    const from = aliasFrom.trim();
-    const to = aliasTo.trim();
-    if (!from || !to || from.toLowerCase() === to.toLowerCase()) return;
+  const handleSubmitDictionaryInput = useCallback(() => {
+    const submission = resolveDictionaryInputSubmission({
+      source: aliasFrom,
+      correction: aliasTo,
+      dictionary: customDictionary,
+      aliases: customDictionaryAliases,
+    });
 
-    const exists = customDictionaryAliases.some(
-      (alias) => alias.from.toLowerCase() === from.toLowerCase()
-    );
-    if (!exists) {
-      setCustomDictionaryAliases([...customDictionaryAliases, { from, to }]);
+    if (submission.type === "words") {
+      setCustomDictionary([...customDictionary, ...submission.words]);
+      setAliasFrom("");
+      return;
     }
-    if (!customDictionary.some((word) => word.toLowerCase() === to.toLowerCase())) {
-      setCustomDictionary([...customDictionary, to]);
+
+    if (submission.type === "alias") {
+      if (submission.alias) {
+        setCustomDictionaryAliases([...customDictionaryAliases, submission.alias]);
+      }
+      if (submission.shouldAddTargetWord) {
+        setCustomDictionary([...customDictionary, aliasTo.trim()]);
+      }
+      setAliasFrom("");
+      setAliasTo("");
     }
-    setAliasFrom("");
-    setAliasTo("");
   }, [
     aliasFrom,
     aliasTo,
@@ -382,38 +379,13 @@ export default function DictionaryView() {
               </div>
 
               <div className="ow-section-divider ow-section-flat space-y-3">
-                <div className="relative">
-                  <Input
-                    placeholder={t("dictionary.addPlaceholder")}
-                    value={newWord}
-                    onChange={(e) => setNewWord(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAdd();
-                    }}
-                    className="w-full pr-8"
-                  />
-                  {newWord.trim() ? (
-                    <button
-                      onClick={handleAdd}
-                      aria-label={t("dictionary.addWord")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <CornerDownLeft size={10} />
-                    </button>
-                  ) : (
-                    <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground/70 font-mono select-none pointer-events-none">
-                      ⏎
-                    </kbd>
-                  )}
-                </div>
-
                 <div className="grid grid-cols-1 items-center gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto]">
                   <Input
                     placeholder={t("dictionary.aliasFromPlaceholder")}
                     value={aliasFrom}
                     onChange={(e) => setAliasFrom(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAddAlias();
+                      if (e.key === "Enter") handleSubmitDictionaryInput();
                     }}
                     className="h-8 text-xs"
                   />
@@ -423,15 +395,15 @@ export default function DictionaryView() {
                     value={aliasTo}
                     onChange={(e) => setAliasTo(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleAddAlias();
+                      if (e.key === "Enter") handleSubmitDictionaryInput();
                     }}
                     className="h-8 text-xs"
                   />
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleAddAlias}
-                    disabled={!aliasFrom.trim() || !aliasTo.trim()}
+                    onClick={handleSubmitDictionaryInput}
+                    disabled={!aliasFrom.trim()}
                     className="h-8 w-full px-3 text-xs md:w-auto"
                   >
                     {t("dictionary.aliasAdd")}
