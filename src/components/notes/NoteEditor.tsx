@@ -134,6 +134,28 @@ function parseDateTimeLocalValue(value: string): string | null {
   return date.toISOString();
 }
 
+function shouldAutoFocusContentEditor(
+  activeElement: Element | null,
+  titleElement: HTMLElement | null
+): boolean {
+  if (
+    !activeElement ||
+    activeElement === document.body ||
+    activeElement === document.documentElement
+  ) {
+    return true;
+  }
+  if (titleElement && titleElement.contains(activeElement)) {
+    return false;
+  }
+  if (!(activeElement instanceof HTMLElement)) {
+    return true;
+  }
+  return !activeElement.closest(
+    "input, textarea, select, button, a[href], [contenteditable], [role='textbox'], [role='combobox'], [role='button']"
+  );
+}
+
 function formatPlaybackTime(seconds: number): string {
   const safe = Math.max(0, Math.floor(Number.isFinite(seconds) ? seconds : 0));
   const hours = Math.floor(safe / 3600);
@@ -1056,7 +1078,9 @@ export default function NoteEditor({
         if (titleRef.current && titleRef.current.textContent !== note.title) {
           titleRef.current.textContent = note.title || "";
         }
-        editorRef.current?.commands.focus();
+        if (shouldAutoFocusContentEditor(document.activeElement, titleRef.current)) {
+          editorRef.current?.commands.focus();
+        }
       });
     }
   }, [isRecording, note.id, note.title, scheduleUiUpdate]);

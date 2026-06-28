@@ -37,6 +37,13 @@ test("leaving content edit prompts through a shared active note guard", () => {
   assert.match(noteEditorSource, /beforeunload/);
 });
 
+test("note switch autofocus does not steal focus from title editing", () => {
+  assert.match(noteEditorSource, /function\s+shouldAutoFocusContentEditor/);
+  assert.match(noteEditorSource, /titleElement\.contains\(activeElement\)/);
+  assert.match(noteEditorSource, /activeElement\.closest\(\s*"[^\"]*contenteditable/);
+  assert.match(noteEditorSource, /if\s+\(shouldAutoFocusContentEditor\([^)]*\)\)\s*\{\s*editorRef\.current\?\.commands\.focus\(\);/);
+});
+
 test("document import converts into a draft instead of writing the note immediately", () => {
   assert.match(ipcSource, /options = \{\}/);
   assert.match(ipcSource, /options\?\.dryRun/);
