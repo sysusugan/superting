@@ -1531,6 +1531,15 @@
     }
   },
   "notes": {
+    "tags": {
+      "add": "タグを追加",
+      "placeholder": "別のタグ",
+      "remove": "タグ {{tag}} を削除",
+      "saveFailed": "タグを保存できませんでした",
+      "filterTitle": "タグで絞り込む",
+      "filterAll": "すべてのタグ",
+      "noMatches": "このタグのメモはありません"
+    },
     "sidebar": {
       "newNote": "新しいノート",
       "searchNotes": "ノートを検索",
@@ -2200,6 +2209,8 @@
     "mcp": {
       "title": "ローカル MCP アクセス",
       "description": "ローカルエージェントが Model Context Protocol 経由で SuperTing のメモを読み書きできます。",
+      "toolsTitle": "対応している MCP 操作",
+      "migrationNotice": "ツール名にプレフィックスはありません。openwhispr_* と superting_* は利用できません。",
       "urlLabel": "サーバー URL",
       "tokenLabel": "Bearer token",
       "codexConfigLabel": "Codex 設定",

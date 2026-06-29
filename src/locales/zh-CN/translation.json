@@ -1535,6 +1535,15 @@
     }
   },
   "notes": {
+    "tags": {
+      "add": "添加标签",
+      "placeholder": "继续添加",
+      "remove": "移除标签 {{tag}}",
+      "saveFailed": "标签保存失败",
+      "filterTitle": "按标签筛选",
+      "filterAll": "全部标签",
+      "noMatches": "没有使用此标签的笔记"
+    },
     "sidebar": {
       "newNote": "新建笔记",
       "searchNotes": "搜索笔记",
@@ -2204,6 +2213,8 @@
     "mcp": {
       "title": "本地 MCP 访问",
       "description": "让本地智能体通过 Model Context Protocol 读取和更新你的 SuperTing 笔记。",
+      "toolsTitle": "当前支持的 MCP 操作",
+      "migrationNotice": "工具名称不再带前缀，openwhispr_* 和 superting_* 名称已不可用。",
       "urlLabel": "服务 URL",
       "tokenLabel": "Bearer token",
       "codexConfigLabel": "Codex 配置",

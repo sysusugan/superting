@@ -1452,6 +1452,7 @@ class IPCHandlers {
           hasToken: false,
           token: null,
           metadataPath: null,
+          tools: [],
         };
       }
       return this.mcpServerManager.getConnectionInfo();
@@ -1522,7 +1523,17 @@ class IPCHandlers {
 
     ipcMain.handle(
       "db-save-note",
-      async (event, title, content, noteType, sourceFile, audioDuration, folderId, transcript) => {
+      async (
+        event,
+        title,
+        content,
+        noteType,
+        sourceFile,
+        audioDuration,
+        folderId,
+        transcript,
+        tags
+      ) => {
         const result = this.databaseManager.saveNote(
           title,
           content,
@@ -1530,7 +1541,8 @@ class IPCHandlers {
           sourceFile,
           audioDuration,
           folderId,
-          transcript
+          transcript,
+          tags
         );
         if (result?.success && result?.note) {
           setImmediate(() => this.broadcastToWindows("note-added", result.note));
@@ -1545,9 +1557,11 @@ class IPCHandlers {
       return this.databaseManager.getNote(id);
     });
 
-    ipcMain.handle("db-get-notes", async (event, noteType, limit, folderId, sortBy) => {
-      return this.databaseManager.getNotes(noteType, limit, folderId, sortBy);
+    ipcMain.handle("db-get-notes", async (event, noteType, limit, folderId, sortBy, tags) => {
+      return this.databaseManager.getNotes(noteType, limit, folderId, sortBy, tags);
     });
+
+    ipcMain.handle("db-get-tags", async () => this.databaseManager.getTags());
 
     ipcMain.handle("db-update-note", async (event, id, updates) => {
       const noteContentWriteFields = [
@@ -1668,8 +1682,8 @@ class IPCHandlers {
       }
     });
 
-    ipcMain.handle("db-search-notes", async (event, query, limit) => {
-      return this.databaseManager.searchNotes(query, limit);
+    ipcMain.handle("db-search-notes", async (event, query, limit, tags) => {
+      return this.databaseManager.searchNotes(query, limit, tags);
     });
 
     ipcMain.handle("db-semantic-search-notes", async (event, query, limit = 5) => {

@@ -1531,6 +1531,15 @@
     }
   },
   "notes": {
+    "tags": {
+      "add": "Aggiungi tag",
+      "placeholder": "Altro tag",
+      "remove": "Rimuovi tag {{tag}}",
+      "saveFailed": "Impossibile salvare i tag",
+      "filterTitle": "Filtra per tag",
+      "filterAll": "Tutti i tag",
+      "noMatches": "Nessuna nota usa questo tag"
+    },
     "sidebar": {
       "newNote": "Nuova nota",
       "searchNotes": "Cerca note",
@@ -2200,6 +2209,8 @@
     "mcp": {
       "title": "Accesso MCP locale",
       "description": "Consenti agli agenti locali di leggere e aggiornare le note SuperTing tramite Model Context Protocol.",
+      "toolsTitle": "Operazioni MCP supportate",
+      "migrationNotice": "I nomi degli strumenti non hanno prefissi. openwhispr_* e superting_* non sono più disponibili.",
       "urlLabel": "URL server",
       "tokenLabel": "Bearer token",
       "codexConfigLabel": "Configurazione Codex",

@@ -82,7 +82,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   undoLearnedCorrections: (words) => ipcRenderer.invoke("undo-learned-corrections", words),
 
   // Note functions
-  saveNote: (title, content, noteType, sourceFile, audioDuration, folderId, transcript) =>
+  saveNote: (title, content, noteType, sourceFile, audioDuration, folderId, transcript, tags) =>
     ipcRenderer.invoke(
       "db-save-note",
       title,
@@ -91,11 +91,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
       sourceFile,
       audioDuration,
       folderId,
-      transcript
+      transcript,
+      tags
     ),
   getNote: (id) => ipcRenderer.invoke("db-get-note", id),
-  getNotes: (noteType, limit, folderId, sortBy) =>
-    ipcRenderer.invoke("db-get-notes", noteType, limit, folderId, sortBy),
+  getNotes: (noteType, limit, folderId, sortBy, tags) =>
+    ipcRenderer.invoke("db-get-notes", noteType, limit, folderId, sortBy, tags),
+  getTags: () => ipcRenderer.invoke("db-get-tags"),
   updateNote: (id, updates) => ipcRenderer.invoke("db-update-note", id, updates),
   deleteNote: (id) => ipcRenderer.invoke("db-delete-note", id),
   saveNoteImageAsset: (noteId, payload) =>
@@ -127,7 +129,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   compressNoteAudio: (noteId, audioFileId) =>
     ipcRenderer.invoke("compress-note-audio", noteId, audioFileId),
   mergeNoteAudioFiles: (noteId) => ipcRenderer.invoke("merge-note-audio-files", noteId),
-  searchNotes: (query, limit) => ipcRenderer.invoke("db-search-notes", query, limit),
+  searchNotes: (query, limit, tags) => ipcRenderer.invoke("db-search-notes", query, limit, tags),
   semanticSearchNotes: (query, limit) =>
     ipcRenderer.invoke("db-semantic-search-notes", query, limit),
   semanticReindexAll: () => ipcRenderer.invoke("db-semantic-reindex-all"),

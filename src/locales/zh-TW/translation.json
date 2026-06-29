@@ -1531,6 +1531,15 @@
     }
   },
   "notes": {
+    "tags": {
+      "add": "新增標籤",
+      "placeholder": "繼續新增",
+      "remove": "移除標籤 {{tag}}",
+      "saveFailed": "標籤儲存失敗",
+      "filterTitle": "依標籤篩選",
+      "filterAll": "全部標籤",
+      "noMatches": "沒有使用此標籤的筆記"
+    },
     "sidebar": {
       "newNote": "新增筆記",
       "searchNotes": "搜尋筆記",
@@ -2200,6 +2209,8 @@
     "mcp": {
       "title": "本機 MCP 存取",
       "description": "讓本機智慧代理透過 Model Context Protocol 讀取和更新你的 SuperTing 筆記。",
+      "toolsTitle": "目前支援的 MCP 操作",
+      "migrationNotice": "工具名稱不再使用前綴，openwhispr_* 與 superting_* 名稱已無法使用。",
       "urlLabel": "服務 URL",
       "tokenLabel": "Bearer token",
       "codexConfigLabel": "Codex 設定",

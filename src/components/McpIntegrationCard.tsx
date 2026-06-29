@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, Power, RefreshCw, Server, Shield } from "lucide-react";
+import { CheckCircle2, Power, RefreshCw, Server, Shield, Wrench } from "lucide-react";
 import { Button } from "./ui/button";
 import { CopyableCommand } from "./ui/CopyableCommand";
 import { LogoTile } from "./ui/LogoTile";
@@ -14,6 +14,7 @@ interface McpStatus {
   hasToken: boolean;
   token?: string | null;
   metadataPath?: string | null;
+  tools: Array<{ name: string }>;
 }
 
 const EMPTY_STATUS: McpStatus = {
@@ -24,6 +25,7 @@ const EMPTY_STATUS: McpStatus = {
   hasToken: false,
   token: null,
   metadataPath: null,
+  tools: [],
 };
 
 export default function McpIntegrationCard() {
@@ -118,6 +120,26 @@ export default function McpIntegrationCard() {
       <p className="text-xs text-muted-foreground/70 mb-4 leading-relaxed">
         {t("integrations.mcp.description")}
       </p>
+
+      <div className="mb-4 border-y border-border/60 py-3">
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-foreground">
+          <Wrench className="h-3.5 w-3.5 text-muted-foreground" />
+          {t("integrations.mcp.toolsTitle")}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {(status.tools || []).map((tool) => (
+            <code
+              key={tool.name}
+              className="rounded border border-border/60 bg-muted/40 px-1.5 py-1 text-[11px] text-foreground/80"
+            >
+              {tool.name}
+            </code>
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          {t("integrations.mcp.migrationNotice")}
+        </p>
+      </div>
 
       {error && (
         <div className="mb-3 rounded-md border border-destructive/25 bg-destructive/5 px-3 py-2 text-xs text-destructive">

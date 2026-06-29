@@ -1531,6 +1531,15 @@
     }
   },
   "notes": {
+    "tags": {
+      "add": "Добавить тег",
+      "placeholder": "Ещё тег",
+      "remove": "Удалить тег {{tag}}",
+      "saveFailed": "Не удалось сохранить теги",
+      "filterTitle": "Фильтр по тегу",
+      "filterAll": "Все теги",
+      "noMatches": "Нет заметок с этим тегом"
+    },
     "sidebar": {
       "newNote": "Новая заметка",
       "searchNotes": "Поиск заметок",
@@ -2202,6 +2211,8 @@
     "mcp": {
       "title": "Локальный доступ MCP",
       "description": "Разрешите локальным агентам читать и обновлять заметки SuperTing через Model Context Protocol.",
+      "toolsTitle": "Поддерживаемые операции MCP",
+      "migrationNotice": "Имена инструментов используются без префикса. openwhispr_* и superting_* больше недоступны.",
       "urlLabel": "URL сервера",
       "tokenLabel": "Bearer token",
       "codexConfigLabel": "Конфигурация Codex",

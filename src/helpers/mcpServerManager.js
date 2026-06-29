@@ -12,6 +12,7 @@ const z = require("zod/v4");
 const debugLogger = require("./debugLogger");
 const { ensureMigratedPath } = require("./brandConfig");
 const { isPortAvailable } = require("../utils/serverUtils");
+const { version: APP_VERSION } = require("../../package.json");
 
 const HOST = "127.0.0.1";
 const DEFAULT_PORT_RANGE = [8220, 8239];
@@ -19,6 +20,22 @@ const METADATA_FILE_VERSION = 1;
 const LOOPBACK_ADDRESSES = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
 const MAX_REQUEST_BODY_BYTES = 1 * 1024 * 1024;
+const MCP_TOOL_NAMES = [
+  "health",
+  "list_notes",
+  "search_notes",
+  "get_note",
+  "create_note",
+  "update_note",
+  "delete_note",
+  "list_folders",
+  "create_folder",
+  "list_transcriptions",
+  "get_transcription",
+  "get_dictionary",
+  "get_dictionary_aliases",
+  "list_tags",
+];
 
 function getMcpMetadataFilePath(homeDir = os.homedir()) {
   return path.join(ensureMigratedPath(homeDir, "config"), "mcp-server.json");
@@ -86,6 +103,7 @@ function sanitizeNote(note, { full = false } = {}) {
     transcript: full ? note.transcript || null : undefined,
     note_type: note.note_type,
     folder_id: note.folder_id ?? null,
+    tags: Array.isArray(note.tags) ? note.tags : [],
     created_at: note.created_at,
     updated_at: note.updated_at,
     recorded_at: note.recorded_at ?? null,
@@ -134,6 +152,7 @@ class McpServerManager {
       url: this.url,
       port: this.port,
       hasToken: !!this.token,
+      tools: MCP_TOOL_NAMES.map((name) => ({ name })),
     };
   }
 
@@ -322,7 +341,7 @@ class McpServerManager {
     const server = new McpServer(
       {
         name: "superting-local",
-        version: "1.0.0",
+        version: APP_VERSION,
       },
       {
         instructions:
@@ -337,18 +356,7 @@ class McpServerManager {
   _registerTools(server) {
     const db = this.ipcHandlers.databaseManager;
 
-    const registerTool = (suffix, config, handler) => {
-      server.registerTool(`superting_${suffix}`, config, handler);
-      server.registerTool(
-        `openwhispr_${suffix}`,
-        {
-          ...config,
-          title: `${config.title} (legacy OpenWhispr alias)`,
-          description: `${config.description} Legacy alias; use superting_${suffix}.`,
-        },
-        handler
-      );
-    };
+    const registerTool = (name, config, handler) => server.registerTool(name, config, handler);
 
     registerTool(
       "health",
@@ -370,12 +378,19 @@ class McpServerManager {
           limit: z.number().optional().describe("Maximum number of notes to return. Default 100."),
           folder_id: z.number().optional().describe("Optional folder ID filter."),
           note_type: z.string().optional().describe("Optional note type filter."),
+          tags: z.array(z.string()).optional().describe("Require all of these note tags."),
         },
         annotations: { readOnlyHint: true },
       },
-      async ({ limit, folder_id, note_type }) => {
+      async ({ limit, folder_id, note_type, tags }) => {
         const notes = db
-          .getNotes(note_type || null, parsePositiveInteger(limit, 100), folder_id || null)
+          .getNotes(
+            note_type || null,
+            parsePositiveInteger(limit, 100),
+            folder_id || null,
+            "updatedAt",
+            tags || []
+          )
           .map((note) => sanitizeNote(note));
         return sendMcpToolResult({ success: true, data: notes });
       }
@@ -389,12 +404,13 @@ class McpServerManager {
         inputSchema: {
           query: z.string().describe("Search query."),
           limit: z.number().optional().describe("Maximum number of results. Default 20."),
+          tags: z.array(z.string()).optional().describe("Require all of these note tags."),
         },
         annotations: { readOnlyHint: true },
       },
-      async ({ query, limit }) => {
+      async ({ query, limit, tags }) => {
         const notes = db
-          .searchNotes(query, parsePositiveInteger(limit, 20))
+          .searchNotes(query, parsePositiveInteger(limit, 20), tags || [])
           .map((note) => sanitizeNote(note));
         return sendMcpToolResult({ success: true, data: notes });
       }
@@ -429,17 +445,20 @@ class McpServerManager {
           content: z.string().describe("Note content."),
           note_type: z.string().optional().describe("Note type. Default personal."),
           folder_id: z.number().optional().describe("Optional folder ID."),
+          tags: z.array(z.string()).optional().describe("Optional note tags."),
         },
         annotations: { readOnlyHint: false, destructiveHint: false },
       },
-      async ({ title, content, note_type, folder_id }) => {
+      async ({ title, content, note_type, folder_id, tags }) => {
         const result = db.saveNote(
           title,
           content,
           note_type || "personal",
           null,
           null,
-          folder_id ?? null
+          folder_id ?? null,
+          null,
+          tags || []
         );
         if (!result?.success || !result.note) {
           return sendMcpToolResult({
@@ -472,16 +491,21 @@ class McpServerManager {
             .optional()
             .describe("New transcript text or serialized transcript JSON."),
           folder_id: z.number().nullable().optional().describe("New folder ID."),
+          tags: z
+            .array(z.string())
+            .optional()
+            .describe("Replacement note tags. Empty clears tags."),
         },
         annotations: { readOnlyHint: false, destructiveHint: false },
       },
-      async ({ id, title, content, enhanced_content, transcript, folder_id }) => {
+      async ({ id, title, content, enhanced_content, transcript, folder_id, tags }) => {
         const updates = {};
         if (title !== undefined) updates.title = title;
         if (content !== undefined) updates.content = content;
         if (enhanced_content !== undefined) updates.enhanced_content = enhanced_content;
         if (transcript !== undefined) updates.transcript = transcript;
         if (folder_id !== undefined) updates.folder_id = folder_id;
+        if (tags !== undefined) updates.tags = tags;
         if (Object.keys(updates).length === 0) {
           return sendMcpToolResult({ success: false, error: "No note updates provided" });
         }
@@ -622,6 +646,17 @@ class McpServerManager {
       },
       async () => sendMcpToolResult({ success: true, data: db.getDictionaryAliases() })
     );
+
+    registerTool(
+      "list_tags",
+      {
+        title: "List SuperTing note tags",
+        description: "List tags used by local SuperTing notes.",
+        inputSchema: {},
+        annotations: { readOnlyHint: true },
+      },
+      async () => sendMcpToolResult({ success: true, data: db.getTags() })
+    );
   }
 
   async _findAvailablePort() {
@@ -667,3 +702,4 @@ class McpServerManager {
 
 module.exports = McpServerManager;
 module.exports.getMcpMetadataFilePath = getMcpMetadataFilePath;
+module.exports.MCP_TOOL_NAMES = MCP_TOOL_NAMES;

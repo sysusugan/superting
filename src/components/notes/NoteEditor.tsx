@@ -98,6 +98,7 @@ import {
   type TranscriptSpeakerFilterOption,
 } from "../../utils/speakerAssignment";
 import NoteParticipants, { type NoteParticipant } from "./NoteParticipants";
+import NoteTagsEditor from "./NoteTagsEditor";
 import { countMatches } from "../../utils/transcriptFindReplace";
 
 function formatNoteDate(dateStr: string): string {
@@ -646,6 +647,7 @@ interface NoteEditorProps {
   onMoveToFolder?: (noteId: number, folderId: number) => void;
   onCreateFolderAndMove?: (noteId: number, folderName: string) => void;
   onRecordedAtChange?: (noteId: number, recordedAt: string) => Promise<void>;
+  onTagsChange?: (noteId: number, tags: string[]) => Promise<void>;
 }
 
 export default function NoteEditor({
@@ -686,6 +688,7 @@ export default function NoteEditor({
   onMoveToFolder,
   onCreateFolderAndMove,
   onRecordedAtChange,
+  onTagsChange,
 }: NoteEditorProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -1484,19 +1487,13 @@ export default function NoteEditor({
     prevRecordingRef.current = isRecording;
   }, [isRecording, scheduleUiUpdate]);
 
-  const handleContentChange = useCallback(
-    (newValue: string) => {
-      setContentDraft(newValue);
-    },
-    []
-  );
+  const handleContentChange = useCallback((newValue: string) => {
+    setContentDraft(newValue);
+  }, []);
 
-  const handleEnhancedChange = useCallback(
-    (value: string) => {
-      setEnhancedDraft(value);
-    },
-    []
-  );
+  const handleEnhancedChange = useCallback((value: string) => {
+    setEnhancedDraft(value);
+  }, []);
 
   const saveContentDraft = useCallback(
     (target: ContentEditTarget | null = contentEditTarget) => {
@@ -2178,6 +2175,12 @@ export default function NoteEditor({
                 </Popover>
               )}
               <NoteParticipants noteId={note.id} participants={parsedParticipants} />
+              {onTagsChange && (
+                <NoteTagsEditor
+                  tags={note.tags || []}
+                  onChange={(tags) => onTagsChange(note.id, tags)}
+                />
+              )}
               {folders && onMoveToFolder && (
                 <DropdownMenu
                   onOpenChange={(open) => {

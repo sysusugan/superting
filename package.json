@@ -1,6 +1,6 @@
 {
   "name": "superting",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Open-source alternative to 飞书妙记/钉钉听记 — privacy-first voice-to-text, meeting transcription, and personal knowledge base with local AI agents",
   "main": "main.js",
   "private": true,

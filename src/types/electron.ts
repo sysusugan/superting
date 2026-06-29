@@ -99,6 +99,13 @@ export interface NoteItem {
   client_note_id: string;
   sync_status: "synced" | "pending" | "error";
   deleted_at: string | null;
+  tags: string[];
+}
+
+export interface NoteTag {
+  id: number;
+  name: string;
+  note_count: number;
 }
 
 export type NoteSortBy = "updatedAt" | "createdAt" | "recordedAt";
@@ -570,6 +577,7 @@ declare global {
         hasToken: boolean;
         token?: string | null;
         metadataPath?: string | null;
+        tools: Array<{ name: string }>;
       }>;
       setMcpServerEnabled?: (enabled: boolean) => Promise<{
         success: boolean;
@@ -582,6 +590,7 @@ declare global {
           hasToken: boolean;
           token?: string | null;
           metadataPath?: string | null;
+          tools: Array<{ name: string }>;
         };
       }>;
       rotateMcpServerToken?: () => Promise<{
@@ -595,6 +604,7 @@ declare global {
           hasToken: boolean;
           token?: string | null;
           metadataPath?: string | null;
+          tools: Array<{ name: string }>;
         };
       }>;
 
@@ -606,15 +616,18 @@ declare global {
         sourceFile?: string | null,
         audioDuration?: number | null,
         folderId?: number | null,
-        transcript?: string | null
+        transcript?: string | null,
+        tags?: string[]
       ) => Promise<{ success: boolean; note?: NoteItem }>;
       getNote: (id: number) => Promise<NoteItem | null>;
       getNotes: (
         noteType?: string | null,
         limit?: number,
         folderId?: number | null,
-        sortBy?: NoteSortBy
+        sortBy?: NoteSortBy,
+        tags?: string[]
       ) => Promise<NoteItem[]>;
+      getTags: () => Promise<NoteTag[]>;
       updateNote: (
         id: number,
         updates: {
@@ -629,6 +642,7 @@ declare global {
           diarization_enabled?: number | null;
           expected_speaker_count?: number | null;
           recorded_at?: string | null;
+          tags?: string[];
         }
       ) => Promise<{ success: boolean; note?: NoteItem }>;
       deleteNote: (id: number) => Promise<{ success: boolean }>;
@@ -740,7 +754,7 @@ declare global {
       mergeNoteAudioFiles: (
         noteId: number
       ) => Promise<{ success: boolean; audioFile?: unknown; note?: NoteItem; error?: string }>;
-      searchNotes: (query: string, limit?: number) => Promise<NoteItem[]>;
+      searchNotes: (query: string, limit?: number, tags?: string[]) => Promise<NoteItem[]>;
       semanticSearchNotes: (query: string, limit?: number) => Promise<NoteItem[]>;
       semanticReindexAll: () => Promise<{ success: boolean; indexed?: number; error?: string }>;
       onSemanticReindexProgress: (

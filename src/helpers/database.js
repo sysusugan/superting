@@ -67,8 +67,7 @@ function buildSaveTranscriptionInsert(
   } = {}
 ) {
   return {
-    sql:
-      "INSERT INTO transcriptions (text, raw_text, status, error_message, error_code, client_transcription_id, provider, model, language, audio_duration_ms, warning, partial, processing_metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    sql: "INSERT INTO transcriptions (text, raw_text, status, error_message, error_code, client_transcription_id, provider, model, language, audio_duration_ms, warning, partial, processing_metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     values: [
       text,
       rawText,
@@ -245,6 +244,25 @@ class DatabaseManager {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
+      `);
+
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS tags (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS note_tags (
+          note_id INTEGER NOT NULL,
+          tag_id INTEGER NOT NULL,
+          PRIMARY KEY (note_id, tag_id),
+          FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE CASCADE,
+          FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_note_tags_tag_id_note_id
+        ON note_tags(tag_id, note_id);
       `);
 
       this.db.exec(`
@@ -668,11 +686,7 @@ class DatabaseManager {
     }
   }
 
-  saveTranscription(
-    text,
-    rawText = null,
-    options = {}
-  ) {
+  saveTranscription(text, rawText = null, options = {}) {
     try {
       if (!this.db) {
         throw new Error("Database not initialized");
@@ -774,16 +788,30 @@ class DatabaseManager {
     }
   }
 
-  updateTranscriptionResult(id, { text, rawText, warning = null, partial = false, processingMetadata = null }) {
+  updateTranscriptionResult(
+    id,
+    { text, rawText, warning = null, partial = false, processingMetadata = null }
+  ) {
     try {
       if (!this.db) throw new Error("Database not initialized");
       const stmt = this.db.prepare(
         "UPDATE transcriptions SET text = ?, raw_text = ?, warning = ?, partial = ?, processing_metadata = ? WHERE id = ?"
       );
-      stmt.run(text, rawText, warning, partial ? 1 : 0, serializeJsonColumn(processingMetadata), id);
+      stmt.run(
+        text,
+        rawText,
+        warning,
+        partial ? 1 : 0,
+        serializeJsonColumn(processingMetadata),
+        id
+      );
       return { success: true };
     } catch (error) {
-      debugLogger.error("Error updating transcription result", { error: error.message }, "database");
+      debugLogger.error(
+        "Error updating transcription result",
+        { error: error.message },
+        "database"
+      );
       throw error;
     }
   }
@@ -917,6 +945,75 @@ class DatabaseManager {
     }
   }
 
+  normalizeTagNames(tags) {
+    const normalized = [];
+    const seen = new Set();
+    for (const value of Array.isArray(tags) ? tags : []) {
+      const name = typeof value === "string" ? value.trim() : "";
+      const key = name.toLocaleLowerCase();
+      if (!name || seen.has(key)) continue;
+      seen.add(key);
+      normalized.push(name);
+    }
+    return normalized;
+  }
+
+  attachTags(notes) {
+    const list = Array.isArray(notes) ? notes : notes ? [notes] : [];
+    if (list.length === 0) return Array.isArray(notes) ? [] : null;
+    const ids = list.map((note) => note.id);
+    const placeholders = ids.map(() => "?").join(", ");
+    const rows = this.db
+      .prepare(
+        `SELECT nt.note_id, t.name
+         FROM note_tags nt
+         JOIN tags t ON t.id = nt.tag_id
+         WHERE nt.note_id IN (${placeholders})
+         ORDER BY t.name COLLATE NOCASE ASC, t.id ASC`
+      )
+      .all(...ids);
+    const tagsByNoteId = new Map();
+    for (const row of rows) {
+      const names = tagsByNoteId.get(row.note_id) || [];
+      names.push(row.name);
+      tagsByNoteId.set(row.note_id, names);
+    }
+    const tagged = list.map((note) => ({ ...note, tags: tagsByNoteId.get(note.id) || [] }));
+    return Array.isArray(notes) ? tagged : tagged[0];
+  }
+
+  replaceNoteTags(noteId, tags) {
+    const names = this.normalizeTagNames(tags);
+    this.db.prepare("DELETE FROM note_tags WHERE note_id = ?").run(noteId);
+    const insertTag = this.db.prepare("INSERT OR IGNORE INTO tags (name) VALUES (?)");
+    const findTag = this.db.prepare("SELECT id FROM tags WHERE name = ? COLLATE NOCASE");
+    const linkTag = this.db.prepare(
+      "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)"
+    );
+    for (const name of names) {
+      insertTag.run(name);
+      const tag = findTag.get(name);
+      if (tag) linkTag.run(noteId, tag.id);
+    }
+    this.db
+      .prepare("DELETE FROM tags WHERE id NOT IN (SELECT DISTINCT tag_id FROM note_tags)")
+      .run();
+  }
+
+  getTags() {
+    if (!this.db) throw new Error("Database not initialized");
+    return this.db
+      .prepare(
+        `SELECT t.id, t.name, COUNT(nt.note_id) AS note_count
+         FROM tags t
+         JOIN note_tags nt ON nt.tag_id = t.id
+         JOIN notes n ON n.id = nt.note_id AND n.deleted_at IS NULL
+         GROUP BY t.id, t.name
+         ORDER BY t.name COLLATE NOCASE ASC, t.id ASC`
+      )
+      .all();
+  }
+
   saveNote(
     title,
     content,
@@ -924,7 +1021,8 @@ class DatabaseManager {
     sourceFile = null,
     audioDuration = null,
     folderId = null,
-    transcript = null
+    transcript = null,
+    tags = []
   ) {
     try {
       if (!this.db) {
@@ -938,24 +1036,26 @@ class DatabaseManager {
         folderId = defaultFolder?.id || null;
       }
       const clientNoteId = randomUUID();
-      const stmt = this.db.prepare(
-        "INSERT INTO notes (title, content, note_type, source_file, audio_duration_seconds, folder_id, client_note_id, transcript, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)"
-      );
-      const result = stmt.run(
-        title,
-        content,
-        noteType,
-        sourceFile,
-        audioDuration,
-        folderId,
-        clientNoteId,
-        transcript
-      );
-
-      const fetchStmt = this.db.prepare("SELECT * FROM notes WHERE id = ?");
-      const note = fetchStmt.get(result.lastInsertRowid);
-
-      return { success: true, note };
+      return this.db.transaction(() => {
+        const stmt = this.db.prepare(
+          "INSERT INTO notes (title, content, note_type, source_file, audio_duration_seconds, folder_id, client_note_id, transcript, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)"
+        );
+        const result = stmt.run(
+          title,
+          content,
+          noteType,
+          sourceFile,
+          audioDuration,
+          folderId,
+          clientNoteId,
+          transcript
+        );
+        this.replaceNoteTags(result.lastInsertRowid, tags);
+        const note = this.db
+          .prepare("SELECT * FROM notes WHERE id = ?")
+          .get(result.lastInsertRowid);
+        return { success: true, note: this.attachTags(note) };
+      })();
     } catch (error) {
       debugLogger.error("Error saving note", { error: error.message }, "notes");
       throw error;
@@ -968,14 +1068,14 @@ class DatabaseManager {
         throw new Error("Database not initialized");
       }
       const stmt = this.db.prepare("SELECT * FROM notes WHERE id = ?");
-      return stmt.get(id) || null;
+      return this.attachTags(stmt.get(id) || null);
     } catch (error) {
       debugLogger.error("Error getting note", { error: error.message }, "notes");
       throw error;
     }
   }
 
-  getNotes(noteType = null, limit = 100, folderId = null, sortBy = "updatedAt") {
+  getNotes(noteType = null, limit = 100, folderId = null, sortBy = "updatedAt", tags = []) {
     try {
       if (!this.db) {
         throw new Error("Database not initialized");
@@ -990,11 +1090,26 @@ class DatabaseManager {
         conditions.push("folder_id = ?");
         params.push(folderId);
       }
+      const tagNames = this.normalizeTagNames(tags);
+      if (tagNames.length > 0) {
+        const placeholders = tagNames.map(() => "?").join(", ");
+        conditions.push(
+          `id IN (
+            SELECT nt.note_id
+            FROM note_tags nt
+            JOIN tags t ON t.id = nt.tag_id
+            WHERE LOWER(t.name) IN (${placeholders})
+            GROUP BY nt.note_id
+            HAVING COUNT(DISTINCT LOWER(t.name)) = ?
+          )`
+        );
+        params.push(...tagNames.map((name) => name.toLocaleLowerCase()), tagNames.length);
+      }
       const where = `WHERE ${conditions.join(" AND ")}`;
       const orderBy = getNoteOrderByClause(sortBy);
       const stmt = this.db.prepare(`SELECT * FROM notes ${where} ORDER BY ${orderBy} LIMIT ?`);
       params.push(limit);
-      return stmt.all(...params);
+      return this.attachTags(stmt.all(...params));
     } catch (error) {
       debugLogger.error("Error getting notes", { error: error.message }, "notes");
       throw error;
@@ -1023,6 +1138,7 @@ class DatabaseManager {
         "client_note_id",
         "cloud_id",
       ];
+      const hasTags = Object.prototype.hasOwnProperty.call(updates || {}, "tags");
       const fields = [];
       const values = [];
       for (const [key, value] of Object.entries(updates)) {
@@ -1031,17 +1147,19 @@ class DatabaseManager {
           values.push(value);
         }
       }
-      if (fields.length === 0) return { success: false };
+      if (fields.length === 0 && !hasTags) return { success: false };
       fields.push("updated_at = CURRENT_TIMESTAMP");
       values.push(id);
-      const stmt = this.db.prepare(
-        `UPDATE notes SET ${fields.join(", ")} WHERE id = ? AND deleted_at IS NULL`
-      );
-      const result = stmt.run(...values);
-      if (result.changes === 0) return { success: false };
-      const fetchStmt = this.db.prepare("SELECT * FROM notes WHERE id = ?");
-      const note = fetchStmt.get(id);
-      return { success: true, note };
+      return this.db.transaction(() => {
+        const stmt = this.db.prepare(
+          `UPDATE notes SET ${fields.join(", ")} WHERE id = ? AND deleted_at IS NULL`
+        );
+        const result = stmt.run(...values);
+        if (result.changes === 0) return { success: false };
+        if (hasTags) this.replaceNoteTags(id, updates.tags);
+        const note = this.db.prepare("SELECT * FROM notes WHERE id = ?").get(id);
+        return { success: true, note: this.attachTags(note) };
+      })();
     } catch (error) {
       debugLogger.error("Error updating note", { error: error.message }, "notes");
       throw error;
@@ -2003,7 +2121,7 @@ class DatabaseManager {
     }
   }
 
-  searchNotes(query, limit = 50) {
+  searchNotes(query, limit = 50, tags = []) {
     try {
       if (!this.db) throw new Error("Database not initialized");
       const term = query
@@ -2011,18 +2129,36 @@ class DatabaseManager {
         .replace(/[^\w\s]/g, " ")
         .trim();
       if (!term) return [];
-      return this.db
+      const tagNames = this.normalizeTagNames(tags);
+      const tagFilter = tagNames.length
+        ? `AND n.id IN (
+            SELECT nt.note_id
+            FROM note_tags nt
+            JOIN tags t ON t.id = nt.tag_id
+            WHERE LOWER(t.name) IN (${tagNames.map(() => "?").join(", ")})
+            GROUP BY nt.note_id
+            HAVING COUNT(DISTINCT LOWER(t.name)) = ?
+          )`
+        : "";
+      const params = [term + "*"];
+      if (tagNames.length) {
+        params.push(...tagNames.map((name) => name.toLocaleLowerCase()), tagNames.length);
+      }
+      params.push(limit);
+      const notes = this.db
         .prepare(
           `
         SELECT n.*
         FROM notes n
         JOIN notes_fts ON notes_fts.rowid = n.id
         WHERE notes_fts MATCH ? AND n.deleted_at IS NULL
+        ${tagFilter}
         ORDER BY notes_fts.rank
         LIMIT ?
       `
         )
-        .all(term + "*", limit);
+        .all(...params);
+      return this.attachTags(notes);
     } catch (error) {
       debugLogger.error("Error searching notes", { error: error.message }, "database");
       throw error;

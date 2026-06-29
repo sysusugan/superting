@@ -1573,6 +1573,15 @@
     "expandConversationList": "Expand conversation list"
   },
   "notes": {
+    "tags": {
+      "add": "Add tag",
+      "placeholder": "Another tag",
+      "remove": "Remove tag {{tag}}",
+      "saveFailed": "Could not save tags",
+      "filterTitle": "Filter by tag",
+      "filterAll": "All tags",
+      "noMatches": "No notes use this tag"
+    },
     "sidebar": {
       "newNote": "New note",
       "searchNotes": "Search notes",
@@ -2201,6 +2210,8 @@
     "mcp": {
       "title": "Local MCP access",
       "description": "Let local agents read and update your SuperTing notes through Model Context Protocol.",
+      "toolsTitle": "Supported MCP operations",
+      "migrationNotice": "Tool names have no prefix. openwhispr_* and superting_* names are no longer available.",
       "urlLabel": "Server URL",
       "tokenLabel": "Bearer token",
       "codexConfigLabel": "Codex config",

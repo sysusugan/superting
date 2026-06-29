@@ -28,6 +28,7 @@ import {
   ChevronRight,
   GripVertical,
   RefreshCw,
+  Tag,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import {
@@ -283,6 +284,7 @@ export default function PersonalNotesView({
   const [audioBulkCompress, setAudioBulkCompress] = useState(false);
   const [showBulkExportDialog, setShowBulkExportDialog] = useState(false);
   const [noteSortBy, setNoteSortByState] = useState<NoteSortBy>(readNoteSortBy);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [noteAudioFiles, setNoteAudioFiles] = useState<NoteAudioFile[]>([]);
   const [diarizationTaskStatus, setDiarizationTaskStatus] = useState<DiarizationTaskStatus | null>(
     null
@@ -300,6 +302,21 @@ export default function PersonalNotesView({
     "enhanced_content",
   ]);
   const [exportFormat, setExportFormat] = useState<NoteExportFormat>("md");
+  const availableTags = useMemo(
+    () =>
+      Array.from(new Set(notes.flatMap((note) => note.tags || []))).sort((a, b) =>
+        a.localeCompare(b)
+      ),
+    [notes]
+  );
+  const visibleNotes = useMemo(
+    () => (selectedTag ? notes.filter((note) => (note.tags || []).includes(selectedTag)) : notes),
+    [notes, selectedTag]
+  );
+
+  useEffect(() => {
+    if (selectedTag && !availableTags.includes(selectedTag)) setSelectedTag(null);
+  }, [availableTags, selectedTag]);
 
   const refreshDiarizationTaskStatus = useCallback(async () => {
     try {
@@ -470,8 +487,8 @@ export default function PersonalNotesView({
   }, []);
 
   const handleSelectAllVisibleNotes = useCallback(() => {
-    setSelectedNoteIds(new Set(notes.map((note) => note.id)));
-  }, [notes]);
+    setSelectedNoteIds(new Set(visibleNotes.map((note) => note.id)));
+  }, [visibleNotes]);
 
   const handleNoteSortChange = useCallback(
     async (value: string) => {
@@ -496,6 +513,17 @@ export default function PersonalNotesView({
       await initializeNotes(null, 50, activeFolderId, noteSortBy);
     },
     [activeFolderId, noteSortBy, t]
+  );
+
+  const handleTagsChange = useCallback(
+    async (noteId: number, tags: string[]) => {
+      const result = await window.electronAPI.updateNote(noteId, { tags });
+      if (!result.success || !result.note) {
+        throw new Error(t("notes.tags.saveFailed"));
+      }
+      updateNoteInStore(result.note);
+    },
+    [t]
   );
 
   const handleExportSelectedNotes = useCallback(async () => {
@@ -619,15 +647,9 @@ export default function PersonalNotesView({
         if (hadPendingEnhancedSave) {
           updates.enhanced_content = oldEnhancedContent;
         }
-        window.electronAPI
-          .updateNote(oldNoteId, updates)
-          .catch((err: unknown) => {
-            logger.warn(
-              "Failed to flush note on switch",
-              { error: (err as Error).message },
-              "notes"
-            );
-          });
+        window.electronAPI.updateNote(oldNoteId, updates).catch((err: unknown) => {
+          logger.warn("Failed to flush note on switch", { error: (err as Error).message }, "notes");
+        });
       }
     } else if (activeNote && activeNote.id === activeNoteRef.current && !saveTimeoutRef.current) {
       // External update (e.g. AI chat tool) — resync only when no user save is pending
@@ -752,7 +774,10 @@ export default function PersonalNotesView({
       if (actionProcessingStateRef.current !== "idle") {
         logger.info(
           "Ignored title autosave while action is running",
-          { noteId: activeNoteRef.current, actionProcessingState: actionProcessingStateRef.current },
+          {
+            noteId: activeNoteRef.current,
+            actionProcessingState: actionProcessingStateRef.current,
+          },
           "note-actions"
         );
         return;
@@ -1681,6 +1706,44 @@ export default function PersonalNotesView({
                       <SquareCheckBig size={10} />
                     </Button>
                   )}
+                  {availableTags.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={t("notes.tags.filterTitle")}
+                          title={t("notes.tags.filterTitle")}
+                          className={cn(
+                            "h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted",
+                            selectedTag && "bg-muted text-foreground"
+                          )}
+                        >
+                          <Tag size={10} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" sideOffset={4} className="min-w-40">
+                        <DropdownMenuLabel className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                          {t("notes.tags.filterTitle")}
+                        </DropdownMenuLabel>
+                        <DropdownMenuRadioGroup
+                          value={selectedTag || "__all"}
+                          onValueChange={(value) =>
+                            setSelectedTag(value === "__all" ? null : value)
+                          }
+                        >
+                          <DropdownMenuRadioItem value="__all" className="text-xs">
+                            {t("notes.tags.filterAll")}
+                          </DropdownMenuRadioItem>
+                          {availableTags.map((tag) => (
+                            <DropdownMenuRadioItem key={tag} value={tag} className="text-xs">
+                              {tag}
+                            </DropdownMenuRadioItem>
+                          ))}
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -1740,12 +1803,14 @@ export default function PersonalNotesView({
                 <div className="flex items-center justify-center py-8">
                   <Loader2 size={12} className="animate-spin text-foreground/15" />
                 </div>
-              ) : notes.length === 0 ? (
+              ) : visibleNotes.length === 0 ? (
                 <div className="ow-empty-state py-8 px-4">
                   <div className="ow-empty-state-visual mb-3 h-12 w-12">
                     <SquarePen size={18} strokeWidth={1.7} />
                   </div>
-                  <p className="ow-empty-state-description mb-3">{t("notes.empty.emptyFolder")}</p>
+                  <p className="ow-empty-state-description mb-3">
+                    {selectedTag ? t("notes.tags.noMatches") : t("notes.empty.emptyFolder")}
+                  </p>
                   <div className="flex flex-col gap-1.5 w-full max-w-36">
                     <button
                       onClick={handleNewNote}
@@ -1763,7 +1828,7 @@ export default function PersonalNotesView({
                   </div>
                 </div>
               ) : (
-                notes.map((note) => (
+                visibleNotes.map((note) => (
                   <NoteListItem
                     key={note.id}
                     note={note}
@@ -1875,6 +1940,7 @@ export default function PersonalNotesView({
               onMoveToFolder={handleMoveToFolder}
               onCreateFolderAndMove={handleCreateFolderAndMove}
               onRecordedAtChange={handleRecordedAtChange}
+              onTagsChange={handleTagsChange}
               actionProcessingState={actionProcessingState}
               actionName={actionName}
               actionOutputTarget={actionOutputTarget}

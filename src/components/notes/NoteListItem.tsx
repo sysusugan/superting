@@ -146,11 +146,7 @@ export default function NoteListItem({
       className={cn(
         "ow-list-row group relative w-full min-h-9 cursor-pointer px-2.5 py-2",
         "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/30",
-        isSelected
-          ? "ow-list-row-active"
-          : isActive
-            ? "ow-list-row-active"
-            : "ow-list-row-idle",
+        isSelected ? "ow-list-row-active" : isActive ? "ow-list-row-active" : "ow-list-row-idle",
         isDragging && "opacity-40 scale-[0.97]"
       )}
     >
@@ -342,6 +338,23 @@ export default function NoteListItem({
               {preview}
             </p>
           ) : null}
+          {(note.tags || []).length > 0 && (
+            <div className="mt-1 flex min-w-0 items-center gap-1 overflow-hidden">
+              {(note.tags || []).slice(0, 3).map((tag) => (
+                <span
+                  key={tag.toLocaleLowerCase()}
+                  className="max-w-20 truncate rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                >
+                  {tag}
+                </span>
+              ))}
+              {(note.tags || []).length > 3 && (
+                <span className="text-[10px] text-muted-foreground">
+                  +{(note.tags || []).length - 3}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

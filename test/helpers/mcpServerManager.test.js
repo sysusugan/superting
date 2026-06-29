@@ -10,6 +10,23 @@ const {
 } = require("@modelcontextprotocol/sdk/client/streamableHttp.js");
 const McpServerManager = require("../../src/helpers/mcpServerManager");
 
+const EXPECTED_TOOL_NAMES = [
+  "health",
+  "list_notes",
+  "search_notes",
+  "get_note",
+  "create_note",
+  "update_note",
+  "delete_note",
+  "list_folders",
+  "create_folder",
+  "list_transcriptions",
+  "get_transcription",
+  "get_dictionary",
+  "get_dictionary_aliases",
+  "list_tags",
+];
+
 function createTempHome(t) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "superting-mcp-test-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
@@ -44,7 +61,7 @@ function createIpcHandlers() {
           .filter((note) => !note.deleted_at && note.title.includes(query))
           .slice(0, limit),
       getNote: (id) => notes.get(id) || null,
-      saveNote: (title, content, noteType, sourceFile, audioDuration, folderId) => {
+      saveNote: (title, content, noteType, sourceFile, audioDuration, folderId, transcript, tags) => {
         const note = {
           id: nextNoteId++,
           title,
@@ -54,6 +71,8 @@ function createIpcHandlers() {
           source_file: sourceFile,
           audio_duration_seconds: audioDuration,
           folder_id: folderId,
+          transcript,
+          tags: tags || [],
           created_at: "2026-06-13T02:00:00.000Z",
           updated_at: "2026-06-13T02:00:00.000Z",
           deleted_at: null,
@@ -96,6 +115,7 @@ function createIpcHandlers() {
           : null,
       getDictionary: () => ["SuperTing"],
       getDictionaryAliases: () => [{ from: "Open Whisper", to: "SuperTing" }],
+      getTags: () => [{ id: 1, name: "AI+KOC", note_count: 1 }],
     },
     broadcastToWindows: () => {},
     _asyncVectorUpsert: () => {},
@@ -132,6 +152,7 @@ test("MCP server stays stopped until explicitly enabled", async (t) => {
     url: null,
     port: null,
     hasToken: false,
+    tools: EXPECTED_TOOL_NAMES.map((name) => ({ name })),
   });
   assert.equal(fs.existsSync(path.join(homeDir, ".superting", "mcp-server.json")), false);
 });
@@ -157,11 +178,15 @@ test("MCP server exposes authenticated tools over Streamable HTTP", async (t) =>
   t.after(async () => client.close());
 
   const tools = await client.listTools();
-  assert.ok(tools.tools.some((tool) => tool.name === "superting_search_notes"));
-  assert.ok(tools.tools.some((tool) => tool.name === "openwhispr_search_notes"));
+  assert.deepEqual(
+    tools.tools.map((tool) => tool.name),
+    EXPECTED_TOOL_NAMES
+  );
+  assert.equal(tools.tools.some((tool) => tool.name.startsWith("superting_")), false);
+  assert.equal(tools.tools.some((tool) => tool.name.startsWith("openwhispr_")), false);
 
   const result = await client.callTool({
-    name: "superting_search_notes",
+    name: "search_notes",
     arguments: { query: "Weekly", limit: 5 },
   });
   const payload = JSON.parse(result.content[0].text);
@@ -199,23 +224,34 @@ test("MCP server exposes note write tools", async (t) => {
   t.after(async () => client.close());
 
   const createResult = await client.callTool({
-    name: "superting_create_note",
-    arguments: { title: "MCP draft", content: "Created from MCP", folder_id: 2 },
+    name: "create_note",
+    arguments: {
+      title: "MCP draft",
+      content: "Created from MCP",
+      folder_id: 2,
+      tags: ["AI+KOC", "产品"],
+    },
   });
   const created = JSON.parse(createResult.content[0].text);
   assert.equal(created.success, true);
   assert.equal(created.data.title, "MCP draft");
+  assert.deepEqual(created.data.tags, ["AI+KOC", "产品"]);
 
   const updateResult = await client.callTool({
-    name: "superting_update_note",
-    arguments: { id: created.data.id, content: "Updated from MCP" },
+    name: "update_note",
+    arguments: { id: created.data.id, content: "Updated from MCP", tags: [] },
   });
   const updated = JSON.parse(updateResult.content[0].text);
   assert.equal(updated.success, true);
   assert.equal(updated.data.content, "Updated from MCP");
+  assert.deepEqual(updated.data.tags, []);
+
+  const tagsResult = await client.callTool({ name: "list_tags", arguments: {} });
+  const tags = JSON.parse(tagsResult.content[0].text);
+  assert.deepEqual(tags.data, [{ id: 1, name: "AI+KOC", note_count: 1 }]);
 
   const deleteResult = await client.callTool({
-    name: "superting_delete_note",
+    name: "delete_note",
     arguments: { id: created.data.id },
   });
   const deleted = JSON.parse(deleteResult.content[0].text);
