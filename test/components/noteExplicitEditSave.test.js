@@ -40,7 +40,7 @@ test("leaving content edit prompts through a shared active note guard", () => {
 test("note switch autofocus does not steal focus from title editing", () => {
   assert.match(noteEditorSource, /function\s+shouldAutoFocusContentEditor/);
   assert.match(noteEditorSource, /titleElement\.contains\(activeElement\)/);
-  assert.match(noteEditorSource, /activeElement\.closest\(\s*"[^\"]*contenteditable/);
+  assert.match(noteEditorSource, /activeElement\.closest\(\s*"[^"]*contenteditable/);
   assert.match(noteEditorSource, /if\s+\(shouldAutoFocusContentEditor\([^)]*\)\)\s*\{\s*editorRef\.current\?\.commands\.focus\(\);/);
 });
 
@@ -68,6 +68,5 @@ test("rich text editor does not mark initial markdown normalization as a user ed
   assert.match(richTextSource, /userEditPendingRef\.current\s*=\s*false;\s*\n\s*onChange\?\.\(md\);/);
   assert.match(richTextSource, /handleDOMEvents:\s*\{\s*beforeinput:/);
   assert.match(richTextSource, /markUserEditPending\(\);\s*\n\s*chain\?\.\[command\]\?/);
-  assert.match(richTextSource, /markUserEditPending\(\);\s*\n\s*tableCommands\?\.\[command\]\?/);
   assert.doesNotMatch(richTextSource, /const\s+canUndoUpdate\s*=/);
 });

@@ -515,14 +515,14 @@ export function RichTextEditor({
   );
 
   const tableCan = editor?.can() as any;
-  const tableCommands = editor?.chain().focus() as any;
 
   const runTableCommand = useCallback(
     (command: string, ...args: any[]) => {
+      const chain = editor?.chain().focus() as any;
       markUserEditPending();
-      tableCommands?.[command]?.(...args).run();
+      chain?.[command]?.(...args).run();
     },
-    [markUserEditPending, tableCommands]
+    [editor, markUserEditPending]
   );
 
   const canEditTable = !!editor && !editor.isDestroyed && !disabled && !readOnly;

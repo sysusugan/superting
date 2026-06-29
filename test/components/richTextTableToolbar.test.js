@@ -27,3 +27,11 @@ test("rich text editor exposes table insertion and row/column commands", () => {
     );
   }
 });
+
+test("table commands only focus the editor when an action runs", () => {
+  assert.doesNotMatch(source, /const\s+tableCommands\s*=\s*editor\?\.chain\(\)\.focus\(\)/);
+  assert.match(
+    source,
+    /const\s+runTableCommand[\s\S]*const\s+chain\s*=\s*editor\?\.chain\(\)\.focus\(\)[\s\S]*markUserEditPending\(\);\s*\n\s*chain\?\.\[command\]\?/
+  );
+});
