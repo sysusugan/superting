@@ -2177,13 +2177,6 @@ export default function NoteEditor({
                 </Popover>
               )}
               <NoteParticipants noteId={note.id} participants={parsedParticipants} />
-              {onTagsChange && (
-                <NoteTagsEditor
-                  tags={note.tags || []}
-                  availableTags={availableTags}
-                  onChange={(tags) => onTagsChange(note.id, tags)}
-                />
-              )}
               {folders && onMoveToFolder && (
                 <DropdownMenu
                   onOpenChange={(open) => {
@@ -2284,6 +2277,13 @@ export default function NoteEditor({
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
+              )}
+              {onTagsChange && (
+                <NoteTagsEditor
+                  tags={note.tags || []}
+                  availableTags={availableTags}
+                  onChange={(tags) => onTagsChange(note.id, tags)}
+                />
               )}
               {isSaving && (
                 <span className="inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap text-[11px] text-muted-foreground tabular-nums">

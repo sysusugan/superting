@@ -8,6 +8,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 
 test("note editor and list expose note tags", () => {
   const editor = read("src/components/notes/NoteEditor.tsx");
+  const tagEditor = read("src/components/notes/NoteTagsEditor.tsx");
   const listItem = read("src/components/notes/NoteListItem.tsx");
   const notesView = read("src/components/notes/PersonalNotesView.tsx");
 
@@ -15,9 +16,16 @@ test("note editor and list expose note tags", () => {
   assert.match(editor, /onTagsChange/);
   assert.match(editor, /<NoteTagsEditor/);
   assert.match(editor, /availableTags=\{availableTags\}/);
+  assert.ok(
+    editor.indexOf("folderName || t(\"notes.editor.noFolder\")") < editor.indexOf("<NoteTagsEditor"),
+    "note tag control should render after the folder selector"
+  );
+  assert.match(tagEditor, /DropdownMenuCheckboxItem/);
+  assert.match(tagEditor, /remainingTagCount/);
   assert.match(listItem, /note\.tags/);
   assert.match(notesView, /selectedTags/);
   assert.match(notesView, /DropdownMenuCheckboxItem/);
+  assert.match(notesView, /selectedTagSummary/);
   assert.match(notesView, /visibleNotes\.map/);
   assert.match(notesView, /notes\.tags\.filterAll/);
 });

@@ -317,6 +317,10 @@ export default function PersonalNotesView({
         : notes,
     [notes, selectedTags]
   );
+  const selectedTagSummary = selectedTags[0] || "";
+  const remainingSelectedTagCount = Math.max(0, selectedTags.length - 1);
+  const tagCheckboxItemClass =
+    "text-xs gap-2 rounded-md py-1.5 pl-8 pr-2 [&>span:first-child]:rounded-[3px] [&>span:first-child]:border [&>span:first-child]:border-border [&>span:first-child]:bg-background";
 
   useEffect(() => {
     setSelectedTags((current) => current.filter((tag) => availableTags.includes(tag)));
@@ -1715,15 +1719,26 @@ export default function PersonalNotesView({
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
-                          size="icon"
                           aria-label={t("notes.tags.filterTitle")}
                           title={t("notes.tags.filterTitle")}
                           className={cn(
-                            "h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted",
+                            "h-6 max-w-36 gap-1.5 rounded-md px-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-muted",
                             selectedTags.length > 0 && "bg-muted text-foreground"
                           )}
                         >
-                          <Tag size={10} />
+                          <Tag size={10} className="shrink-0" />
+                          {selectedTagSummary ? (
+                            <>
+                              <span className="min-w-0 truncate">{selectedTagSummary}</span>
+                              {remainingSelectedTagCount > 0 && (
+                                <span className="shrink-0 rounded bg-background/70 px-1 text-[10px] text-muted-foreground">
+                                  +{remainingSelectedTagCount}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="min-w-0 truncate">{t("notes.tags.filterTitle")}</span>
+                          )}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" sideOffset={4} className="min-w-40">
@@ -1737,7 +1752,7 @@ export default function PersonalNotesView({
                           <DropdownMenuCheckboxItem
                             key={tag}
                             checked={selectedTags.includes(tag)}
-                            className="text-xs"
+                            className={tagCheckboxItemClass}
                             onCheckedChange={(checked) =>
                               setSelectedTags((current) =>
                                 checked
