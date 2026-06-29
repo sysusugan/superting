@@ -1575,6 +1575,7 @@
   "notes": {
     "tags": {
       "add": "Add tag",
+      "chooseExisting": "Choose existing tag",
       "placeholder": "Another tag",
       "remove": "Remove tag {{tag}}",
       "saveFailed": "Could not save tags",

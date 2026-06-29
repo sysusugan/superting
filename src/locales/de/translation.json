@@ -1534,6 +1534,7 @@
   "notes": {
     "tags": {
       "add": "Tag hinzufügen",
+      "chooseExisting": "Vorhandenen Tag auswählen",
       "placeholder": "Weiteres Tag",
       "remove": "Tag {{tag}} entfernen",
       "saveFailed": "Tags konnten nicht gespeichert werden",

@@ -1533,6 +1533,7 @@
   "notes": {
     "tags": {
       "add": "タグを追加",
+      "chooseExisting": "既存のタグを選択",
       "placeholder": "別のタグ",
       "remove": "タグ {{tag}} を削除",
       "saveFailed": "タグを保存できませんでした",

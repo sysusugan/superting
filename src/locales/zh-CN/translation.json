@@ -1537,6 +1537,7 @@
   "notes": {
     "tags": {
       "add": "添加标签",
+      "chooseExisting": "选择已有标签",
       "placeholder": "继续添加",
       "remove": "移除标签 {{tag}}",
       "saveFailed": "标签保存失败",

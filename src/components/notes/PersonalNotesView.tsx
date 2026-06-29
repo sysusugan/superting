@@ -35,6 +35,7 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
+  DropdownMenuCheckboxItem,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
@@ -284,7 +285,7 @@ export default function PersonalNotesView({
   const [audioBulkCompress, setAudioBulkCompress] = useState(false);
   const [showBulkExportDialog, setShowBulkExportDialog] = useState(false);
   const [noteSortBy, setNoteSortByState] = useState<NoteSortBy>(readNoteSortBy);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [noteAudioFiles, setNoteAudioFiles] = useState<NoteAudioFile[]>([]);
   const [diarizationTaskStatus, setDiarizationTaskStatus] = useState<DiarizationTaskStatus | null>(
     null
@@ -310,13 +311,16 @@ export default function PersonalNotesView({
     [notes]
   );
   const visibleNotes = useMemo(
-    () => (selectedTag ? notes.filter((note) => (note.tags || []).includes(selectedTag)) : notes),
-    [notes, selectedTag]
+    () =>
+      selectedTags.length > 0
+        ? notes.filter((note) => (note.tags || []).some((tag) => selectedTags.includes(tag)))
+        : notes,
+    [notes, selectedTags]
   );
 
   useEffect(() => {
-    if (selectedTag && !availableTags.includes(selectedTag)) setSelectedTag(null);
-  }, [availableTags, selectedTag]);
+    setSelectedTags((current) => current.filter((tag) => availableTags.includes(tag)));
+  }, [availableTags]);
 
   const refreshDiarizationTaskStatus = useCallback(async () => {
     try {
@@ -1716,7 +1720,7 @@ export default function PersonalNotesView({
                           title={t("notes.tags.filterTitle")}
                           className={cn(
                             "h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted",
-                            selectedTag && "bg-muted text-foreground"
+                            selectedTags.length > 0 && "bg-muted text-foreground"
                           )}
                         >
                           <Tag size={10} />
@@ -1726,21 +1730,26 @@ export default function PersonalNotesView({
                         <DropdownMenuLabel className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
                           {t("notes.tags.filterTitle")}
                         </DropdownMenuLabel>
-                        <DropdownMenuRadioGroup
-                          value={selectedTag || "__all"}
-                          onValueChange={(value) =>
-                            setSelectedTag(value === "__all" ? null : value)
-                          }
-                        >
-                          <DropdownMenuRadioItem value="__all" className="text-xs">
-                            {t("notes.tags.filterAll")}
-                          </DropdownMenuRadioItem>
-                          {availableTags.map((tag) => (
-                            <DropdownMenuRadioItem key={tag} value={tag} className="text-xs">
-                              {tag}
-                            </DropdownMenuRadioItem>
-                          ))}
-                        </DropdownMenuRadioGroup>
+                        <DropdownMenuItem className="text-xs" onSelect={() => setSelectedTags([])}>
+                          {t("notes.tags.filterAll")}
+                        </DropdownMenuItem>
+                        {availableTags.map((tag) => (
+                          <DropdownMenuCheckboxItem
+                            key={tag}
+                            checked={selectedTags.includes(tag)}
+                            className="text-xs"
+                            onCheckedChange={(checked) =>
+                              setSelectedTags((current) =>
+                                checked
+                                  ? Array.from(new Set([...current, tag]))
+                                  : current.filter((item) => item !== tag)
+                              )
+                            }
+                            onSelect={(event) => event.preventDefault()}
+                          >
+                            {tag}
+                          </DropdownMenuCheckboxItem>
+                        ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   )}
@@ -1809,7 +1818,9 @@ export default function PersonalNotesView({
                     <SquarePen size={18} strokeWidth={1.7} />
                   </div>
                   <p className="ow-empty-state-description mb-3">
-                    {selectedTag ? t("notes.tags.noMatches") : t("notes.empty.emptyFolder")}
+                    {selectedTags.length > 0
+                      ? t("notes.tags.noMatches")
+                      : t("notes.empty.emptyFolder")}
                   </p>
                   <div className="flex flex-col gap-1.5 w-full max-w-36">
                     <button
@@ -1940,6 +1951,7 @@ export default function PersonalNotesView({
               onMoveToFolder={handleMoveToFolder}
               onCreateFolderAndMove={handleCreateFolderAndMove}
               onRecordedAtChange={handleRecordedAtChange}
+              availableTags={availableTags}
               onTagsChange={handleTagsChange}
               actionProcessingState={actionProcessingState}
               actionName={actionName}

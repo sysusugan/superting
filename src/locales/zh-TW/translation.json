@@ -1533,6 +1533,7 @@
   "notes": {
     "tags": {
       "add": "新增標籤",
+      "chooseExisting": "選擇既有標籤",
       "placeholder": "繼續新增",
       "remove": "移除標籤 {{tag}}",
       "saveFailed": "標籤儲存失敗",

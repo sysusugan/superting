@@ -1099,11 +1099,9 @@ class DatabaseManager {
             FROM note_tags nt
             JOIN tags t ON t.id = nt.tag_id
             WHERE LOWER(t.name) IN (${placeholders})
-            GROUP BY nt.note_id
-            HAVING COUNT(DISTINCT LOWER(t.name)) = ?
           )`
         );
-        params.push(...tagNames.map((name) => name.toLocaleLowerCase()), tagNames.length);
+        params.push(...tagNames.map((name) => name.toLocaleLowerCase()));
       }
       const where = `WHERE ${conditions.join(" AND ")}`;
       const orderBy = getNoteOrderByClause(sortBy);
@@ -2136,13 +2134,11 @@ class DatabaseManager {
             FROM note_tags nt
             JOIN tags t ON t.id = nt.tag_id
             WHERE LOWER(t.name) IN (${tagNames.map(() => "?").join(", ")})
-            GROUP BY nt.note_id
-            HAVING COUNT(DISTINCT LOWER(t.name)) = ?
           )`
         : "";
       const params = [term + "*"];
       if (tagNames.length) {
-        params.push(...tagNames.map((name) => name.toLocaleLowerCase()), tagNames.length);
+        params.push(...tagNames.map((name) => name.toLocaleLowerCase()));
       }
       params.push(limit);
       const notes = this.db

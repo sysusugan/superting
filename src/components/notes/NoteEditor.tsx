@@ -647,6 +647,7 @@ interface NoteEditorProps {
   onMoveToFolder?: (noteId: number, folderId: number) => void;
   onCreateFolderAndMove?: (noteId: number, folderName: string) => void;
   onRecordedAtChange?: (noteId: number, recordedAt: string) => Promise<void>;
+  availableTags?: string[];
   onTagsChange?: (noteId: number, tags: string[]) => Promise<void>;
 }
 
@@ -688,6 +689,7 @@ export default function NoteEditor({
   onMoveToFolder,
   onCreateFolderAndMove,
   onRecordedAtChange,
+  availableTags = [],
   onTagsChange,
 }: NoteEditorProps) {
   const { t } = useTranslation();
@@ -2178,6 +2180,7 @@ export default function NoteEditor({
               {onTagsChange && (
                 <NoteTagsEditor
                   tags={note.tags || []}
+                  availableTags={availableTags}
                   onChange={(tags) => onTagsChange(note.id, tags)}
                 />
               )}

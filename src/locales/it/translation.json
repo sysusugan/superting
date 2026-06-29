@@ -1533,6 +1533,7 @@
   "notes": {
     "tags": {
       "add": "Aggiungi tag",
+      "chooseExisting": "Scegli tag esistente",
       "placeholder": "Altro tag",
       "remove": "Rimuovi tag {{tag}}",
       "saveFailed": "Impossibile salvare i tag",

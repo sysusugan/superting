@@ -14,8 +14,10 @@ test("note editor and list expose note tags", () => {
   assert.match(editor, /import NoteTagsEditor from "\.\/NoteTagsEditor"/);
   assert.match(editor, /onTagsChange/);
   assert.match(editor, /<NoteTagsEditor/);
+  assert.match(editor, /availableTags=\{availableTags\}/);
   assert.match(listItem, /note\.tags/);
-  assert.match(notesView, /selectedTag/);
+  assert.match(notesView, /selectedTags/);
+  assert.match(notesView, /DropdownMenuCheckboxItem/);
   assert.match(notesView, /visibleNotes\.map/);
   assert.match(notesView, /notes\.tags\.filterAll/);
 });

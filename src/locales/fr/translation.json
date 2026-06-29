@@ -1574,6 +1574,7 @@
   "notes": {
     "tags": {
       "add": "Ajouter un tag",
+      "chooseExisting": "Choisir un tag existant",
       "placeholder": "Autre tag",
       "remove": "Retirer le tag {{tag}}",
       "saveFailed": "Impossible d’enregistrer les tags",

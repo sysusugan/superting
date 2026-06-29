@@ -66,17 +66,18 @@ test("updateNote replaces, preserves, and clears tags", (t) => {
   assert.deepEqual(db.getTags(), []);
 });
 
-test("note lists and search can require all selected tags", (t) => {
+test("note lists and search match any selected tag", (t) => {
   const db = createDatabase(t);
   db.saveNote("Roadmap one", "Alpha", "personal", null, null, null, null, ["AI", "产品"]);
   db.saveNote("Roadmap two", "Beta", "personal", null, null, null, null, ["AI"]);
+  db.saveNote("Roadmap three", "Gamma", "personal", null, null, null, null, ["商机"]);
 
   assert.deepEqual(
-    db.getNotes(null, 10, null, "updatedAt", ["AI", "产品"]).map((note) => note.title),
-    ["Roadmap one"]
+    db.getNotes(null, 10, null, "createdAt", ["产品", "商机"]).map((note) => note.title),
+    ["Roadmap three", "Roadmap one"]
   );
   assert.deepEqual(
-    db.searchNotes("Roadmap", 10, ["产品"]).map((note) => note.title),
-    ["Roadmap one"]
+    db.searchNotes("Roadmap", 10, ["产品", "商机"]).map((note) => note.title),
+    ["Roadmap one", "Roadmap three"]
   );
 });

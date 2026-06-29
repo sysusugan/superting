@@ -1533,6 +1533,7 @@
   "notes": {
     "tags": {
       "add": "Adicionar etiqueta",
+      "chooseExisting": "Escolher etiqueta existente",
       "placeholder": "Outra etiqueta",
       "remove": "Remover etiqueta {{tag}}",
       "saveFailed": "Não foi possível guardar as etiquetas",
