@@ -63,3 +63,35 @@ test("imported transcript parses speaker labels with bracketed timestamps", () =
   assert.equal(imported.segments[2].timestamp, 69);
   assert.equal(imported.segments[2].text, "哦，没有，就我们两个人。");
 });
+
+test("imported transcript parses Tencent meeting text export with minute timestamps", () => {
+  const imported = parseImportedTranscriptTxt(
+    [
+      "2026年6月23日 下午 4:32|46分钟 31秒",
+      "",
+      "关键词:",
+      "素材、脚本、后台",
+      "",
+      "文字记录:",
+      "king 小金 00:00 ",
+      "OK，也就是两个维度你们都会用到，对吗？",
+      "",
+      "香茗 00:05 ",
+      "对的。",
+      "",
+      "说话人 1 09:23 ",
+      "你一个个拖进去，是吗？",
+    ].join("\n")
+  );
+
+  assert.equal(imported.title, "2026年6月23日 下午 4:32|46分钟 31秒");
+  assert.equal(imported.segments.length, 3);
+  assert.equal(imported.segments[0].speakerName, "king 小金");
+  assert.equal(imported.segments[0].timestamp, 0);
+  assert.equal(imported.segments[0].text, "OK，也就是两个维度你们都会用到，对吗？");
+  assert.equal(imported.segments[1].speakerName, "香茗");
+  assert.equal(imported.segments[1].timestamp, 5);
+  assert.equal(imported.segments[2].speaker, "speaker_0");
+  assert.equal(imported.segments[2].speakerIsPlaceholder, true);
+  assert.equal(imported.segments[2].timestamp, 563);
+});

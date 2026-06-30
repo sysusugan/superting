@@ -1798,26 +1798,37 @@ export default function NoteEditor({
 
   const handleNoteDragOver = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
-      if (!canImportNoteFile) return;
-      const hasFile = Array.from(event.dataTransfer.items || []).some(
-        (item) => item.kind === "file"
-      );
-      if (!hasFile) return;
+      const canImportDraggedFile = (file: File) =>
+        (canImportTranscriptFile && isSupportedTranscriptImportFileName(file.name)) ||
+        canImportNoteFile;
+      const hasSupportedFile = Array.from(event.dataTransfer.items || []).some((item) => {
+        if (item.kind !== "file") return false;
+        const file = item.getAsFile();
+        return file ? canImportDraggedFile(file) : canImportNoteFile || canImportTranscriptFile;
+      });
+      if (!hasSupportedFile) return;
       event.preventDefault();
       event.dataTransfer.dropEffect = "copy";
     },
-    [canImportNoteFile]
+    [canImportNoteFile, canImportTranscriptFile]
   );
 
   const handleNoteDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
-      if (!canImportNoteFile) return;
       const file = Array.from(event.dataTransfer.files || [])[0];
       if (!file) return;
+      const canImportDraggedFile =
+        (canImportTranscriptFile && isSupportedTranscriptImportFileName(file.name)) ||
+        canImportNoteFile;
+      if (!canImportDraggedFile) return;
       event.preventDefault();
+      if (canImportTranscriptFile && isSupportedTranscriptImportFileName(file.name)) {
+        void importTranscriptFile(file);
+        return;
+      }
       setPendingImportFile(file);
     },
-    [canImportNoteFile]
+    [canImportNoteFile, canImportTranscriptFile, importTranscriptFile]
   );
 
   const handleStartTranscriptEdit = useCallback(() => {

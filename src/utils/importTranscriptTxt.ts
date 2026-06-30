@@ -7,8 +7,14 @@ export interface ImportedTranscriptTxt {
 
 function parseTimestampSeconds(value: string): number | null {
   const parts = value.split(":").map((part) => Number(part));
-  if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part) || part < 0)) {
+  if (
+    (parts.length !== 2 && parts.length !== 3) ||
+    parts.some((part) => !Number.isFinite(part) || part < 0)
+  ) {
     return null;
+  }
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
   }
   return parts[0] * 3600 + parts[1] * 60 + parts[2];
 }
@@ -47,8 +53,11 @@ function parseHeaderLine(line: string): {
   timestamp: number;
   inlineText: string;
 } | null {
-  const bracketedMatch = line.match(/^(.+?)\s*\(\s*(\d{1,2}:\d{2}:\d{2})\s*\)\s*[:：]?\s*(.*)$/);
-  const legacyMatch = line.match(/^(.+?)\s+(\d{1,2}:\d{2}:\d{2})(.*)$/);
+  const timestampPattern = String.raw`\d{1,2}:\d{2}(?::\d{2})?`;
+  const bracketedMatch = line.match(
+    new RegExp(`^(.+?)\\s*\\(\\s*(${timestampPattern})\\s*\\)\\s*[:：]?\\s*(.*)$`)
+  );
+  const legacyMatch = line.match(new RegExp(`^(.+?)\\s+(${timestampPattern})(?!\\|)(.*)$`));
   const match = bracketedMatch || legacyMatch;
   const seconds = match ? parseTimestampSeconds(match[2]) : null;
   if (!match || seconds === null) return null;
