@@ -94,9 +94,7 @@ export default function NoteTagsEditor({ tags, availableTags = [], onChange }: N
                 </span>
               )}
             </>
-          ) : (
-            <span className="min-w-0 truncate">{t("notes.tags.add")}</span>
-          )}
+          ) : null}
           <ChevronDown size={10} className="shrink-0 text-muted-foreground/70" aria-hidden="true" />
         </button>
       </DropdownMenuTrigger>

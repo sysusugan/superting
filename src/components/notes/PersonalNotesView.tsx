@@ -1736,9 +1736,7 @@ export default function PersonalNotesView({
                                 </span>
                               )}
                             </>
-                          ) : (
-                            <span className="min-w-0 truncate">{t("notes.tags.filterTitle")}</span>
-                          )}
+                          ) : null}
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" sideOffset={4} className="min-w-40">
