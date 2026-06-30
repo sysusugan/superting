@@ -13,7 +13,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import logoIcon from "../assets/icon.png";
+import logoIcon from "../assets/superting.icon/Assets/ICON.png";
 import { useTranslation } from "react-i18next";
 import { cn } from "./lib/utils";
 import SupportDropdown from "./ui/SupportDropdown";
@@ -181,8 +181,8 @@ export default function ControlPanelSidebar({
         className="flex items-center justify-between gap-2 min-w-0 px-5 pb-4"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <img src={logoIcon} alt="" className="w-6 h-6 rounded-md shrink-0" />
+        <div className="flex items-center gap-3 min-w-0">
+          <img src={logoIcon} alt="" className="w-9 h-9 rounded-lg shrink-0" />
           <span className="text-sm font-semibold text-foreground truncate">SuperTing</span>
         </div>
         <button
