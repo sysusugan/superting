@@ -95,3 +95,36 @@ test("imported transcript parses Tencent meeting text export with minute timesta
   assert.equal(imported.segments[2].speakerIsPlaceholder, true);
   assert.equal(imported.segments[2].timestamp, 563);
 });
+
+test("imported transcript parses separate speaker and clock lines as a relative timeline", () => {
+  const imported = parseImportedTranscriptTxt(
+    [
+      "孟慧龙(HuilongMeng)",
+      "13:58:39",
+      "干总。",
+      "补充内容。",
+      "苏淦(Simon)",
+      "13:59:48",
+      "对喂。",
+    ].join("\n")
+  );
+
+  assert.equal(imported.title, null);
+  assert.equal(imported.segments.length, 2);
+  assert.equal(imported.segments[0].speakerName, "孟慧龙(HuilongMeng)");
+  assert.equal(imported.segments[0].timestamp, 0);
+  assert.equal(imported.segments[0].text, "干总。\n补充内容。");
+  assert.equal(imported.segments[1].speakerName, "苏淦(Simon)");
+  assert.equal(imported.segments[1].timestamp, 69);
+  assert.equal(imported.segments[1].text, "对喂。");
+});
+
+test("imported transcript preserves a title before separate speaker and clock lines", () => {
+  const imported = parseImportedTranscriptTxt(
+    ["海尔口碑内部讨论", "", "孟慧龙(HuilongMeng)", "13:58:39", "干总。"].join("\n")
+  );
+
+  assert.equal(imported.title, "海尔口碑内部讨论");
+  assert.equal(imported.segments.length, 1);
+  assert.equal(imported.segments[0].timestamp, 0);
+});

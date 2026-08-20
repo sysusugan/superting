@@ -69,12 +69,34 @@ function parseHeaderLine(line: string): {
   };
 }
 
+function parseSplitHeader(
+  lines: string[],
+  index: number
+): { label: string; timestamp: number; inlineText: string } | null {
+  const label = lines[index]?.trim();
+  const timestampLine = lines[index + 1]?.trim();
+  if (!label || !/^\d{1,2}:\d{2}:\d{2}$/.test(timestampLine || "")) return null;
+
+  const timestamp = parseTimestampSeconds(timestampLine);
+  return timestamp === null ? null : { label, timestamp, inlineText: "" };
+}
+
 export function parseImportedTranscriptTxt(raw: string): ImportedTranscriptTxt {
   const lines = String(raw || "")
     .replace(/^\uFEFF/, "")
     .split(/\r?\n/);
-  const firstNonEmptyLine = lines.find((line) => line.trim())?.trim() || null;
-  const title = firstNonEmptyLine && !parseHeaderLine(firstNonEmptyLine) ? firstNonEmptyLine : null;
+  const firstHeaderIndex = lines.findIndex(
+    (line, index) => parseHeaderLine(line) || parseSplitHeader(lines, index)
+  );
+  const splitTimelineStart =
+    firstHeaderIndex >= 0 && !parseHeaderLine(lines[firstHeaderIndex])
+      ? (parseSplitHeader(lines, firstHeaderIndex)?.timestamp ?? null)
+      : null;
+  const firstNonEmptyIndex = lines.findIndex((line) => line.trim());
+  const title =
+    firstNonEmptyIndex >= 0 && (firstHeaderIndex < 0 || firstNonEmptyIndex < firstHeaderIndex)
+      ? lines[firstNonEmptyIndex].trim()
+      : null;
   const segments: TranscriptSegment[] = [];
   let current: {
     label: string;
@@ -101,14 +123,20 @@ export function parseImportedTranscriptTxt(raw: string): ImportedTranscriptTxt {
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
-    const header = parseHeaderLine(line);
+    const inlineHeader = parseHeaderLine(line);
+    const splitHeader = splitTimelineStart === null ? null : parseSplitHeader(lines, i);
+    const header = inlineHeader || splitHeader;
     if (header) {
       flush();
       current = {
         label: header.label,
-        timestamp: header.timestamp,
+        timestamp:
+          splitTimelineStart === null
+            ? header.timestamp
+            : Math.max(0, header.timestamp - splitTimelineStart),
         textLines: header.inlineText ? [header.inlineText] : [],
       };
+      if (splitHeader) i += 1;
       continue;
     }
     if (!current) continue;
