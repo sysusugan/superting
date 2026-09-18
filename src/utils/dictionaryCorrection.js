@@ -1,5 +1,7 @@
 function normalizeText(value) {
-  return String(value || "").trim().replace(/\s+/g, " ");
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function normalizeKey(value) {

@@ -477,7 +477,10 @@ test("normalizes full meeting transcripts before summaries consume display text"
   assert.equal(result.rawText, "他说由这个 Agent 去理解了企业的各种");
   assert.equal(result.displayText, "他說由這個 Agent 去理解了企業的各種");
   assert.equal(result.text, "他說由這個 Agent 去理解了企業的各種");
-  assert.equal(result.processingMetadata.voiceFlow.displayText, "他說由這個 Agent 去理解了企業的各種");
+  assert.equal(
+    result.processingMetadata.voiceFlow.displayText,
+    "他說由這個 Agent 去理解了企業的各種"
+  );
 });
 
 test("uses scriptLanguage for Chinese script normalization when STT language is base zh", () => {

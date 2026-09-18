@@ -30,9 +30,7 @@ test("applies explicit aliases before automatic dictionary matching", () => {
   });
 
   assert.equal(result.text, "EntVerse 跟 EnlightAI 是配合的关系。");
-  assert.deepEqual(result.replacements, [
-    { from: "Antibus", to: "EntVerse", kind: "alias" },
-  ]);
+  assert.deepEqual(result.replacements, [{ from: "Antibus", to: "EntVerse", kind: "alias" }]);
   assert.equal(result.changed, true);
 });
 
@@ -49,14 +47,15 @@ test("normalizes dictionary casing for exact case-insensitive matches", () => {
 });
 
 test("conservatively corrects near ASR spellings without changing unrelated words", () => {
-  const result = applyDictionaryCorrections("Antibus is paired with EnlightAI, but universe stays.", {
-    dictionary: ["EntVerse", "EnlightAI"],
-  });
+  const result = applyDictionaryCorrections(
+    "Antibus is paired with EnlightAI, but universe stays.",
+    {
+      dictionary: ["EntVerse", "EnlightAI"],
+    }
+  );
 
   assert.equal(result.text, "EntVerse is paired with EnlightAI, but universe stays.");
-  assert.deepEqual(result.replacements, [
-    { from: "Antibus", to: "EntVerse", kind: "fuzzy" },
-  ]);
+  assert.deepEqual(result.replacements, [{ from: "Antibus", to: "EntVerse", kind: "fuzzy" }]);
 });
 
 test("does not rewrite Chinese words or distant English candidates", () => {
