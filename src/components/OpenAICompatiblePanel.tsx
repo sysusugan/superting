@@ -6,6 +6,7 @@ import ApiKeyInput from "./ui/ApiKeyInput";
 import ModelCardList from "./ui/ModelCardList";
 import { buildApiUrl, normalizeBaseUrl } from "../config/constants";
 import { isSecureEndpoint } from "../utils/urlUtils";
+import { selectCustomModel } from "../services/ai/customModelSelection";
 
 interface ModelOption {
   value: string;
@@ -159,8 +160,11 @@ export default function OpenAICompatiblePanel({
 
         if (isMountedRef.current && latestBaseRef.current === normalized) {
           setModelOptions(mapped);
-          if (model && mapped.length > 0 && !mapped.some((m) => m.value === model)) {
-            setModel("");
+          if (mapped.length > 0) {
+            const nextModel = selectCustomModel(model, mapped);
+            if (nextModel !== model) {
+              setModel(nextModel);
+            }
           }
           setModelsError(null);
           lastLoadedBaseRef.current = normalized;

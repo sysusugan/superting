@@ -7,6 +7,25 @@ export interface ChatToolSupportInput {
   chatAgentModel: string;
 }
 
+export type CustomChatConfigurationError = "endpoint" | "model" | null;
+
+export function getCustomChatConfigurationError({
+  mode,
+  provider,
+  model,
+  baseUrl,
+}: {
+  mode: string;
+  provider: string;
+  model: string;
+  baseUrl: string;
+}): CustomChatConfigurationError {
+  if (mode !== "providers" || provider !== "custom") return null;
+  if (!baseUrl.trim()) return "endpoint";
+  if (!model.trim()) return "model";
+  return null;
+}
+
 export function estimateModelSizeB(modelId: string): number {
   const match = modelId.match(/-([\d.]+)[bB]/);
   return match ? parseFloat(match[1]) : 0;

@@ -7,7 +7,11 @@ import { createToolRegistry } from "../../services/tools";
 import type { ToolRegistry } from "../../services/tools/ToolRegistry";
 import type { Message, AgentState, ToolCallInfo } from "./types";
 import { isMissingFinalAnswerAfterToolResult } from "./chatCompletionGuard";
-import { isLocalChatProvider, shouldEnableChatTools } from "./toolSupportPolicy";
+import {
+  getCustomChatConfigurationError,
+  isLocalChatProvider,
+  shouldEnableChatTools,
+} from "./toolSupportPolicy";
 import type { ActionItem, NoteItem } from "../../types/electron";
 
 const RAG_NOTE_LIMIT = 5;
@@ -146,6 +150,19 @@ export function useChatStreaming({
       setAgentState("streaming");
 
       try {
+        const customConfigError = getCustomChatConfigurationError({
+          mode: chatAgentMode,
+          provider: settings.chatAgentProvider,
+          model: settings.chatAgentModel,
+          baseUrl: settings.chatAgentCloudBaseUrl,
+        });
+        if (customConfigError === "endpoint") {
+          throw new Error(t("reasoning.custom.enterEndpoint"));
+        }
+        if (customConfigError === "model") {
+          throw new Error(t("reasoning.selectModel"));
+        }
+
         let fullContent = "";
         let contentAfterToolResult = "";
         let sawToolResult = false;

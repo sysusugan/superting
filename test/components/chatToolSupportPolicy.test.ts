@@ -3,8 +3,39 @@ import test from "node:test";
 
 import {
   estimateModelSizeB,
+  getCustomChatConfigurationError,
   shouldEnableChatTools,
 } from "../../src/components/chat/toolSupportPolicy.ts";
+
+test("custom chat configuration requires an endpoint and model", () => {
+  assert.equal(
+    getCustomChatConfigurationError({
+      mode: "providers",
+      provider: "custom",
+      model: "",
+      baseUrl: "",
+    }),
+    "endpoint"
+  );
+  assert.equal(
+    getCustomChatConfigurationError({
+      mode: "providers",
+      provider: "custom",
+      model: "",
+      baseUrl: "https://example.com/v1",
+    }),
+    "model"
+  );
+  assert.equal(
+    getCustomChatConfigurationError({
+      mode: "providers",
+      provider: "custom",
+      model: "model",
+      baseUrl: "https://example.com/v1",
+    }),
+    null
+  );
+});
 
 test("custom chat provider enables agent tools", () => {
   assert.equal(
