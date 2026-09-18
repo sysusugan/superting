@@ -8,6 +8,7 @@ import {
 } from "./settingsStore";
 import { buildNoteActionSystemPrompt } from "./noteActionPrompt";
 import { generateNoteTitle } from "../utils/generateTitle";
+import { applyDictionaryCorrections } from "../utils/dictionaryCorrection";
 import { buildNoteActionInput } from "../components/notes/noteActionInput";
 import {
   applyActionTitleDatePrefix,
@@ -48,8 +49,7 @@ export async function runNoteActionOnce({
   speakerLabels,
 }: RunNoteActionOnceInput): Promise<RunNoteActionOnceResult> {
   const effectiveNoteId = noteId ?? -1;
-  const effectiveOperationId =
-    operationId ?? makeNoteActionOperationId(effectiveNoteId, action.id);
+  const effectiveOperationId = operationId ?? makeNoteActionOperationId(effectiveNoteId, action.id);
   const actionInput = buildNoteActionInput({
     noteContent: note.content,
     rawTranscript: note.transcript,
@@ -138,12 +138,16 @@ export async function runNoteActionOnce({
     actionPrompt: action.prompt,
   });
 
-  const generatedContent = await reasoningService.processText(
+  const rawGeneratedContent = await reasoningService.processText(
     actionInput.content,
     selectedModel,
     null,
     reasoningConfig
   );
+  const generatedContent = applyDictionaryCorrections(rawGeneratedContent, {
+    dictionary: settings.customDictionary,
+    aliases: settings.customDictionaryAliases,
+  }).text;
   logNoteAction("NOTE_ACTION_MODEL_RESPONSE", {
     operationId: effectiveOperationId,
     noteId: effectiveNoteId,

@@ -12,6 +12,20 @@ let resolveStreamingDictationText;
 let settleStreamingStop;
 let pickDictationWarning;
 
+test("meeting finals correct Chinese aliases while partials and compound words stay intact", () => {
+  const text = "参会人员包括阿波，讨论阿波罗计划。";
+  const metadata = {
+    customDictionary: ["arber"],
+    customDictionaryAliases: [{ from: "阿波", to: "arber" }],
+  };
+  const final = normalizeMeetingSegment({ text, type: "final" }, metadata);
+  assert.equal(final.text, "参会人员包括arber，讨论阿波罗计划。");
+  assert.equal(final.rawText, text);
+  assert.deepEqual(final.dictionaryCorrections, [{ from: "阿波", to: "arber", kind: "alias" }]);
+  assert.equal(normalizeMeetingSegment({ text, type: "partial" }, metadata).text, text);
+  assert.equal(normalizeMeetingTranscript(text, metadata).displayText, final.text);
+});
+
 before(async () => {
   ({
     normalizeDictationResult,

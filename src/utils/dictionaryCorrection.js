@@ -99,9 +99,24 @@ function isLikelyDictionaryMiss(candidate, target) {
   return false;
 }
 
+let chineseWordSegmenter;
+
 function replaceWholeTerm(text, from, to, kind, replacements) {
-  const pattern = new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(from)}(?![\\p{L}\\p{N}_])`, "giu");
-  return text.replace(pattern, (match) => {
+  const isChineseAlias = kind === "alias" && /\p{Script=Han}/u.test(from);
+  let boundaries;
+  if (isChineseAlias) {
+    chineseWordSegmenter ??= new Intl.Segmenter("zh-CN", { granularity: "word" });
+    // Match whole spans, including multi-word aliases, without cutting compound words.
+    boundaries = new Set([text.length]);
+    for (const { index } of chineseWordSegmenter.segment(text)) boundaries.add(index);
+  }
+  const pattern = isChineseAlias
+    ? new RegExp(escapeRegExp(from), "giu")
+    : new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(from)}(?![\\p{L}\\p{N}_])`, "giu");
+  return text.replace(pattern, (match, offset) => {
+    if (boundaries && (!boundaries.has(offset) || !boundaries.has(offset + match.length))) {
+      return match;
+    }
     if (match === to) return match;
     replacements.push({ from: match, to, kind });
     return to;

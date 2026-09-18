@@ -6,6 +6,23 @@ const {
   normalizeDictionaryAliases,
 } = require("../../src/utils/dictionaryCorrectionCore.cjs");
 
+test("corrects Chinese aliases inside sentences without rewriting compound words (CJS and ESM)", async () => {
+  const esm = await import("../../src/utils/dictionaryCorrection.js");
+  const options = {
+    dictionary: ["arber"],
+    aliases: [{ from: "阿波", to: "arber" }],
+  };
+  for (const correct of [applyDictionaryCorrections, esm.applyDictionaryCorrections]) {
+    const result = correct("参会人员包括阿波、卓聚；阿波负责阿波罗计划。", options);
+    assert.equal(result.text, "参会人员包括arber、卓聚；arber负责阿波罗计划。");
+    assert.deepEqual(result.replacements, [
+      { from: "阿波", to: "arber", kind: "alias" },
+      { from: "阿波", to: "arber", kind: "alias" },
+    ]);
+    assert.equal(correct(result.text, options).changed, false);
+  }
+});
+
 test("applies explicit aliases before automatic dictionary matching", () => {
   const result = applyDictionaryCorrections("Antibus 跟 EnlightAI 是配合的关系。", {
     dictionary: ["EntVerse", "EnlightAI"],
