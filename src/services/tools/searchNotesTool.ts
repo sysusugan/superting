@@ -1,13 +1,13 @@
 import type { ToolDefinition, ToolResult } from "./ToolRegistry";
+import { formatNoteToolDate } from "./noteDate";
 
 const MAX_CONTENT_LENGTH = 500;
 
 export function createSearchNotesTool(): ToolDefinition {
-
   return {
     name: "search_notes",
     description:
-      "Search the user's notes using semantic search. Understands meaning and context, not just keywords. Returns matching notes with title, date, relevance score, and a preview of content.",
+      "Search the user's notes using semantic search. Understands meaning and context, not just keywords. Returns matching notes with title, date (ISO 8601 UTC), relevance score, and a preview of content.",
     parameters: {
       type: "object",
       properties: {
@@ -71,7 +71,7 @@ async function executeLocalSearch(
   const results = notes.map((note) => ({
     id: note.id,
     title: note.title,
-    date: note.created_at,
+    date: formatNoteToolDate(note.recorded_at || note.created_at),
     type: note.note_type,
     content: (note.enhanced_content || note.content).slice(0, MAX_CONTENT_LENGTH),
   }));

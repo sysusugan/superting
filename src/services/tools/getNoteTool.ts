@@ -1,9 +1,10 @@
 import type { ToolDefinition, ToolResult } from "./ToolRegistry";
+import { formatNoteToolDate } from "./noteDate";
 
 export const getNoteTool: ToolDefinition = {
   name: "get_note",
   description:
-    "Get the full content of a specific note by ID. Use search_notes first to find the note ID.",
+    "Get the full content of a specific note by ID. Dates are ISO 8601 UTC timestamps. Use search_notes first to find the note ID.",
   parameters: {
     type: "object",
     properties: {
@@ -39,8 +40,9 @@ export const getNoteTool: ToolDefinition = {
           content: note.enhanced_content || note.content,
           type: note.note_type,
           folder_id: note.folder_id,
-          created_at: note.created_at,
-          updated_at: note.updated_at,
+          recorded_at: formatNoteToolDate(note.recorded_at || note.created_at),
+          created_at: formatNoteToolDate(note.created_at),
+          updated_at: formatNoteToolDate(note.updated_at),
         },
         displayText: `Retrieved note: "${note.title}"`,
       };
