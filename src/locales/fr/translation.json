@@ -1572,6 +1572,26 @@
     "expandConversationList": "Développer la liste des conversations"
   },
   "notes": {
+    "trackingIdentity": {
+      "assignment": "Associer à un élément",
+      "choose": "Choisir un élément existant ou en créer un",
+      "create": "Créer un élément distinct",
+      "linked": "Associé à cette note",
+      "required": "Associez chaque élément avant d’enregistrer.",
+      "details": "Détails de l’extraction (JSON)"
+    },
+    "trackingStatus": {
+      "notExtracted": "Aucune extraction effectuée.",
+      "pending": "En attente de confirmation",
+      "confirmed": "Confirmé",
+      "rejected": "Ignoré",
+      "failed": "Échec de l’extraction",
+      "superseded": "Remplacé par une nouvelle confirmation",
+      "empty": "Aucun élément ni progrès extrait. Vous pouvez réessayer.",
+      "uncertainties": "Informations à vérifier (faits non confirmés)",
+      "savedResult": "Extraction enregistrée",
+      "loadFailed": "Impossible de charger le suivi"
+    },
     "tags": {
       "add": "Ajouter un tag",
       "chooseExisting": "Choisir un tag existant",
@@ -1645,6 +1665,16 @@
       "live": "En direct",
       "transcript": "Transcription",
       "notes": "Notes",
+      "tracking": "Suivi",
+      "trackingTitle": "Éléments suivis",
+      "trackingDescription": "Extraire et confirmer les mises à jour à suivre dans cette note.",
+      "trackingExtract": "Extraire les éléments",
+      "trackingExtracting": "Extraction...",
+      "trackingConfirmed": "Mises à jour confirmées",
+      "trackingPending": "Extraction en attente",
+      "trackingReextract": "Extraire à nouveau",
+      "trackingUnavailable": "Action d’extraction indisponible",
+      "trackingConfirmFailed": "Impossible de confirmer l’extraction",
       "conversationWillAppear": "La conversation apparaîtra ici...",
       "linkedEvent": "Événement lié",
       "noFolder": "Aucun dossier",
@@ -1930,6 +1960,7 @@
       "outputTargetLabel": "Enregistrer le resultat dans",
       "outputTargetNote": "Notes",
       "outputTargetEnhanced": "Ameliore",
+      "outputTargetTracking": "Suivi",
       "writeModeLabel": "Mode d'ecriture",
       "writeModeOverwrite": "Remplacer",
       "writeModeAppend": "Ajouter"

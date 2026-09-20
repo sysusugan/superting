@@ -165,6 +165,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("db-create-action", name, description, prompt, icon, options),
   updateAction: (id, updates) => ipcRenderer.invoke("db-update-action", id, updates),
   deleteAction: (id) => ipcRenderer.invoke("db-delete-action", id),
+  getTrackingTemplates: () => ipcRenderer.invoke("db-get-tracking-templates"),
+  getNoteTracking: (noteId) => ipcRenderer.invoke("db-get-note-tracking", noteId),
+  getTrackingExtraction: (noteId, actionId) =>
+    ipcRenderer.invoke("db-get-tracking-extraction", noteId, actionId),
+  saveTrackingExtraction: (noteId, actionId, generatedContent, force = false) =>
+    ipcRenderer.invoke("db-save-tracking-extraction", noteId, actionId, generatedContent, force),
+  confirmTrackingExtraction: (extractionId, result) =>
+    ipcRenderer.invoke("db-confirm-tracking-extraction", extractionId, result),
+  rejectTrackingExtraction: (extractionId) =>
+    ipcRenderer.invoke("db-reject-tracking-extraction", extractionId),
 
   // Audio file operations
   selectAudioFile: () => ipcRenderer.invoke("select-audio-file"),

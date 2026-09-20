@@ -1531,6 +1531,26 @@
     }
   },
   "notes": {
+    "trackingIdentity": {
+      "assignment": "歸屬事項",
+      "choose": "請選擇已有事項或明確新建",
+      "create": "確實新建獨立事項",
+      "linked": "本筆記已關聯",
+      "required": "請先確定每個事項的歸屬，再儲存。",
+      "details": "擷取詳情（JSON）"
+    },
+    "trackingStatus": {
+      "notExtracted": "尚未擷取事項。",
+      "pending": "待確認",
+      "confirmed": "已確認",
+      "rejected": "已忽略",
+      "failed": "擷取失敗",
+      "superseded": "已被新的確認結果取代",
+      "empty": "本次未擷取到事項或進展，可重新擷取。",
+      "uncertainties": "待確認資訊（不作為已確認事實）",
+      "savedResult": "已儲存的擷取結果",
+      "loadFailed": "事項資料載入失敗"
+    },
     "tags": {
       "add": "新增標籤",
       "chooseExisting": "選擇既有標籤",
@@ -1604,6 +1624,16 @@
       "live": "即時",
       "transcript": "轉錄",
       "notes": "筆記",
+      "tracking": "事項",
+      "trackingTitle": "事項追蹤",
+      "trackingDescription": "從目前筆記擷取並確認需要持續追蹤的事項更新。",
+      "trackingExtract": "擷取事項",
+      "trackingExtracting": "擷取中...",
+      "trackingConfirmed": "已確認更新",
+      "trackingPending": "待確認擷取",
+      "trackingReextract": "重新擷取",
+      "trackingUnavailable": "找不到事項擷取操作",
+      "trackingConfirmFailed": "事項確認失敗",
       "conversationWillAppear": "對話將顯示在這裡...",
       "linkedEvent": "關聯行程",
       "noFolder": "無資料夾",
@@ -1873,6 +1903,7 @@
       "outputTargetLabel": "儲存結果到",
       "outputTargetNote": "筆記",
       "outputTargetEnhanced": "增強",
+      "outputTargetTracking": "事項",
       "writeModeLabel": "寫入方式",
       "writeModeOverwrite": "覆蓋",
       "writeModeAppend": "追加"

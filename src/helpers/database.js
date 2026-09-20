@@ -1,10 +1,11 @@
 const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
-const { randomUUID } = require("crypto");
+const { createHash, randomUUID } = require("crypto");
 const debugLogger = require("./debugLogger");
 const { app } = require("electron");
 const { isRetainedAudioFile, parseMeetingAudioFilename } = require("./audioStorageFiles");
+const { normalizeTrackingDraft } = require('./trackingIdentity');
 
 const NOTE_ORDER_BY = {
   updatedAt: "updated_at DESC, id DESC",
@@ -47,6 +48,15 @@ function serializeJsonColumn(value) {
   if (value == null) return null;
   if (typeof value === "string") return value;
   return JSON.stringify(value);
+}
+
+function safeJson(value, fallback = null) {
+  if (value && typeof value === "object") return value;
+  try {
+    return value == null ? fallback : JSON.parse(value);
+  } catch {
+    return fallback;
+  }
 }
 
 function buildSaveTranscriptionInsert(
@@ -122,6 +132,16 @@ const DEFAULT_NOTE_ACTIONS = [
       "请优化以下语音转录文本，使其更准确、流畅、易读。\n\n要求：\n- 修正明显的错别字、同音误识别、标点和断句问题\n- 保留原始含义、语气和信息顺序\n- 不要总结、扩写或改写成另一种文体\n- 不要删除重要细节、数字、人名、公司名、产品名或专有名词\n- 删除明显的口头禅、重复停顿和无意义填充词\n- 如果原文是口语表达，请整理为自然书面表达，但不要过度润色\n- 只输出优化后的文本，不要添加解释",
     isBuiltin: 0,
     sortOrder: 3,
+  },
+  {
+    key: "notes.actions.builtin.extractTracking",
+    name: "提取事项",
+    description: "从当前笔记中提取关联事项、进展、风险和证据",
+    prompt:
+      '请从当前笔记中提取可持续追踪的工作事项。只输出合法 JSON，不要 Markdown 代码围栏或解释。\n\n事项类型仅可使用：商机、项目、产品能力、生态合作项目。\n\n输出结构：{"matchedItems":[{"title":"","itemType":"","confidence":0,"reason":""}],"newItems":[{"title":"","itemType":"","state":"","properties":{}}],"updates":[{"itemTitle":"","updateType":"进展|风险|结果|下一步|关联","content":"","occurredAt":"","stateAfter":"","evidence":"","relatedItemTitle":"","relationType":""}],"uncertainties":[]}。\n\n只提取原文明确出现的事实，不要把计划写成结果；evidence 必须是原文中的短句；无法确定的内容放入 uncertainties。',
+    isBuiltin: 1,
+    sortOrder: 4,
+    tracking: true,
   },
 ];
 
@@ -433,6 +453,68 @@ class DatabaseManager {
       } catch (err) {
         if (!err.message.includes("duplicate column")) throw err;
       }
+
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS tracking_templates (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          definition_json TEXT NOT NULL,
+          version INTEGER NOT NULL DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS tracking_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          template_id INTEGER NOT NULL REFERENCES tracking_templates(id),
+          title TEXT NOT NULL,
+          state TEXT NOT NULL DEFAULT '进行中',
+          properties_json TEXT NOT NULL DEFAULT '{}',
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS tracking_updates (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          item_id INTEGER NOT NULL REFERENCES tracking_items(id),
+          note_id INTEGER NOT NULL REFERENCES notes(id),
+          update_type TEXT NOT NULL,
+          content TEXT NOT NULL,
+          occurred_at DATETIME,
+          state_after TEXT,
+          evidence_text TEXT NOT NULL DEFAULT '',
+          related_item_id INTEGER REFERENCES tracking_items(id),
+          relation_type TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS tracking_extractions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          note_id INTEGER NOT NULL REFERENCES notes(id),
+          action_id INTEGER NOT NULL REFERENCES actions(id),
+          input_hash TEXT NOT NULL,
+          template_version INTEGER NOT NULL DEFAULT 1,
+          result_json TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          supersedes_id INTEGER REFERENCES tracking_extractions(id),
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_tracking_updates_item_date
+          ON tracking_updates(item_id, occurred_at DESC, id DESC);
+        CREATE INDEX IF NOT EXISTS idx_tracking_updates_note
+          ON tracking_updates(note_id, id DESC);
+        CREATE INDEX IF NOT EXISTS idx_tracking_extractions_lookup
+          ON tracking_extractions(note_id, action_id, input_hash, template_version, status);
+      `);
+      try {
+        this.db.exec("ALTER TABLE tracking_updates ADD COLUMN state_after TEXT");
+      } catch (err) {
+        if (!err.message.includes("duplicate column")) throw err;
+      }
+      this._seedTrackingTemplates();
 
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS agent_conversations (
@@ -1720,30 +1802,75 @@ class DatabaseManager {
   }
 
   _insertDefaultAction(action) {
+    const outputTarget = action.tracking ? "tracking" : "content";
     return this.db
       .prepare(
-        "INSERT INTO actions (name, description, prompt, icon, output_target, write_mode, is_builtin, sort_order, translation_key) VALUES (?, ?, ?, ?, 'content', 'overwrite', ?, ?, ?)"
+        "INSERT INTO actions (name, description, prompt, icon, output_target, write_mode, is_builtin, sort_order, translation_key) VALUES (?, ?, ?, ?, ?, 'overwrite', ?, ?, ?)"
       )
       .run(
         action.name,
         action.description,
         action.prompt,
         "sparkles",
+        outputTarget,
         action.isBuiltin,
         action.sortOrder,
         action.key
       );
   }
 
+  _seedTrackingTemplates() {
+    const templates = [
+      [
+        "商机",
+        {
+          fields: ["客户", "金额", "负责人"],
+          states: ["进行中", "赢单", "输单", "暂停"],
+          updateTypes: ["进展", "风险", "结果", "下一步", "关联"],
+        },
+      ],
+      [
+        "项目",
+        {
+          fields: ["客户", "负责人"],
+          states: ["进行中", "已完成", "暂停"],
+          updateTypes: ["进展", "风险", "结果", "下一步", "关联"],
+        },
+      ],
+      [
+        "产品能力",
+        {
+          fields: ["产品线", "负责人"],
+          states: ["建设中", "已形成", "已验证"],
+          updateTypes: ["进展", "风险", "结果", "下一步", "关联"],
+        },
+      ],
+      [
+        "生态合作项目",
+        {
+          fields: ["合作方", "负责人"],
+          states: ["进行中", "已完成", "暂停"],
+          updateTypes: ["进展", "风险", "结果", "下一步", "关联"],
+        },
+      ],
+    ];
+    const insert = this.db.prepare(
+      "INSERT OR IGNORE INTO tracking_templates (name, definition_json) VALUES (?, ?)"
+    );
+    for (const [name, definition] of templates) insert.run(name, JSON.stringify(definition));
+  }
+
   _updateActionToDefault(id, action) {
+    const outputTarget = action.tracking ? "tracking" : "content";
     this.db
       .prepare(
-        "UPDATE actions SET name = ?, description = ?, prompt = ?, icon = 'sparkles', output_target = 'content', write_mode = 'overwrite', is_builtin = ?, sort_order = ?, translation_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+        "UPDATE actions SET name = ?, description = ?, prompt = ?, icon = 'sparkles', output_target = ?, write_mode = 'overwrite', is_builtin = ?, sort_order = ?, translation_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
       )
       .run(
         action.name,
         action.description,
         action.prompt,
+        outputTarget,
         action.isBuiltin,
         action.sortOrder,
         action.key,
@@ -1752,6 +1879,14 @@ class DatabaseManager {
   }
 
   _updateActionDefaultMetadata(id, action) {
+    if (action.tracking) {
+      this.db
+        .prepare(
+          "UPDATE actions SET icon = 'sparkles', is_builtin = ?, sort_order = ?, translation_key = ?, output_target = 'tracking' WHERE id = ?"
+        )
+        .run(action.isBuiltin, action.sortOrder, action.key, id);
+      return;
+    }
     this.db
       .prepare(
         "UPDATE actions SET icon = 'sparkles', is_builtin = ?, sort_order = ?, translation_key = ? WHERE id = ?"
@@ -1794,13 +1929,17 @@ class DatabaseManager {
       .prepare("UPDATE actions SET is_builtin = 0 WHERE id != ? AND is_builtin = 1")
       .run(meetingActionId);
 
-    if (!migratedLegacyBuiltIn) return;
-
     for (const action of DEFAULT_NOTE_ACTIONS.slice(1)) {
       const existing = this.db
         .prepare("SELECT id FROM actions WHERE translation_key = ?")
         .get(action.key);
-      if (!existing) this._insertDefaultAction(action);
+      if (!existing) {
+        this._insertDefaultAction(action);
+      } else if (action.tracking) {
+        this.db
+          .prepare("UPDATE actions SET is_builtin = 1, output_target = 'tracking' WHERE id = ?")
+          .run(existing.id);
+      }
     }
   }
 
@@ -1822,6 +1961,411 @@ class DatabaseManager {
       debugLogger.error("Error getting action", { error: error.message }, "notes");
       throw error;
     }
+  }
+
+  getTrackingTemplates() {
+    return this.db
+      .prepare("SELECT * FROM tracking_templates ORDER BY id ASC")
+      .all()
+      .map((row) => ({ ...row, definition: safeJson(row.definition_json, {}) }));
+  }
+
+  getTrackingCandidates(noteId) {
+    const note = this.getNote(noteId);
+    if (!note || note.deleted_at) throw new Error('Note not found');
+    const items = this.db.prepare(`SELECT i.*, t.name AS itemType FROM tracking_items i
+      JOIN tracking_templates t ON t.id = i.template_id ORDER BY i.updated_at DESC, i.id DESC`).all()
+      .map(item => ({ id: item.id, title: item.title, itemType: item.itemType, state: item.state,
+        properties: safeJson(item.properties_json, {}), isActive: !!item.is_active }));
+    const linked = new Set(this.db.prepare('SELECT DISTINCT item_id FROM tracking_updates WHERE note_id = ?').all(noteId).map(row => row.item_id));
+    const last = this.db.prepare("SELECT result_json FROM tracking_extractions WHERE note_id = ? AND status = 'confirmed' ORDER BY id DESC LIMIT 1").get(noteId);
+    const previous = safeJson(last?.result_json, {});
+    for (const entry of [...(previous.matchedItems || []), ...(previous.newItems || [])]) {
+      if (Number.isInteger(entry.itemId)) linked.add(entry.itemId);
+      else {
+        const matches = items.filter(item => item.title === entry.title && item.itemType === entry.itemType);
+        if (matches.length === 1) linked.add(matches[0].id);
+      }
+    }
+    const text = [note.title, note.content, note.enhanced_content, note.transcript, ...(note.tags || [])].join('\n').toLocaleLowerCase();
+    // ponytail: linear candidate scan for a personal ledger; add indexed retrieval if this grows slow.
+    const score = item => {
+      const terms = [item.title, ...item.title.split(/[\s\p{P}]+/u), ...Object.values(item.properties).filter(v => typeof v === 'string')];
+      return terms.filter(term => term.length >= 2 && text.includes(term.toLocaleLowerCase())).length;
+    };
+    return [
+      ...items.filter(item => linked.has(item.id)).map(item => ({ ...item, linked: true })),
+      ...items.filter(item => !linked.has(item.id)).map(item => ({...item, score: score(item)}))
+        .filter(item => item.score > 0).sort((a,b) => b.score - a.score).slice(0,20)
+        .map(({score: _score, ...item}) => ({ ...item, linked: false })),
+    ];
+  }
+
+  normalizeTrackingResult(result) {
+    const items = this.db.prepare(`SELECT i.id, i.title, t.name AS itemType FROM tracking_items i
+      JOIN tracking_templates t ON t.id = i.template_id`).all();
+    return normalizeTrackingDraft(result, items);
+  }
+
+  getTrackingTemplateVersion() {
+    return this.db
+      .prepare("SELECT COALESCE(MAX(version), 1) AS version FROM tracking_templates")
+      .get().version;
+  }
+
+  getTrackingExtraction(noteId, actionId) {
+    const note = this.getNote(noteId);
+    if (!note) return null;
+    const action = this.getAction(actionId);
+    if (!action || action.output_target !== "tracking") return null;
+    const templateVersion = this.getTrackingTemplateVersion();
+    const inputHash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          title: note.title,
+          content: note.content,
+          enhanced_content: note.enhanced_content,
+          transcript: note.transcript,
+          tags: note.tags || [],
+          recorded_at: note.recorded_at,
+          prompt: action.prompt,
+          templateVersion,
+        })
+      )
+      .digest("hex");
+    const row = this.db
+      .prepare(
+        `SELECT * FROM tracking_extractions
+         WHERE note_id = ? AND action_id = ? AND input_hash = ? AND template_version = ?
+           AND status IN ('pending', 'confirmed')
+         ORDER BY id DESC LIMIT 1`
+      )
+      .get(noteId, actionId, inputHash, templateVersion);
+    return row
+      ? { ...row, result: safeJson(row.result_json, null), inputHash, templateVersion }
+      : null;
+  }
+
+  saveTrackingExtraction(noteId, actionId, generatedContent, force = false) {
+    const note = this.getNote(noteId);
+    const action = this.getAction(actionId);
+    if (!note || !action || action.output_target !== "tracking") {
+      return { success: false, error: "Tracking action or note not found" };
+    }
+    let result;
+    try {
+      const cleaned = String(generatedContent || "")
+        .trim()
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```$/, "");
+      result = JSON.parse(cleaned);
+    } catch {
+      return { success: false, error: "Tracking extraction returned invalid JSON" };
+    }
+    if (!result || typeof result !== "object" || !Array.isArray(result.updates)) {
+      return { success: false, error: "Tracking extraction has an invalid shape" };
+    }
+    try {
+      // A model cannot authorize creating an item: only the review UI can set createNew.
+      for (const key of ['matchedItems', 'newItems']) {
+        if (Array.isArray(result[key])) result[key] = result[key].map(({createNew: _ignored, ...item}) => item);
+      }
+      result = this.normalizeTrackingResult(result);
+      result.protocolVersion = 2;
+    } catch (error) { return { success: false, error: error.message }; }
+    const templateVersion = this.getTrackingTemplateVersion();
+    const inputHash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          title: note.title,
+          content: note.content,
+          enhanced_content: note.enhanced_content,
+          transcript: note.transcript,
+          tags: note.tags || [],
+          recorded_at: note.recorded_at,
+          prompt: action.prompt,
+          templateVersion,
+        })
+      )
+      .digest("hex");
+    if (!force) {
+      const cached = this.getTrackingExtraction(noteId, actionId);
+      if (cached?.result?.protocolVersion === 2) return { success: true, cached: true, extraction: cached };
+    }
+    const previous = this.db
+      .prepare(
+        `SELECT * FROM tracking_extractions
+         WHERE note_id = ? AND action_id = ? AND status IN ('pending', 'confirmed')
+         ORDER BY id DESC LIMIT 1`
+      )
+      .get(noteId, actionId);
+    const row = this.db
+      .prepare(
+        `INSERT INTO tracking_extractions
+          (note_id, action_id, input_hash, template_version, result_json, status, supersedes_id)
+         VALUES (?, ?, ?, ?, ?, 'pending', ?)`
+      )
+      .run(
+        noteId,
+        actionId,
+        inputHash,
+        templateVersion,
+        JSON.stringify(result),
+        previous?.id || null
+      );
+    return {
+      success: true,
+      cached: false,
+      extraction: {
+        id: row.lastInsertRowid,
+        note_id: noteId,
+        action_id: actionId,
+        input_hash: inputHash,
+        template_version: templateVersion,
+        status: "pending",
+        supersedes_id: previous?.id || null,
+        result,
+      },
+    };
+  }
+
+  getNoteTracking(noteId) {
+    const extractions = this.db
+      .prepare("SELECT * FROM tracking_extractions WHERE note_id = ? ORDER BY id DESC")
+      .all(noteId)
+      .map((row) => ({ ...row, result: safeJson(row.result_json, null) }));
+    const updates = this.db
+      .prepare(
+        `SELECT u.*, i.title AS item_title, i.state AS item_state,
+                t.name AS item_type
+         FROM tracking_updates u
+         JOIN tracking_items i ON i.id = u.item_id
+         JOIN tracking_templates t ON t.id = i.template_id
+         WHERE u.note_id = ? ORDER BY u.occurred_at DESC, u.id DESC`
+      )
+      .all(noteId);
+    const candidates = this.getTrackingCandidates(noteId);
+    return { extractions: extractions.map(extraction => {
+      try {
+        return { ...extraction, reviewResult: this.normalizeTrackingResult(extraction.result) };
+      } catch { return { ...extraction, reviewResult: null }; }
+    }), updates, candidates };
+  }
+
+  confirmTrackingExtraction(extractionId, resultOverride) {
+    const extraction = this.db
+      .prepare("SELECT * FROM tracking_extractions WHERE id = ?")
+      .get(extractionId);
+    if (!extraction) return { success: false, error: "Tracking extraction not found" };
+    if (extraction.status === "confirmed") return { success: true, alreadyConfirmed: true };
+    if (extraction.status !== "pending")
+      return { success: false, error: "Extraction is not pending" };
+    if (
+      this.getTrackingExtraction(extraction.note_id, extraction.action_id)?.id !== extraction.id
+    ) {
+      return {
+        success: false,
+        error: "Note or extraction changed; extract again before confirming",
+      };
+    }
+    let result = resultOverride || safeJson(extraction.result_json, null);
+    if (!result || !Array.isArray(result.updates)) {
+      return { success: false, error: "Tracking extraction has an invalid result" };
+    }
+    try { result = this.normalizeTrackingResult(result); }
+    catch (error) { return { success: false, error: error.message }; }
+    const templates = new Map(
+      this.getTrackingTemplates().map((template) => [template.name, template])
+    );
+    const findOrCreateItem = (item) => {
+      const title = String(item?.title || item?.itemTitle || "").trim();
+      const type = String(item?.itemType || "").trim();
+      if (!title || !templates.has(type)) throw new Error('Unknown item type or empty title');
+      if (item.itemId != null) {
+        if (!Number.isInteger(item.itemId)) throw new Error('Invalid item ID');
+        const existing = this.db.prepare('SELECT * FROM tracking_items WHERE id = ?').get(item.itemId);
+        if (!existing || existing.template_id !== templates.get(type).id) throw new Error('Item ID does not exist or type does not match');
+        return existing;
+      }
+      if (item.createNew !== true) throw new Error('Choose an existing item or explicitly choose to create a new item');
+      const inserted = this.db
+        .prepare(
+          "INSERT INTO tracking_items (template_id, title, state, properties_json) VALUES (?, ?, ?, ?)"
+        )
+        .run(
+          templates.get(type).id,
+          title,
+          item?.state || "进行中",
+          JSON.stringify(item?.properties || {})
+        );
+      return this.db
+        .prepare("SELECT * FROM tracking_items WHERE id = ?")
+        .get(inserted.lastInsertRowid);
+    };
+    const transaction = this.db.transaction(() => {
+      const affected = this.db
+        .prepare("SELECT DISTINCT item_id FROM tracking_updates WHERE note_id = ?")
+        .all(extraction.note_id);
+      // Previous reviewed JSON is kept for audit; only this note's materialized updates are replaced.
+      this.db.prepare("DELETE FROM tracking_updates WHERE note_id = ?").run(extraction.note_id);
+      const itemByRef = new Map();
+      for (const item of [...(result.matchedItems || []), ...(result.newItems || [])]) {
+        const created = findOrCreateItem(item);
+        itemByRef.set(item.ref, created);
+        item.itemId = created.id;
+        item.title = created.title;
+        delete item.createNew;
+      }
+      // Relations are source-backed updates too; no separate graph table is needed.
+      for (const relation of result.relations || []) {
+        result.updates.push({ itemRef: relation.sourceRef, relatedItemRef: relation.targetRef,
+          relationType: relation.relationType, updateType: '关联',
+          content: relation.content || relation.relationType, evidence: relation.evidence,
+          occurredAt: relation.occurredAt || null });
+      }
+      for (const update of result.updates) {
+        const item = itemByRef.get(update.itemRef);
+        if (!item || typeof update.content !== "string" || !update.content.trim()) {
+          throw new Error("Every update must reference a valid item and contain text");
+        }
+        const related = itemByRef.get(update.relatedItemRef) || null;
+        update.itemId = item.id;
+        update.itemTitle = item.title;
+        if (related) { update.relatedItemId = related.id; update.relatedItemTitle = related.title; }
+        this.db
+          .prepare(
+            `INSERT INTO tracking_updates
+              (item_id, note_id, update_type, content, occurred_at, state_after, evidence_text, related_item_id, relation_type)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+          .run(
+            item.id,
+            extraction.note_id,
+            update.updateType || "进展",
+            update.content.trim(),
+            update.occurredAt || null,
+            update.stateAfter || null,
+            update.evidence || "",
+            related?.id || null,
+            update.relationType || null
+          );
+        this.db
+          .prepare(
+            "UPDATE tracking_items SET state = COALESCE(?, state), updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+          )
+          .run(update.stateAfter || null, item.id);
+      }
+      for (const { item_id } of affected) {
+        const state = this.db
+          .prepare(
+            "SELECT state_after FROM tracking_updates WHERE item_id = ? AND state_after IS NOT NULL ORDER BY id DESC LIMIT 1"
+          )
+          .get(item_id);
+        const item = this.db
+          .prepare("SELECT template_id FROM tracking_items WHERE id = ?")
+          .get(item_id);
+        const template = [...templates.values()].find((t) => t.id === item?.template_id);
+        this.db
+          .prepare(
+            "UPDATE tracking_items SET state = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+          )
+          .run(state?.state_after || template?.definition?.states?.[0] || "进行中", item_id);
+      }
+      this.db
+        .prepare(
+          "UPDATE tracking_extractions SET status = 'superseded', updated_at = CURRENT_TIMESTAMP WHERE note_id = ? AND id != ? AND status IN ('pending', 'confirmed')"
+        )
+        .run(extraction.note_id, extractionId);
+      this.db
+        .prepare(
+          "UPDATE tracking_extractions SET result_json = ?, status = 'confirmed', updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+        )
+        .run(JSON.stringify({ ...result, protocolVersion: 2 }), extractionId);
+    });
+    try {
+      transaction();
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, data: this.getNoteTracking(extraction.note_id) };
+  }
+
+  rejectTrackingExtraction(extractionId) {
+    const result = this.db
+      .prepare(
+        "UPDATE tracking_extractions SET status = 'rejected', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'pending'"
+      )
+      .run(extractionId);
+    return { success: result.changes > 0 };
+  }
+
+  getTrackingContext({
+    from = null,
+    to = null,
+    itemTypes = [],
+    itemIds = [],
+    includeInactive = false,
+  } = {}) {
+    const conditions = ["1 = 1"];
+    const params = [];
+    if (!includeInactive) conditions.push("i.is_active = 1");
+    if (from) {
+      conditions.push("(u.occurred_at IS NULL OR u.occurred_at >= ?)");
+      params.push(from);
+    }
+    if (to) {
+      conditions.push("(u.occurred_at IS NULL OR u.occurred_at <= ?)");
+      params.push(to);
+    }
+    if (itemTypes.length) {
+      conditions.push(`t.name IN (${itemTypes.map(() => "?").join(",")})`);
+      params.push(...itemTypes);
+    }
+    if (itemIds.length) {
+      conditions.push(`i.id IN (${itemIds.map(() => "?").join(",")})`);
+      params.push(...itemIds);
+    }
+    const rows = this.db
+      .prepare(
+        `
+      SELECT i.id, i.title, i.state, i.properties_json, t.name AS item_type,
+             u.id AS update_id, u.update_type, u.content, u.occurred_at, u.state_after, u.evidence_text,
+             u.note_id, u.related_item_id, u.relation_type
+      FROM tracking_items i
+      JOIN tracking_templates t ON t.id = i.template_id
+      LEFT JOIN tracking_updates u ON u.item_id = i.id
+      WHERE ${conditions.join(" AND ")}
+      ORDER BY COALESCE(u.occurred_at, i.updated_at) DESC, i.id DESC, u.id DESC
+    `
+      )
+      .all(...params);
+    const items = new Map();
+    for (const row of rows) {
+      if (!items.has(row.id))
+        items.set(row.id, {
+          id: row.id,
+          title: row.title,
+          type: row.item_type,
+          state: row.state,
+          properties: safeJson(row.properties_json, {}),
+          updates: [],
+          relations: [],
+        });
+      const item = items.get(row.id);
+      if (row.update_id)
+        item.updates.push({
+          id: row.update_id,
+          type: row.update_type,
+          content: row.content,
+          occurred_at: row.occurred_at,
+          state_after: row.state_after,
+          evidence: row.evidence_text,
+          note_id: row.note_id,
+        });
+      if (row.related_item_id)
+        item.relations.push({ item_id: row.related_item_id, type: row.relation_type });
+    }
+    return { from, to, items: [...items.values()] };
   }
 
   createAction(name, description, prompt, icon = "sparkles", options = {}) {
@@ -1872,11 +2416,18 @@ class DatabaseManager {
         "output_target",
         "write_mode",
       ];
+      const existingAction = this.db.prepare("SELECT * FROM actions WHERE id = ?").get(id);
       const fields = [];
       const values = [];
       for (const [key, value] of Object.entries(updates)) {
         if (allowedFields.includes(key) && value !== undefined) {
-          if (key === "output_target" && !["content", "enhanced_content"].includes(value)) {
+          if (
+            key === "output_target" &&
+            (value === "tracking"
+              ? !existingAction?.is_builtin ||
+                existingAction.translation_key !== "notes.actions.builtin.extractTracking"
+              : !["content", "enhanced_content"].includes(value))
+          ) {
             continue;
           }
           if (key === "write_mode" && !["overwrite", "append"].includes(value)) {

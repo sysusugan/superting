@@ -529,7 +529,14 @@ Detects meetings via three independent sources, orchestrated by `MeetingDetectio
 
 ## Development Guidelines
 
-### Git Workflow
+### App release versions
+
+- Every delivered app build uses `YY.MDD.HMM` based on `Asia/Shanghai`, e.g. `26.915.1347` means 2026-09-15 13:47. Numeric segments omit leading zeros (`26.105.907` means January 5, 09:07).
+- `electron-builder.cjs` generates the packaged version automatically; settings (`app.getVersion()`), native metadata, MCP and artifact filenames must agree. Keep this configuration when packaging directly to reuse local resources.
+- For one release across platforms, set `SUPERTING_RELEASE_VERSION` once or use the corresponding `vYY.MDD.HMM` Git tag. Do not reuse a version for a different release; if rebuilding within the same minute, release in the next minute. Never overwrite a delivered artifact.
+- Reuse existing main-worktree binary/model resources when packaging a worktree; do not re-download unchanged resources.
+
+### Git workflow safety
 
 - Mandatory worktree gate before any task code edit, commit, build, or test-driven implementation:
   1. Run `git worktree list --porcelain`.

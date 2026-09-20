@@ -274,6 +274,10 @@ export default function PersonalNotesView({
   const [localTitle, setLocalTitle] = useState("");
   const [localContent, setLocalContent] = useState("");
   const [localEnhancedContent, setLocalEnhancedContent] = useState<string | null>(null);
+  const [trackingData, setTrackingData] = useState<Record<string, unknown> | null>(null);
+  const trackingNoteRef = useRef(activeNoteId);
+  trackingNoteRef.current = activeNoteId;
+  const trackingRequestRef = useRef(0);
   const [showActionManager, setShowActionManager] = useState(false);
   const [showNewNoteDialog, setShowNewNoteDialog] = useState(false);
   const [showAudioDownloadDialog, setShowAudioDownloadDialog] = useState(false);
@@ -447,6 +451,8 @@ export default function PersonalNotesView({
   } = useActionProcessing(activeNoteId ?? null);
   const actionProcessingStateRef = useRef(actionProcessingState);
   actionProcessingStateRef.current = actionProcessingState;
+  const trackingExtracting =
+    actionProcessingState === "processing" && actionOutputTarget === "tracking";
 
   const isTranscribing = useMeetingRecordingStore((s) => s.isRecording);
   const realtimeTranscript = useMeetingRecordingStore((s) => s.transcript);
@@ -1072,6 +1078,121 @@ export default function PersonalNotesView({
   );
 
   const isActiveNoteRecording = isTranscribing && recordingNoteId === activeNote?.id;
+
+  const refreshTracking = useCallback(
+    async (noteId: number | null = activeNoteId) => {
+      const request = ++trackingRequestRef.current;
+      if (noteId == null) {
+        setTrackingData(null);
+        return;
+      }
+      try {
+        const data = await window.electronAPI.getNoteTracking(noteId);
+        if (trackingNoteRef.current === noteId && request === trackingRequestRef.current) {
+          setTrackingData({ ...data, noteId });
+        }
+      } catch (error) {
+        logger.warn("Failed to load note tracking", error);
+        if (trackingNoteRef.current === noteId && request === trackingRequestRef.current) {
+          setTrackingData({ noteId, loadFailed: true });
+          toast({ title: t("notes.trackingStatus.loadFailed"), variant: "destructive" });
+        }
+      }
+    },
+    [activeNoteId, t, toast]
+  );
+
+  useEffect(() => {
+    setTrackingData(null);
+    void refreshTracking();
+  }, [refreshTracking]);
+
+  useEffect(() => {
+    const listener = (event: Event) => {
+      const noteId = (event as CustomEvent<number>).detail;
+      if (noteId === activeNoteId) void refreshTracking(noteId);
+    };
+    window.addEventListener("superting-tracking-updated", listener);
+    return () => window.removeEventListener("superting-tracking-updated", listener);
+  }, [activeNoteId, refreshTracking]);
+
+  const extractTracking = useCallback(
+    async (force = false) => {
+      if (!activeNoteId) return;
+      try {
+        await flushPendingNoteSaves(activeNoteId);
+        const actions = await window.electronAPI.getActions();
+        const action = actions.find((item) => item.output_target === "tracking");
+        if (!action) {
+          toast({ title: t("notes.editor.trackingUnavailable"), variant: "destructive" });
+          return;
+        }
+        const note = await window.electronAPI.getNote(activeNoteId);
+        if (!note) return;
+        const rawTranscript = resolveNoteActionTranscript({
+          isActiveNoteRecording,
+          realtimeTranscript,
+          persistedTranscript: note.transcript,
+        });
+        const actionInput = buildNoteActionInput({
+          noteContent: note.content,
+          rawTranscript,
+          speakerLabels: { you: t("notes.speaker.you"), them: t("notes.speaker.them") },
+        });
+        if (!actionInput) return;
+        runAction(action, actionInput.content, actionInput.contentHash, {
+          forceTracking: force,
+          isCloudMode,
+          modelId: effectiveModelId,
+          currentTitle: note.title,
+          currentContent: note.content,
+          currentEnhancedContent: note.enhanced_content,
+          currentTranscript: rawTranscript,
+          currentRecordedAt: note.recorded_at,
+          currentCreatedAt: note.created_at,
+          speakerLabels: { you: t("notes.speaker.you"), them: t("notes.speaker.them") },
+        });
+      } catch (error) {
+        toast({
+          title: t("notes.trackingStatus.failed"),
+          description: String(error),
+          variant: "destructive",
+        });
+      }
+    },
+    [
+      activeNoteId,
+      effectiveModelId,
+      isActiveNoteRecording,
+      isCloudMode,
+      realtimeTranscript,
+      flushPendingNoteSaves,
+      runAction,
+      t,
+      toast,
+    ]
+  );
+
+  const confirmTracking = useCallback(
+    async (extractionId: number, result: Record<string, unknown>) => {
+      const response = await window.electronAPI.confirmTrackingExtraction(extractionId, result);
+      if (response.success) await refreshTracking();
+      else
+        toast({
+          title: response.error || t("notes.editor.trackingConfirmFailed"),
+          variant: "destructive",
+        });
+    },
+    [refreshTracking, t, toast]
+  );
+
+  const rejectTracking = useCallback(
+    async (extractionId: number) => {
+      await window.electronAPI.rejectTrackingExtraction(extractionId);
+      await refreshTracking();
+    },
+    [refreshTracking]
+  );
   const echoCancellationMessage = isActiveNoteRecording
     ? getMeetingEchoCancellationMessage(recordingAecMode, recordingAecReason, t)
     : null;
@@ -2084,6 +2205,11 @@ export default function PersonalNotesView({
               onRecordedAtChange={handleRecordedAtChange}
               availableTags={availableTags}
               onTagsChange={handleTagsChange}
+              trackingData={trackingData?.noteId === editorNote.id ? trackingData : null}
+              trackingExtracting={trackingExtracting}
+              onExtractTracking={extractTracking}
+              onConfirmTracking={confirmTracking}
+              onRejectTracking={rejectTracking}
               actionProcessingState={actionProcessingState}
               actionName={actionName}
               actionOutputTarget={actionOutputTarget}

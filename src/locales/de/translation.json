@@ -1532,6 +1532,26 @@
     }
   },
   "notes": {
+    "trackingIdentity": {
+      "assignment": "Vorgang zuordnen",
+      "choose": "Vorhandenen Vorgang wählen oder neu erstellen",
+      "create": "Separaten Vorgang erstellen",
+      "linked": "Mit dieser Notiz verknüpft",
+      "required": "Vor dem Speichern alle Vorgänge zuordnen.",
+      "details": "Extraktionsdetails (JSON)"
+    },
+    "trackingStatus": {
+      "notExtracted": "Noch nicht extrahiert.",
+      "pending": "Bestätigung ausstehend",
+      "confirmed": "Bestätigt",
+      "rejected": "Ignoriert",
+      "failed": "Extraktion fehlgeschlagen",
+      "superseded": "Durch neuere Bestätigung ersetzt",
+      "empty": "Keine Vorgänge oder Aktualisierungen extrahiert. Erneut versuchen.",
+      "uncertainties": "Ungeklärte Angaben (keine bestätigten Fakten)",
+      "savedResult": "Gespeicherte Extraktion",
+      "loadFailed": "Vorgänge konnten nicht geladen werden"
+    },
     "tags": {
       "add": "Tag hinzufügen",
       "chooseExisting": "Vorhandenen Tag auswählen",
@@ -1605,6 +1625,16 @@
       "live": "Live",
       "transcript": "Transkript",
       "notes": "Notizen",
+      "tracking": "Vorgänge",
+      "trackingTitle": "Vorgänge",
+      "trackingDescription": "Verfolgbare Aktualisierungen aus dieser Notiz extrahieren und bestätigen.",
+      "trackingExtract": "Vorgänge extrahieren",
+      "trackingExtracting": "Wird extrahiert...",
+      "trackingConfirmed": "Bestätigte Aktualisierungen",
+      "trackingPending": "Ausstehende Extraktion",
+      "trackingReextract": "Erneut extrahieren",
+      "trackingUnavailable": "Extraktionsaktion nicht verfügbar",
+      "trackingConfirmFailed": "Extraktion konnte nicht bestätigt werden",
       "conversationWillAppear": "Gespräch wird hier angezeigt...",
       "linkedEvent": "Verknüpftes Ereignis",
       "noFolder": "Kein Ordner",
@@ -1874,6 +1904,7 @@
       "outputTargetLabel": "Ergebnis speichern in",
       "outputTargetNote": "Notizen",
       "outputTargetEnhanced": "Verbessert",
+      "outputTargetTracking": "Vorgänge",
       "writeModeLabel": "Schreibmodus",
       "writeModeOverwrite": "Ueberschreiben",
       "writeModeAppend": "Anhaengen"

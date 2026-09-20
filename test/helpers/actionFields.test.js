@@ -25,7 +25,7 @@ test("new actions default to overwriting note content", (t) => {
   assert.equal(result.action.write_mode, "overwrite");
 });
 
-test("database seeds four default actions with only meeting minutes built in", (t) => {
+test("database seeds the built-in meeting and tracking actions", (t) => {
   const db = createDatabase(t);
 
   const actions = db.getActions();
@@ -66,6 +66,13 @@ test("database seeds four default actions with only meeting minutes built in", (
         output_target: "content",
         write_mode: "overwrite",
         sort_order: 3,
+      },
+      {
+        name: "提取事项",
+        is_builtin: 1,
+        output_target: "tracking",
+        write_mode: "overwrite",
+        sort_order: 4,
       },
     ]
   );

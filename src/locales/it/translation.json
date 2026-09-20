@@ -1531,6 +1531,26 @@
     }
   },
   "notes": {
+    "trackingIdentity": {
+      "assignment": "Associa attività",
+      "choose": "Scegli un’attività esistente o creane una",
+      "create": "Crea un’attività separata",
+      "linked": "Collegata a questa nota",
+      "required": "Associa ogni attività prima di salvare.",
+      "details": "Dettagli estrazione (JSON)"
+    },
+    "trackingStatus": {
+      "notExtracted": "Nessuna estrazione ancora.",
+      "pending": "In attesa di conferma",
+      "confirmed": "Confermato",
+      "rejected": "Ignorato",
+      "failed": "Estrazione non riuscita",
+      "superseded": "Sostituito da una nuova conferma",
+      "empty": "Nessuna attività o aggiornamento estratto. Puoi riprovare.",
+      "uncertainties": "Informazioni da verificare (fatti non confermati)",
+      "savedResult": "Estrazione salvata",
+      "loadFailed": "Impossibile caricare le attività"
+    },
     "tags": {
       "add": "Aggiungi tag",
       "chooseExisting": "Scegli tag esistente",
@@ -1604,6 +1624,16 @@
       "live": "Dal vivo",
       "transcript": "Trascrizione",
       "notes": "Note",
+      "tracking": "Attività",
+      "trackingTitle": "Attività monitorate",
+      "trackingDescription": "Estrai e conferma gli aggiornamenti da monitorare da questa nota.",
+      "trackingExtract": "Estrai attività",
+      "trackingExtracting": "Estrazione...",
+      "trackingConfirmed": "Aggiornamenti confermati",
+      "trackingPending": "Estrazione in attesa",
+      "trackingReextract": "Estrai di nuovo",
+      "trackingUnavailable": "Azione di estrazione non disponibile",
+      "trackingConfirmFailed": "Impossibile confermare l’estrazione",
       "conversationWillAppear": "La conversazione apparirà qui...",
       "linkedEvent": "Evento collegato",
       "noFolder": "Nessuna cartella",
@@ -1873,6 +1903,7 @@
       "outputTargetLabel": "Salva risultato in",
       "outputTargetNote": "Note",
       "outputTargetEnhanced": "Migliorato",
+      "outputTargetTracking": "Attività",
       "writeModeLabel": "Modalita di scrittura",
       "writeModeOverwrite": "Sovrascrivi",
       "writeModeAppend": "Aggiungi"

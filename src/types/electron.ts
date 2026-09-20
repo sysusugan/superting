@@ -149,7 +149,7 @@ export interface ActionItem {
   description: string;
   prompt: string;
   icon: string;
-  output_target: "content" | "enhanced_content";
+  output_target: "content" | "enhanced_content" | "tracking";
   write_mode: "overwrite" | "append";
   is_builtin: number;
   sort_order: number;
@@ -812,11 +812,35 @@ declare global {
           prompt?: string;
           icon?: string;
           sort_order?: number;
-          output_target?: "content" | "enhanced_content";
+          output_target?: "content" | "enhanced_content" | "tracking";
           write_mode?: "overwrite" | "append";
         }
       ) => Promise<{ success: boolean; action?: ActionItem; error?: string }>;
       deleteAction: (id: number) => Promise<{ success: boolean; id?: number; error?: string }>;
+      getTrackingTemplates: () => Promise<Array<Record<string, unknown>>>;
+      getNoteTracking: (noteId: number) => Promise<Record<string, unknown>>;
+      getTrackingExtraction: (
+        noteId: number,
+        actionId: number
+      ) => Promise<Record<string, unknown> | null>;
+      saveTrackingExtraction: (
+        noteId: number,
+        actionId: number,
+        generatedContent: string,
+        force?: boolean
+      ) => Promise<{
+        success: boolean;
+        cached?: boolean;
+        extraction?: Record<string, unknown>;
+        error?: string;
+      }>;
+      confirmTrackingExtraction: (
+        extractionId: number,
+        result?: Record<string, unknown>
+      ) => Promise<{ success: boolean; error?: string; data?: Record<string, unknown> }>;
+      rejectTrackingExtraction: (
+        extractionId: number
+      ) => Promise<{ success: boolean; error?: string }>;
       onActionCreated?: (callback: (action: ActionItem) => void) => () => void;
       onActionUpdated?: (callback: (action: ActionItem) => void) => () => void;
       onActionDeleted?: (callback: (payload: { id: number }) => void) => () => void;

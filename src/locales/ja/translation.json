@@ -1531,6 +1531,26 @@
     }
   },
   "notes": {
+    "trackingIdentity": {
+      "assignment": "項目の関連付け",
+      "choose": "既存の項目を選択するか新規作成",
+      "create": "別の項目を新規作成",
+      "linked": "このノートに関連付け済み",
+      "required": "保存前にすべての項目を関連付けてください。",
+      "details": "抽出の詳細（JSON）"
+    },
+    "trackingStatus": {
+      "notExtracted": "まだ抽出されていません。",
+      "pending": "確認待ち",
+      "confirmed": "確認済み",
+      "rejected": "無視済み",
+      "failed": "抽出に失敗しました",
+      "superseded": "新しい確認結果に置換済み",
+      "empty": "項目や進捗が抽出されませんでした。再抽出できます。",
+      "uncertainties": "未確認情報（確認済みの事実ではありません）",
+      "savedResult": "保存済みの抽出結果",
+      "loadFailed": "追跡データを読み込めませんでした"
+    },
     "tags": {
       "add": "タグを追加",
       "chooseExisting": "既存のタグを選択",
@@ -1552,6 +1572,16 @@
       "live": "ライブ",
       "transcript": "文字起こし",
       "notes": "ノート",
+      "tracking": "項目",
+      "trackingTitle": "追跡項目",
+      "trackingDescription": "このノートから追跡する更新を抽出して確認します。",
+      "trackingExtract": "項目を抽出",
+      "trackingExtracting": "抽出中...",
+      "trackingConfirmed": "確認済みの更新",
+      "trackingPending": "確認待ちの抽出",
+      "trackingReextract": "再抽出",
+      "trackingUnavailable": "抽出アクションを利用できません",
+      "trackingConfirmFailed": "抽出を確認できませんでした",
       "conversationWillAppear": "会話がここに表示されます...",
       "linkedEvent": "リンクされたイベント",
       "noFolder": "フォルダなし",
@@ -1783,6 +1813,7 @@
       "outputTargetLabel": "保存先",
       "outputTargetNote": "ノート",
       "outputTargetEnhanced": "拡張",
+      "outputTargetTracking": "項目",
       "writeModeLabel": "書き込み方式",
       "writeModeOverwrite": "上書き",
       "writeModeAppend": "追記"

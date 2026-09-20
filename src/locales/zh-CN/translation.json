@@ -1535,6 +1535,26 @@
     }
   },
   "notes": {
+    "trackingIdentity": {
+      "assignment": "归属事项",
+      "choose": "请选择已有事项或明确新建",
+      "create": "确实新建独立事项",
+      "linked": "本笔记已关联",
+      "required": "请先确定每个事项的归属，再保存。",
+      "details": "提取详情（JSON）"
+    },
+    "trackingStatus": {
+      "notExtracted": "尚未提取事项。",
+      "pending": "待确认",
+      "confirmed": "已确认",
+      "rejected": "已忽略",
+      "failed": "提取失败",
+      "superseded": "已被新确认结果替代",
+      "empty": "本次未提取到事项或进展，可重新提取。",
+      "uncertainties": "待确认信息（不作为已确认事实）",
+      "savedResult": "已保存的提取结果",
+      "loadFailed": "事项数据加载失败"
+    },
     "tags": {
       "add": "添加标签",
       "chooseExisting": "选择已有标签",
@@ -1608,6 +1628,16 @@
       "live": "实时",
       "transcript": "转录",
       "notes": "笔记",
+      "tracking": "事项",
+      "trackingTitle": "事项追踪",
+      "trackingDescription": "从当前笔记提取并确认可持续追踪的事项更新。",
+      "trackingExtract": "提取事项",
+      "trackingExtracting": "提取中...",
+      "trackingConfirmed": "已确认更新",
+      "trackingPending": "待确认提取",
+      "trackingReextract": "重新提取",
+      "trackingUnavailable": "未找到提取事项操作",
+      "trackingConfirmFailed": "事项确认失败",
       "conversationWillAppear": "对话将显示在这里...",
       "linkedEvent": "关联日程",
       "noFolder": "无文件夹",
@@ -1877,6 +1907,7 @@
       "outputTargetLabel": "保存结果到",
       "outputTargetNote": "笔记",
       "outputTargetEnhanced": "增强",
+      "outputTargetTracking": "事项",
       "writeModeLabel": "写入方式",
       "writeModeOverwrite": "覆盖",
       "writeModeAppend": "追加"

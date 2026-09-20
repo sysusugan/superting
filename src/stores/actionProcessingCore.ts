@@ -47,7 +47,7 @@ export function applyActionTitleDatePrefix(
   return prefix ? `${prefix} ${cleanedTitle}` : cleanedTitle;
 }
 
-export type ActionOutputTarget = "content" | "enhanced_content";
+export type ActionOutputTarget = "content" | "enhanced_content" | "tracking";
 export type ActionWriteMode = "overwrite" | "append";
 
 interface ActionOutputInput {
@@ -69,6 +69,7 @@ interface WriteNoteContentInput {
 }
 
 function normalizeOutputTarget(target: string | null | undefined): ActionOutputTarget {
+  if (target === "tracking") return "tracking";
   return target === "content" ? "content" : "enhanced_content";
 }
 
@@ -104,6 +105,7 @@ export function buildActionOutputUpdates({
   if (!hasGeneratedActionContent(generatedContent)) return {};
 
   const target = normalizeOutputTarget(outputTarget);
+  if (target === "tracking") return {};
   const mode = normalizeWriteMode(writeMode);
 
   if (target === "content") {

@@ -94,6 +94,21 @@ test("action output updates do not overwrite note content with blank generated c
   );
 });
 
+test("tracking actions never produce note content updates", () => {
+  assert.deepEqual(
+    buildActionOutputUpdates({
+      outputTarget: "tracking",
+      writeMode: "overwrite",
+      generatedContent: '{"updates":[]}',
+      existingContent: "Original",
+      existingEnhancedContent: "Enhanced",
+      actionPrompt: "Extract tracking items",
+      contentHash: "hash",
+    }),
+    {}
+  );
+});
+
 test("chat answer writes append to enhanced content without action metadata", () => {
   assert.deepEqual(
     buildWriteNoteContentUpdates({

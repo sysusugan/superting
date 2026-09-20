@@ -35,6 +35,7 @@ const MCP_TOOL_NAMES = [
   "get_dictionary",
   "get_dictionary_aliases",
   "list_tags",
+  "get_tracking_context",
 ];
 
 function getMcpMetadataFilePath(homeDir = os.homedir()) {
@@ -656,6 +657,33 @@ class McpServerManager {
         annotations: { readOnlyHint: true },
       },
       async () => sendMcpToolResult({ success: true, data: db.getTags() })
+    );
+
+    registerTool(
+      "get_tracking_context",
+      {
+        title: "Get SuperTing tracking context",
+        description: "Read tracked items and their confirmed updates within a date range.",
+        inputSchema: {
+          from: z.string().optional().describe("Inclusive start date/time."),
+          to: z.string().optional().describe("Inclusive end date/time."),
+          item_types: z.array(z.string()).optional().describe("Filter by tracking item type."),
+          item_ids: z.array(z.number()).optional().describe("Filter by tracking item id."),
+          include_relations: z.boolean().optional().describe("Include simple relation events."),
+          include_inactive: z.boolean().optional().describe("Include inactive items."),
+        },
+        annotations: { readOnlyHint: true },
+      },
+      async ({ from, to, item_types, item_ids, include_inactive }) => {
+        const data = db.getTrackingContext({
+          from,
+          to,
+          itemTypes: item_types || [],
+          itemIds: item_ids || [],
+          includeInactive: include_inactive === true,
+        });
+        return sendMcpToolResult({ success: true, data });
+      }
     );
   }
 

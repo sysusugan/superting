@@ -25,7 +25,7 @@ test("mac packaging rebuilds and verifies Electron native modules in order", () 
     platform: "darwin",
     projectRoot: "/repo",
     nodeExecutable: "/node",
-    packageVersion: "1.0.1",
+    packageVersion: "26.915.1347",
     run: (command, args) => calls.push([command, args]),
   });
 
@@ -33,9 +33,20 @@ test("mac packaging rebuilds and verifies Electron native modules in order", () 
     ["npm", ["run", "build:renderer"]],
     ["/node", ["scripts/sqlite-abi.js", "rebuild-electron"]],
     ["/node", ["scripts/verify-electron-native-deps.js"]],
-    ["npx", ["--no-install", "electron-builder", "--mac", "--arm64", "--config.npmRebuild=false"]],
+    [
+      "npx",
+      [
+        "--no-install",
+        "electron-builder",
+        "--mac",
+        "--arm64",
+        "--config.npmRebuild=false",
+        "--config.extraMetadata.version=26.915.1347",
+        "--config.buildVersion=26.915.1347",
+      ],
+    ],
     ["/node", ["scripts/verify-electron-native-deps.js", "--packaged"]],
-    ["hdiutil", ["verify", "/repo/dist/SuperTing-1.0.1-arm64.dmg"]],
+    ["hdiutil", ["verify", "/repo/dist/SuperTing-26.915.1347-arm64.dmg"]],
     ["/node", ["scripts/sqlite-abi.js", "rebuild"]],
   ]);
 });
@@ -53,7 +64,7 @@ test("mac packaging restores the Node ABI after a build failure", () => {
         platform: "darwin",
         projectRoot: "/repo",
         nodeExecutable: "/node",
-        packageVersion: "1.0.1",
+        packageVersion: "26.915.1347",
         run: (command, args) => {
           calls.push([command, args]);
           if (command === "npx") throw new Error("packaging failed");

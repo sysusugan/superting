@@ -1573,6 +1573,26 @@
     "expandConversationList": "Expand conversation list"
   },
   "notes": {
+    "trackingIdentity": {
+      "assignment": "Link to item",
+      "choose": "Choose an existing item or create a new one",
+      "create": "Create a separate new item",
+      "linked": "Linked to this note",
+      "required": "Resolve every item before saving.",
+      "details": "Extraction details (JSON)"
+    },
+    "trackingStatus": {
+      "notExtracted": "Not extracted yet.",
+      "pending": "Awaiting confirmation",
+      "confirmed": "Confirmed",
+      "rejected": "Ignored",
+      "failed": "Extraction failed",
+      "superseded": "Replaced by a newer confirmation",
+      "empty": "No items or updates were extracted. You can extract again.",
+      "uncertainties": "Unresolved information (not confirmed facts)",
+      "savedResult": "Saved extraction",
+      "loadFailed": "Could not load tracking data"
+    },
     "tags": {
       "add": "Add tag",
       "chooseExisting": "Choose existing tag",
@@ -1646,6 +1666,16 @@
       "live": "Live",
       "transcript": "Transcript",
       "notes": "Notes",
+      "tracking": "Items",
+      "trackingTitle": "Tracked items",
+      "trackingDescription": "Extract and confirm updates that should be tracked from this note.",
+      "trackingExtract": "Extract items",
+      "trackingExtracting": "Extracting...",
+      "trackingConfirmed": "Confirmed updates",
+      "trackingPending": "Pending extraction",
+      "trackingReextract": "Extract again",
+      "trackingUnavailable": "Tracking extraction action is unavailable",
+      "trackingConfirmFailed": "Could not confirm tracking extraction",
       "conversationWillAppear": "Conversation will appear here...",
       "linkedEvent": "Linked event",
       "noFolder": "No folder",
@@ -1931,6 +1961,7 @@
       "outputTargetLabel": "Save result to",
       "outputTargetNote": "Notes",
       "outputTargetEnhanced": "Enhanced",
+      "outputTargetTracking": "Tracking",
       "writeModeLabel": "Write mode",
       "writeModeOverwrite": "Overwrite",
       "writeModeAppend": "Append"

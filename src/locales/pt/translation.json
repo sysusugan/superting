@@ -1531,6 +1531,26 @@
     "close": "Fechar"
   },
   "notes": {
+    "trackingIdentity": {
+      "assignment": "Associar item",
+      "choose": "Escolha um item existente ou crie um novo",
+      "create": "Criar um item separado",
+      "linked": "Associado a esta nota",
+      "required": "Associe todos os itens antes de salvar.",
+      "details": "Detalhes da extração (JSON)"
+    },
+    "trackingStatus": {
+      "notExtracted": "Ainda não extraído.",
+      "pending": "Aguardando confirmação",
+      "confirmed": "Confirmado",
+      "rejected": "Ignorado",
+      "failed": "Falha na extração",
+      "superseded": "Substituído por nova confirmação",
+      "empty": "Nenhum item ou atualização extraído. Pode tentar novamente.",
+      "uncertainties": "Informações pendentes (não são fatos confirmados)",
+      "savedResult": "Extração salva",
+      "loadFailed": "Não foi possível carregar o acompanhamento"
+    },
     "tags": {
       "add": "Adicionar etiqueta",
       "chooseExisting": "Escolher etiqueta existente",
@@ -1604,6 +1624,16 @@
       "live": "Ao vivo",
       "transcript": "Transcrição",
       "notes": "Notas",
+      "tracking": "Itens",
+      "trackingTitle": "Itens acompanhados",
+      "trackingDescription": "Extraia e confirme atualizações acompanháveis desta nota.",
+      "trackingExtract": "Extrair itens",
+      "trackingExtracting": "Extraindo...",
+      "trackingConfirmed": "Atualizações confirmadas",
+      "trackingPending": "Extração pendente",
+      "trackingReextract": "Extrair novamente",
+      "trackingUnavailable": "Ação de extração indisponível",
+      "trackingConfirmFailed": "Não foi possível confirmar a extração",
       "conversationWillAppear": "A conversa aparecerá aqui...",
       "linkedEvent": "Evento vinculado",
       "noFolder": "Sem pasta",
@@ -1873,6 +1903,7 @@
       "outputTargetLabel": "Salvar resultado em",
       "outputTargetNote": "Notas",
       "outputTargetEnhanced": "Aprimorado",
+      "outputTargetTracking": "Itens",
       "writeModeLabel": "Modo de escrita",
       "writeModeOverwrite": "Substituir",
       "writeModeAppend": "Acrescentar"

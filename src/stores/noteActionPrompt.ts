@@ -31,14 +31,18 @@ interface NoteActionPromptInput {
   isMeetingNote?: boolean;
   customDictionary?: string[];
   uiLanguage?: string;
+  structuredOutput?: boolean;
 }
 
 export function buildNoteActionSystemPrompt(
   actionPrompt: string,
-  { isMeetingNote, customDictionary }: NoteActionPromptInput
+  { isMeetingNote, customDictionary, structuredOutput }: NoteActionPromptInput
 ): string {
   const basePrompt = isMeetingNote ? MEETING_SYSTEM_PROMPT : BASE_SYSTEM_PROMPT;
   const dictionaryInstruction = buildDictionaryInstruction(customDictionary);
-  const prompt = basePrompt + actionPrompt;
+  const structuredInstruction = structuredOutput
+    ? "\n\nSTRUCTURED OUTPUT: Return only valid JSON matching the requested schema. Do not use Markdown fences or explanatory text."
+    : "";
+  const prompt = basePrompt + actionPrompt + structuredInstruction;
   return dictionaryInstruction ? `${prompt}\n\n${dictionaryInstruction}` : prompt;
 }

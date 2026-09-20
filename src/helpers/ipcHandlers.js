@@ -1898,6 +1898,27 @@ class IPCHandlers {
       return result;
     });
 
+    ipcMain.handle("db-get-tracking-templates", async () =>
+      this.databaseManager.getTrackingTemplates()
+    );
+    ipcMain.handle("db-get-note-tracking", async (event, noteId) =>
+      this.databaseManager.getNoteTracking(noteId)
+    );
+    ipcMain.handle("db-get-tracking-extraction", async (event, noteId, actionId) =>
+      this.databaseManager.getTrackingExtraction(noteId, actionId)
+    );
+    ipcMain.handle(
+      "db-save-tracking-extraction",
+      async (event, noteId, actionId, generatedContent, force) =>
+        this.databaseManager.saveTrackingExtraction(noteId, actionId, generatedContent, force)
+    );
+    ipcMain.handle("db-confirm-tracking-extraction", async (event, extractionId, result) =>
+      this.databaseManager.confirmTrackingExtraction(extractionId, result)
+    );
+    ipcMain.handle("db-reject-tracking-extraction", async (event, extractionId) =>
+      this.databaseManager.rejectTrackingExtraction(extractionId)
+    );
+
     // Agent conversation handlers
     ipcMain.handle("db-create-agent-conversation", async (event, title, noteId) => {
       return this.databaseManager.createAgentConversation(title, noteId);

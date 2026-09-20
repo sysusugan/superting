@@ -19,7 +19,9 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [outputTarget, setOutputTarget] = useState<"content" | "enhanced_content">("content");
+  const [outputTarget, setOutputTarget] = useState<"content" | "enhanced_content" | "tracking">(
+    "content"
+  );
   const [writeMode, setWriteMode] = useState<"overwrite" | "append">("overwrite");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -95,7 +97,7 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
           name: name.trim(),
           description: description.trim(),
           prompt: prompt.trim(),
-          output_target: outputTarget,
+          output_target: outputTarget === "tracking" ? "tracking" : outputTarget,
           write_mode: writeMode,
         });
       } else {
@@ -105,7 +107,7 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
           prompt.trim(),
           undefined,
           {
-            output_target: outputTarget,
+            output_target: outputTarget === "enhanced_content" ? "enhanced_content" : "content",
             write_mode: writeMode,
           }
         );
@@ -129,10 +131,7 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
       : false;
 
   const optionButtonClass = (active: boolean) =>
-    cn(
-      "ow-segmented-item h-7 flex-1 px-2.5",
-      active && "ow-segmented-item-active"
-    );
+    cn("ow-segmented-item h-7 flex-1 px-2.5", active && "ow-segmented-item-active");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -311,11 +310,18 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
                       <label className="text-xs font-medium text-foreground/50">
                         {t("notes.actions.outputTargetLabel")}
                       </label>
-                      <div className="ow-segmented grid grid-cols-2">
+                      <div
+                        className={cn(
+                          "ow-segmented grid",
+                          selectedAction?.output_target === "tracking"
+                            ? "grid-cols-3"
+                            : "grid-cols-2"
+                        )}
+                      >
                         <button
                           type="button"
                           onClick={() => setOutputTarget("content")}
-                          disabled={isSaving}
+                          disabled={isSaving || selectedAction?.output_target === "tracking"}
                           className={optionButtonClass(outputTarget === "content")}
                         >
                           {t("notes.actions.outputTargetNote")}
@@ -323,15 +329,25 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
                         <button
                           type="button"
                           onClick={() => setOutputTarget("enhanced_content")}
-                          disabled={isSaving}
+                          disabled={isSaving || selectedAction?.output_target === "tracking"}
                           className={optionButtonClass(outputTarget === "enhanced_content")}
                         >
                           {t("notes.actions.outputTargetEnhanced")}
                         </button>
+                        {selectedAction?.output_target === "tracking" && (
+                          <button
+                            type="button"
+                            onClick={() => setOutputTarget("tracking")}
+                            disabled={isSaving}
+                            className={optionButtonClass(outputTarget === "tracking")}
+                          >
+                            {t("notes.actions.outputTargetTracking")}
+                          </button>
+                        )}
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className={cn("space-y-1.5", outputTarget === "tracking" && "opacity-50")}>
                       <label className="text-xs font-medium text-foreground/50">
                         {t("notes.actions.writeModeLabel")}
                       </label>
@@ -339,7 +355,7 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
                         <button
                           type="button"
                           onClick={() => setWriteMode("overwrite")}
-                          disabled={isSaving}
+                          disabled={isSaving || outputTarget === "tracking"}
                           className={optionButtonClass(writeMode === "overwrite")}
                         >
                           {t("notes.actions.writeModeOverwrite")}
@@ -347,7 +363,7 @@ export default function ActionManagerDialog({ open, onOpenChange }: ActionManage
                         <button
                           type="button"
                           onClick={() => setWriteMode("append")}
-                          disabled={isSaving}
+                          disabled={isSaving || outputTarget === "tracking"}
                           className={optionButtonClass(writeMode === "append")}
                         >
                           {t("notes.actions.writeModeAppend")}

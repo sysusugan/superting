@@ -54,6 +54,7 @@ export const useActionProcessingStore = create<ActionProcessingStoreState>()(() 
 }));
 
 export interface RunActionOptions {
+  forceTracking?: boolean;
   isCloudMode: boolean;
   modelId: string;
   isMeetingNote?: boolean;
@@ -142,11 +143,25 @@ export function runBackgroundAction(
   setNoteState(noteId, {
     status: "processing",
     actionName: action.name,
-    outputTarget: action.output_target === "content" ? "content" : "enhanced_content",
+    outputTarget: action.output_target,
   });
 
   (async () => {
     try {
+      if (action.output_target === "tracking" && !options.forceTracking) {
+        const cached = await window.electronAPI.getTrackingExtraction(noteId, action.id);
+        if ((cached?.result as { protocolVersion?: number } | undefined)?.protocolVersion === 2) {
+          window.dispatchEvent(new CustomEvent("superting-tracking-updated", { detail: noteId }));
+          setNoteState(noteId, { status: "success", actionName: action.name });
+          const timer = setTimeout(() => {
+            processingFlags.set(noteId, false);
+            clearNoteState(noteId);
+            successTimers.delete(noteId);
+          }, 600);
+          successTimers.set(noteId, timer);
+          return;
+        }
+      }
       const { generatedContent, updates } = await runNoteActionOnce({
         noteId,
         note: {
@@ -180,23 +195,36 @@ export function runBackgroundAction(
         return;
       }
 
-      logNoteAction("NOTE_ACTION_DB_UPDATE_START", {
-        operationId,
-        noteId,
-        actionId: action.id,
-        actionName: action.name,
-        generatedContent: loggableText(generatedContent),
-        updates,
-      });
-      const updateResult = await window.electronAPI.updateNote(noteId, updates);
-      logNoteAction("NOTE_ACTION_DB_UPDATE_RESPONSE", {
-        operationId,
-        noteId,
-        actionId: action.id,
-        actionName: action.name,
-        updateResult,
-      });
-      validateActionUpdateResult(updateResult, labels.actionFailed);
+      if (action.output_target === "tracking") {
+        const extractionResult = await window.electronAPI.saveTrackingExtraction(
+          noteId,
+          action.id,
+          generatedContent,
+          options.forceTracking === true
+        );
+        if (!extractionResult?.success) {
+          throw new Error(extractionResult?.error || labels.actionFailed);
+        }
+        window.dispatchEvent(new CustomEvent("superting-tracking-updated", { detail: noteId }));
+      } else {
+        logNoteAction("NOTE_ACTION_DB_UPDATE_START", {
+          operationId,
+          noteId,
+          actionId: action.id,
+          actionName: action.name,
+          generatedContent: loggableText(generatedContent),
+          updates,
+        });
+        const updateResult = await window.electronAPI.updateNote(noteId, updates);
+        logNoteAction("NOTE_ACTION_DB_UPDATE_RESPONSE", {
+          operationId,
+          noteId,
+          actionId: action.id,
+          actionName: action.name,
+          updateResult,
+        });
+        validateActionUpdateResult(updateResult, labels.actionFailed);
+      }
 
       setNoteState(noteId, { status: "success", actionName: action.name });
       logNoteAction("NOTE_ACTION_SUCCESS", {

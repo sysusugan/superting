@@ -99,6 +99,7 @@ import {
 } from "../../utils/speakerAssignment";
 import NoteParticipants, { type NoteParticipant } from "./NoteParticipants";
 import NoteTagsEditor from "./NoteTagsEditor";
+import TrackingPanel from "./TrackingPanel";
 import { countMatches } from "../../utils/transcriptFindReplace";
 
 function formatNoteDate(dateStr: string): string {
@@ -466,7 +467,7 @@ export interface Enhancement {
   onChange: (content: string) => void;
 }
 
-type MeetingViewMode = "raw" | "transcript" | "enhanced";
+type MeetingViewMode = "raw" | "transcript" | "enhanced" | "tracking";
 type EditorMode = "rich" | "markdown";
 type ContentEditTarget = "raw" | "enhanced";
 const EDITOR_MODE_STORAGE_KEY = "superting.notesEditorMode";
@@ -649,6 +650,11 @@ interface NoteEditorProps {
   onRecordedAtChange?: (noteId: number, recordedAt: string) => Promise<void>;
   availableTags?: string[];
   onTagsChange?: (noteId: number, tags: string[]) => Promise<void>;
+  trackingData?: Record<string, unknown> | null;
+  trackingExtracting?: boolean;
+  onExtractTracking?: (force?: boolean) => void;
+  onConfirmTracking?: (extractionId: number, result: Record<string, unknown>) => void;
+  onRejectTracking?: (extractionId: number) => void;
 }
 
 export default function NoteEditor({
@@ -691,6 +697,11 @@ export default function NoteEditor({
   onRecordedAtChange,
   availableTags = [],
   onTagsChange,
+  trackingData = null,
+  trackingExtracting = false,
+  onExtractTracking,
+  onConfirmTracking,
+  onRejectTracking,
 }: NoteEditorProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -2336,6 +2347,19 @@ export default function NoteEditor({
                     <AlignLeft size={10} />
                     {t("notes.editor.notes")}
                   </button>
+                  <button
+                    data-segment-button
+                    data-segment-value="tracking"
+                    onClick={() => requestViewMode("tracking")}
+                    className={cn(
+                      "ow-segmented-item h-6 shrink-0 whitespace-nowrap px-2 py-0 text-[11px]",
+                      viewMode === "tracking" && "ow-segmented-item-active",
+                      isTranscriptEditing && "cursor-not-allowed opacity-40"
+                    )}
+                  >
+                    <Sparkles size={9} />
+                    {t("notes.editor.tracking")}
+                  </button>
                   {enhancement && (
                     <button
                       data-segment-button
@@ -2734,7 +2758,15 @@ export default function NoteEditor({
             </div>
           )}
           <div className="flex-1 min-w-0 min-h-0 overflow-x-hidden overflow-y-auto">
-            {viewMode === "transcript" && (hasChatSegments || isRecording) ? (
+            {viewMode === "tracking" ? (
+              <TrackingPanel
+                data={trackingData as any}
+                isExtracting={trackingExtracting}
+                onExtract={onExtractTracking || (() => undefined)}
+                onConfirm={onConfirmTracking || (() => undefined)}
+                onReject={onRejectTracking || (() => undefined)}
+              />
+            ) : viewMode === "transcript" && (hasChatSegments || isRecording) ? (
               <MeetingTranscriptChat
                 segments={visibleTranscriptSegments}
                 isEditing={isTranscriptEditing}

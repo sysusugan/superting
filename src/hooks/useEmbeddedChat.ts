@@ -263,7 +263,8 @@ export function useEmbeddedChat({
           const settings = useSettingsStore.getState();
           const resolved = selectResolvedNoteFormatting(settings);
           const isCloudMode = selectIsCloudNoteFormattingMode(settings);
-          const { updates } = await runNoteActionOnce({
+          const { generatedContent, updates } = await runNoteActionOnce({
+            noteId: note.id,
             note,
             action,
             modelId: resolved.model,
@@ -273,8 +274,21 @@ export function useEmbeddedChat({
               them: t("notes.speaker.them"),
             },
           });
-          const result = await window.electronAPI.updateNote(note.id, updates);
-          if (!result.success) throw new Error(t("embeddedChat.confirmation.writeFailed"));
+          if (action.output_target === "tracking") {
+            const result = await window.electronAPI.saveTrackingExtraction(
+              note.id,
+              action.id,
+              generatedContent
+            );
+            if (!result.success)
+              throw new Error(result.error || t("embeddedChat.confirmation.writeFailed"));
+            window.dispatchEvent(
+              new CustomEvent("superting-tracking-updated", { detail: note.id })
+            );
+          } else {
+            const result = await window.electronAPI.updateNote(note.id, updates);
+            if (!result.success) throw new Error(t("embeddedChat.confirmation.writeFailed"));
+          }
           patchToolCall(toolCall.id, {
             status: "completed",
             result: t("embeddedChat.confirmation.actionCompleted", { name: action.name }),

@@ -1531,6 +1531,26 @@
     }
   },
   "notes": {
+    "trackingIdentity": {
+      "assignment": "Связать с задачей",
+      "choose": "Выберите существующую задачу или создайте новую",
+      "create": "Создать отдельную задачу",
+      "linked": "Связано с этой заметкой",
+      "required": "Укажите связь каждой задачи перед сохранением.",
+      "details": "Подробности извлечения (JSON)"
+    },
+    "trackingStatus": {
+      "notExtracted": "Ещё не извлечено.",
+      "pending": "Ожидает подтверждения",
+      "confirmed": "Подтверждено",
+      "rejected": "Отклонено",
+      "failed": "Ошибка извлечения",
+      "superseded": "Заменено новым подтверждением",
+      "empty": "Задачи и обновления не извлечены. Можно повторить.",
+      "uncertainties": "Неподтверждённые сведения",
+      "savedResult": "Сохранённый результат",
+      "loadFailed": "Не удалось загрузить данные"
+    },
     "tags": {
       "add": "Добавить тег",
       "chooseExisting": "Выбрать существующий тег",
@@ -1604,6 +1624,16 @@
       "live": "Живой",
       "transcript": "Транскрипция",
       "notes": "Заметки",
+      "tracking": "Задачи",
+      "trackingTitle": "Отслеживаемые задачи",
+      "trackingDescription": "Извлекайте и подтверждайте отслеживаемые обновления из этой заметки.",
+      "trackingExtract": "Извлечь задачи",
+      "trackingExtracting": "Извлечение...",
+      "trackingConfirmed": "Подтверждённые обновления",
+      "trackingPending": "Ожидает подтверждения",
+      "trackingReextract": "Извлечь снова",
+      "trackingUnavailable": "Действие извлечения недоступно",
+      "trackingConfirmFailed": "Не удалось подтвердить извлечение",
       "conversationWillAppear": "Разговор появится здесь...",
       "linkedEvent": "Связанное событие",
       "noFolder": "Без папки",
@@ -1873,6 +1903,7 @@
       "outputTargetLabel": "Сохранить результат в",
       "outputTargetNote": "Заметки",
       "outputTargetEnhanced": "Улучшенное",
+      "outputTargetTracking": "Задачи",
       "writeModeLabel": "Режим записи",
       "writeModeOverwrite": "Заменить",
       "writeModeAppend": "Добавить"

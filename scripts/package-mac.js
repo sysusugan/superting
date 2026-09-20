@@ -2,6 +2,7 @@
 
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
+const { getReleaseVersion, validateReleaseVersion } = require("./release-version");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const SUPPORTED_ARCHS = new Set(["arm64", "x64"]);
@@ -34,8 +35,9 @@ function runMacPackage(options = {}) {
   const platform = options.platform || process.platform;
   const projectRoot = options.projectRoot || PROJECT_ROOT;
   const nodeExecutable = options.nodeExecutable || process.execPath;
-  const packageVersion =
-    options.packageVersion || require(path.join(projectRoot, "package.json")).version;
+  const packageVersion = options.packageVersion
+    ? validateReleaseVersion(options.packageVersion)
+    : getReleaseVersion();
   const run = options.run || ((command, args) => runCommand(command, args, projectRoot));
 
   if (platform !== "darwin") {
@@ -61,6 +63,8 @@ function runMacPackage(options = {}) {
       "--mac",
       `--${arch}`,
       "--config.npmRebuild=false",
+      `--config.extraMetadata.version=${packageVersion}`,
+      `--config.buildVersion=${packageVersion}`,
     ]);
     run(nodeExecutable, ["scripts/verify-electron-native-deps.js", "--packaged"]);
     run("hdiutil", [

@@ -1531,6 +1531,26 @@
     }
   },
   "notes": {
+    "trackingIdentity": {
+      "assignment": "Asignar asunto",
+      "choose": "Elegir un asunto existente o crear uno",
+      "create": "Crear un asunto independiente",
+      "linked": "Vinculado a esta nota",
+      "required": "Asigna cada asunto antes de guardar.",
+      "details": "Detalles de extracción (JSON)"
+    },
+    "trackingStatus": {
+      "notExtracted": "Aún no se ha extraído.",
+      "pending": "Pendiente de confirmación",
+      "confirmed": "Confirmado",
+      "rejected": "Ignorado",
+      "failed": "Error de extracción",
+      "superseded": "Reemplazado por una nueva confirmación",
+      "empty": "No se extrajeron asuntos ni avances. Puedes volver a extraer.",
+      "uncertainties": "Información pendiente (no son hechos confirmados)",
+      "savedResult": "Extracción guardada",
+      "loadFailed": "No se pudieron cargar los asuntos"
+    },
     "tags": {
       "add": "Añadir etiqueta",
       "chooseExisting": "Elegir etiqueta existente",
@@ -1604,6 +1624,16 @@
       "live": "En vivo",
       "transcript": "Transcripción",
       "notes": "Notas",
+      "tracking": "Asuntos",
+      "trackingTitle": "Asuntos rastreados",
+      "trackingDescription": "Extrae y confirma actualizaciones rastreables de esta nota.",
+      "trackingExtract": "Extraer asuntos",
+      "trackingExtracting": "Extrayendo...",
+      "trackingConfirmed": "Actualizaciones confirmadas",
+      "trackingPending": "Extracción pendiente",
+      "trackingReextract": "Extraer de nuevo",
+      "trackingUnavailable": "La acción de extracción no está disponible",
+      "trackingConfirmFailed": "No se pudo confirmar la extracción",
       "conversationWillAppear": "La conversación aparecerá aquí...",
       "linkedEvent": "Evento vinculado",
       "noFolder": "Sin carpeta",
@@ -1873,6 +1903,7 @@
       "outputTargetLabel": "Guardar resultado en",
       "outputTargetNote": "Notas",
       "outputTargetEnhanced": "Mejorado",
+      "outputTargetTracking": "Asuntos",
       "writeModeLabel": "Modo de escritura",
       "writeModeOverwrite": "Sobrescribir",
       "writeModeAppend": "Anadir"

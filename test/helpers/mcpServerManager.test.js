@@ -25,6 +25,7 @@ const EXPECTED_TOOL_NAMES = [
   "get_dictionary",
   "get_dictionary_aliases",
   "list_tags",
+  "get_tracking_context",
 ];
 
 function createTempHome(t) {
@@ -61,7 +62,16 @@ function createIpcHandlers() {
           .filter((note) => !note.deleted_at && note.title.includes(query))
           .slice(0, limit),
       getNote: (id) => notes.get(id) || null,
-      saveNote: (title, content, noteType, sourceFile, audioDuration, folderId, transcript, tags) => {
+      saveNote: (
+        title,
+        content,
+        noteType,
+        sourceFile,
+        audioDuration,
+        folderId,
+        transcript,
+        tags
+      ) => {
         const note = {
           id: nextNoteId++,
           title,
@@ -116,6 +126,11 @@ function createIpcHandlers() {
       getDictionary: () => ["SuperTing"],
       getDictionaryAliases: () => [{ from: "Open Whisper", to: "SuperTing" }],
       getTags: () => [{ id: 1, name: "AI+KOC", note_count: 1 }],
+      getTrackingContext: (filters) => ({
+        from: filters.from || null,
+        to: filters.to || null,
+        items: [],
+      }),
     },
     broadcastToWindows: () => {},
     _asyncVectorUpsert: () => {},
@@ -182,8 +197,14 @@ test("MCP server exposes authenticated tools over Streamable HTTP", async (t) =>
     tools.tools.map((tool) => tool.name),
     EXPECTED_TOOL_NAMES
   );
-  assert.equal(tools.tools.some((tool) => tool.name.startsWith("superting_")), false);
-  assert.equal(tools.tools.some((tool) => tool.name.startsWith("openwhispr_")), false);
+  assert.equal(
+    tools.tools.some((tool) => tool.name.startsWith("superting_")),
+    false
+  );
+  assert.equal(
+    tools.tools.some((tool) => tool.name.startsWith("openwhispr_")),
+    false
+  );
 
   const result = await client.callTool({
     name: "search_notes",
@@ -192,6 +213,13 @@ test("MCP server exposes authenticated tools over Streamable HTTP", async (t) =>
   const payload = JSON.parse(result.content[0].text);
   assert.equal(payload.success, true);
   assert.equal(payload.data[0].title, "Weekly plan");
+
+  const trackingResult = await client.callTool({
+    name: "get_tracking_context",
+    arguments: { from: "2026-09-01", to: "2026-09-19" },
+  });
+  const trackingData = JSON.parse(trackingResult.content[0].text);
+  assert.deepEqual(trackingData.data, { from: "2026-09-01", to: "2026-09-19", items: [] });
 });
 
 test("MCP server rejects requests without the bearer token", async (t) => {
