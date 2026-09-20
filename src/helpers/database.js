@@ -1984,7 +1984,8 @@ class DatabaseManager {
     const items = this.db
       .prepare(
         `SELECT i.*, t.name AS itemType FROM tracking_items i
-      JOIN tracking_templates t ON t.id = i.template_id ORDER BY i.updated_at DESC, i.id DESC`
+      JOIN tracking_templates t ON t.id = i.template_id
+      WHERE i.is_active = 1 ORDER BY i.updated_at DESC, i.id DESC`
       )
       .all()
       .map((item) => ({
@@ -2017,34 +2018,12 @@ class DatabaseManager {
         if (matches.length === 1) linked.add(matches[0].id);
       }
     }
-    const text = [
-      note.title,
-      note.content,
-      note.enhanced_content,
-      note.transcript,
-      ...(note.tags || []),
-    ]
-      .join("\n")
-      .toLocaleLowerCase();
-    // ponytail: linear candidate scan for a personal ledger; add indexed retrieval if this grows slow.
-    const score = (item) => {
-      const terms = [
-        item.title,
-        ...item.title.split(/[\s\p{P}]+/u),
-        ...Object.values(item.properties).filter((v) => typeof v === "string"),
-      ];
-      return terms.filter((term) => term.length >= 2 && text.includes(term.toLocaleLowerCase()))
-        .length;
-    };
+    // The review picker must expose every active item of the proposed type.
+    // Candidate recall is a user choice, so hiding items by text similarity makes
+    // valid merges impossible when the note uses an alias or a short description.
     return [
       ...items.filter((item) => linked.has(item.id)).map((item) => ({ ...item, linked: true })),
-      ...items
-        .filter((item) => !linked.has(item.id))
-        .map((item) => ({ ...item, score: score(item) }))
-        .filter((item) => item.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 20)
-        .map(({ score: _score, ...item }) => ({ ...item, linked: false })),
+      ...items.filter((item) => !linked.has(item.id)).map((item) => ({ ...item, linked: false })),
     ];
   }
 

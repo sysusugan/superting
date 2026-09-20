@@ -114,6 +114,21 @@ test("live item without updates survives rename and legacy lookup", (t) => {
   assert.equal(db.getNoteTracking(note.id).items[0].title, "New name");
 });
 
+test("candidate picker includes active same-type items even without text matches", (t) => {
+  const db = createDatabase(t);
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const source = db.saveNote("客户甲", "已确认", "personal", null, null, null, null, []).note;
+  const unrelated = db.saveNote("完全不同的笔记", "没有项目名称", "personal", null, null, null, null, []).note;
+  const extraction = db.saveTrackingExtraction(
+    source.id,
+    action.id,
+    JSON.stringify({ newItems: [{ title: "隐身项目", itemType: "项目" }], updates: [] })
+  ).extraction;
+  assert.equal(confirmReviewed(db, extraction.id).success, true);
+  const candidates = db.getTrackingCandidates(unrelated.id);
+  assert.equal(candidates.find((candidate) => candidate.title === "隐身项目")?.linked, false);
+});
+
 test("tracking extraction is reused for unchanged note input", (t) => {
   const db = createDatabase(t);
   const note = db.saveNote("客户进展", "方案已提交", "personal", null, null, null, null, []).note;
