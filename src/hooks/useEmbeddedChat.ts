@@ -13,6 +13,7 @@ import {
 import { runNoteActionOnce } from "../stores/runNoteActionOnce";
 import { buildWriteNoteContentUpdates } from "../stores/actionProcessingCore";
 import { createPendingRunNoteActionToolCall } from "./embeddedChatActions";
+import { beginChatNoteAction, endChatNoteAction } from "../stores/actionProcessingStore";
 
 interface UseEmbeddedChatOptions {
   noteId: number | null;
@@ -62,6 +63,7 @@ export function useEmbeddedChat({
   noteUpdatedAt,
 }: UseEmbeddedChatOptions): UseEmbeddedChatReturn {
   const { t } = useTranslation();
+  const handledConfirmations = useRef(new Set<string>());
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [noteConversations, setNoteConversations] = useState<NoteConversationItem[]>([]);
   const actions = useActions();
@@ -191,6 +193,7 @@ export function useEmbeddedChat({
 
   const cancelToolCall = useCallback(
     (toolCall: ToolCallInfo) => {
+      handledConfirmations.current.add(toolCall.id);
       patchToolCall(toolCall.id, {
         status: "completed",
         result: t("embeddedChat.confirmation.cancelled"),
@@ -231,10 +234,37 @@ export function useEmbeddedChat({
       const metadata = toolCall.metadata ?? {};
       const payload = metadata.payload as Record<string, unknown> | undefined;
       const confirmationType = metadata.confirmationType;
-      if (!payload || metadata.confirmationStatus === "confirmed") return;
+      if (
+        !payload ||
+        metadata.confirmationStatus === "confirmed" ||
+        metadata.confirmationStatus === "cancelled" ||
+        handledConfirmations.current.has(toolCall.id)
+      )
+        return;
+      handledConfirmations.current.add(toolCall.id);
 
       patchToolCall(toolCall.id, { status: "executing" });
+      let lockedNoteId: number | null = null;
       try {
+        if (confirmationType === "update_note_tracking") {
+          const targetId = Number(payload.noteId);
+          if (targetId !== noteIdRef.current)
+            throw new Error(t("embeddedChat.confirmation.currentNoteOnly"));
+          const response = await window.electronAPI.updateNoteTracking(targetId, payload);
+          if (!response.success)
+            throw new Error(response.error || t("embeddedChat.confirmation.writeFailed"));
+          window.dispatchEvent(new CustomEvent("superting-tracking-updated", { detail: targetId }));
+          patchToolCall(toolCall.id, {
+            status: "completed",
+            result: t("trackingChat.saved"),
+            metadata: {
+              ...metadata,
+              confirmationStatus: "confirmed",
+              savedTracking: response.data,
+            },
+          });
+          return;
+        }
         if (confirmationType === "write_note_content") {
           await writeAssistantMessage(
             String(payload.content ?? ""),
@@ -257,6 +287,8 @@ export function useEmbeddedChat({
           const actionId = Number(payload.actionId);
           const action = actionsRef.current.find((item) => item.id === actionId);
           if (!action) throw new Error(t("embeddedChat.confirmation.actionNotFound"));
+          if (!beginChatNoteAction(noteIdFromPayload)) throw new Error(t("trackingChat.busy"));
+          lockedNoteId = noteIdFromPayload;
           const note = await window.electronAPI.getNote(noteIdFromPayload);
           if (!note) throw new Error(t("embeddedChat.confirmation.noteNotFound"));
 
@@ -278,13 +310,27 @@ export function useEmbeddedChat({
             const result = await window.electronAPI.saveTrackingExtraction(
               note.id,
               action.id,
-              generatedContent
+              generatedContent,
+              payload.forceTracking === true
             );
             if (!result.success)
               throw new Error(result.error || t("embeddedChat.confirmation.writeFailed"));
             window.dispatchEvent(
               new CustomEvent("superting-tracking-updated", { detail: note.id })
             );
+            patchToolCall(toolCall.id, {
+              status: "completed",
+              result: t("trackingChat.extracted", {
+                id: result.extraction?.id,
+                status: t(`notes.trackingStatus.${result.extraction?.status}`),
+              }),
+              metadata: {
+                ...metadata,
+                confirmationStatus: "confirmed",
+                extraction: result.extraction,
+              },
+            });
+            return;
           } else {
             const result = await window.electronAPI.updateNote(note.id, updates);
             if (!result.success) throw new Error(t("embeddedChat.confirmation.writeFailed"));
@@ -301,6 +347,8 @@ export function useEmbeddedChat({
           result: (error as Error).message,
           metadata: { ...metadata, confirmationStatus: "pending" },
         });
+      } finally {
+        if (lockedNoteId !== null) endChatNoteAction(lockedNoteId);
       }
     },
     [patchToolCall, t, writeAssistantMessage]

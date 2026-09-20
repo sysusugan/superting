@@ -1904,6 +1904,9 @@ class IPCHandlers {
     ipcMain.handle("db-get-note-tracking", async (event, noteId) =>
       this.databaseManager.getNoteTracking(noteId)
     );
+    ipcMain.handle("db-update-note-tracking", async (event, noteId, request) =>
+      this.databaseManager.updateNoteTracking(noteId, request)
+    );
     ipcMain.handle("db-get-tracking-extraction", async (event, noteId, actionId) =>
       this.databaseManager.getTrackingExtraction(noteId, actionId)
     );

@@ -8,7 +8,7 @@ const DatabaseManager = require("../../src/helpers/database");
 
 function confirmReviewed(db, id, override) {
   if (override) return db.confirmTrackingExtraction(id, override);
-  const row = db.db.prepare('SELECT result_json FROM tracking_extractions WHERE id = ?').get(id);
+  const row = db.db.prepare("SELECT result_json FROM tracking_extractions WHERE id = ?").get(id);
   const draft = db.normalizeTrackingResult(JSON.parse(row.result_json));
   for (const entry of [...draft.matchedItems, ...draft.newItems]) {
     if (entry.itemId == null) entry.createNew = true;
@@ -23,6 +23,96 @@ function createDatabase(t) {
   t.after(() => db.cleanup());
   return db;
 }
+
+test("chat edits use live items, preserve properties, reject stale and foreign records", (t) => {
+  const db = createDatabase(t);
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const note = db.saveNote("A", "text").note;
+  const other = db.saveNote("B", "text").note;
+  const extraction = db.saveTrackingExtraction(
+    note.id,
+    action.id,
+    JSON.stringify({
+      newItems: [
+        { title: "Original", itemType: "项目", properties: { customer: "A", owner: "B" } },
+      ],
+      updates: [
+        { itemTitle: "Original", content: "progress", stateAfter: "暂停", evidence: "source" },
+      ],
+    })
+  ).extraction;
+  confirmReviewed(db, extraction.id);
+  const before = db.getNoteTracking(note.id);
+  const request = {
+    itemId: before.items[0].id,
+    updateId: before.updates[0].id,
+    itemPatch: { title: "Renamed", properties: { owner: "C" } },
+    updatePatch: { content: "Corrected", state_after: "已完成" },
+    expected: { item: before.items[0], update: before.updates[0] },
+  };
+  assert.equal(db.updateNoteTracking(other.id, request).success, false);
+  const result = db.updateNoteTracking(note.id, request);
+  assert.equal(result.success, true);
+  assert.equal(result.data.items[0].title, "Renamed");
+  assert.equal(result.data.items[0].state, "已完成");
+  assert.deepEqual(result.data.items[0].properties, { customer: "A", owner: "C" });
+  assert.equal(result.data.updates[0].evidence_text, "source");
+  assert.equal(result.data.extractions[0].result.newItems[0].title, "Original");
+  assert.equal(db.updateNoteTracking(note.id, request).success, false);
+  const fresh = result.data;
+  const explicit = db.updateNoteTracking(note.id, {
+    itemId: fresh.items[0].id,
+    itemPatch: { state: "已完成" },
+    expected: { item: fresh.items[0], update: null },
+  });
+  assert.equal(explicit.success, true);
+  const edited = db.updateNoteTracking(note.id, {
+    itemId: fresh.items[0].id,
+    updateId: fresh.updates[0].id,
+    updatePatch: { state_after: "暂停" },
+    expected: { item: explicit.data.items[0], update: explicit.data.updates[0] },
+  });
+  assert.equal(edited.success, true);
+  assert.equal(edited.data.items[0].state, "已完成");
+  assert.equal(
+    db.updateNoteTracking(note.id, {
+      itemId: fresh.items[0].id,
+      itemPatch: { template_id: 99 },
+      expected: { item: fresh.items[0], update: null },
+    }).success,
+    false
+  );
+});
+
+test("live item without updates survives rename and legacy lookup", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("A", "text").note;
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const extraction = db.saveTrackingExtraction(
+    note.id,
+    action.id,
+    JSON.stringify({ newItems: [{ title: "No progress", itemType: "商机" }], updates: [] })
+  ).extraction;
+  confirmReviewed(db, extraction.id);
+  const legacy = JSON.parse(
+    db.db.prepare("SELECT result_json FROM tracking_extractions WHERE id = ?").get(extraction.id)
+      .result_json
+  );
+  delete legacy.newItems[0].itemId;
+  db.db
+    .prepare("UPDATE tracking_extractions SET result_json = ? WHERE id = ?")
+    .run(JSON.stringify(legacy), extraction.id);
+  const item = db.getNoteTracking(note.id).items[0];
+  assert.equal(
+    db.updateNoteTracking(note.id, {
+      itemId: item.id,
+      itemPatch: { title: "New name" },
+      expected: { item, update: null },
+    }).success,
+    true
+  );
+  assert.equal(db.getNoteTracking(note.id).items[0].title, "New name");
+});
 
 test("tracking extraction is reused for unchanged note input", (t) => {
   const db = createDatabase(t);
@@ -203,7 +293,9 @@ test("re-extraction with a renamed proposal reuses the existing item ID", (t) =>
     action.id,
     JSON.stringify({
       newItems: [{ title: "宝洁团队评估 EnlightAI 技术架构", itemType: "商机" }],
-      updates: [{ itemRef: "new:1", updateType: "进展", content: "继续评估", evidence: "继续评估" }],
+      updates: [
+        { itemRef: "new:1", updateType: "进展", content: "继续评估", evidence: "继续评估" },
+      ],
     }),
     true
   ).extraction;

@@ -74,6 +74,7 @@ test("rejected result remains visible and can be extracted again", () => {
 test("confirmed items without updates remain visible", () => {
   assert.match(
     render({
+      items: [{ id: 1, title: "已校正事项名称", itemType: "商机", state: "进行中" }],
       updates: [],
       extractions: [
         {
@@ -86,6 +87,6 @@ test("confirmed items without updates remain visible", () => {
         },
       ],
     }),
-    /客户评估商机/
+    /已校正事项名称/
   );
 });

@@ -40,6 +40,11 @@ export function createRunNoteActionTool({
     parameters: {
       type: "object",
       properties: {
+        forceTracking: {
+          type: "boolean",
+          description:
+            "Set true when asked to re-extract tracking items; bypasses cache. Only valid for the tracking action. Results require review in the Tracking tab.",
+        },
         actionId: {
           type: "number",
           description: "The custom action ID, if known.",
@@ -65,6 +70,10 @@ export function createRunNoteActionTool({
         };
       }
 
+      if (args.forceTracking === true && action.output_target !== "tracking") {
+        throw new Error("forceTracking is only supported for tracking actions");
+      }
+
       return {
         success: true,
         data: {
@@ -74,6 +83,9 @@ export function createRunNoteActionTool({
           payload: {
             actionId: action.id,
             noteId: currentNote.id,
+            ...(action.output_target === "tracking"
+              ? { forceTracking: args.forceTracking === true }
+              : {}),
           },
         },
         displayText: `Confirm action: "${action.name}"`,

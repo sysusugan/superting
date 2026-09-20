@@ -49,6 +49,23 @@ test("run_note_action returns a confirmation request for the current note", asyn
       noteId: 42,
     },
   });
+  await assert.rejects(tool.execute({ actionId: 7, forceTracking: true }));
+});
+
+test("tracking re-extraction confirmation carries force flag", async () => {
+  const tool = createRunNoteActionTool({
+    currentNote,
+    availableActions: [
+      {
+        id: 8,
+        name: "提取事项",
+        output_target: "tracking",
+      } as any,
+    ],
+  });
+  const result = await tool.execute({ actionId: 8, forceTracking: true });
+  assert.equal((result.data as any).payload.forceTracking, true);
+  assert.equal((result.data as any).confirmationStatus, "pending");
 });
 
 test("write_note_content returns a confirmation request with target and write mode", async () => {

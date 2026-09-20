@@ -1,4 +1,24 @@
 {
+  "trackingChat": {
+    "read": "Saved tracking records loaded",
+    "templates": "Tracking templates loaded",
+    "readFirst": "Read current note tracking first and choose an unambiguous record.",
+    "noChanges": "No changes supplied",
+    "confirm": "Confirm tracking changes",
+    "shared": "This item is shared: changes also affect other notes referring to it.",
+    "saved": "Tracking changes saved",
+    "busy": "An action is already running for this note.",
+    "extracted": "Extraction #{{id}}: {{status}}. Review pending results in the Tracking tab.",
+    "fields": {
+      "title": "Name",
+      "state": "Status",
+      "properties": "Properties",
+      "content": "Progress",
+      "update_type": "Progress type",
+      "occurred_at": "Date",
+      "state_after": "Status after update"
+    }
+  },
   "settings": {
     "language": {
       "sectionTitle": "Idioma",

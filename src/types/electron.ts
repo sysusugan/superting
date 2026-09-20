@@ -819,6 +819,14 @@ declare global {
       deleteAction: (id: number) => Promise<{ success: boolean; id?: number; error?: string }>;
       getTrackingTemplates: () => Promise<Array<Record<string, unknown>>>;
       getNoteTracking: (noteId: number) => Promise<Record<string, unknown>>;
+      updateNoteTracking: (
+        noteId: number,
+        request: Record<string, unknown>
+      ) => Promise<{
+        success: boolean;
+        error?: string;
+        data?: Record<string, unknown>;
+      }>;
       getTrackingExtraction: (
         noteId: number,
         actionId: number

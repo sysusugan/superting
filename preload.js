@@ -167,6 +167,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   deleteAction: (id) => ipcRenderer.invoke("db-delete-action", id),
   getTrackingTemplates: () => ipcRenderer.invoke("db-get-tracking-templates"),
   getNoteTracking: (noteId) => ipcRenderer.invoke("db-get-note-tracking", noteId),
+  updateNoteTracking: (noteId, request) => ipcRenderer.invoke("db-update-note-tracking", noteId, request),
   getTrackingExtraction: (noteId, actionId) =>
     ipcRenderer.invoke("db-get-tracking-extraction", noteId, actionId),
   saveTrackingExtraction: (noteId, actionId, generatedContent, force = false) =>

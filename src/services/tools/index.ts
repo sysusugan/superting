@@ -7,6 +7,7 @@ import { listFoldersTool } from "./listFoldersTool";
 import { clipboardTool } from "./clipboardTool";
 import { webSearchTool } from "./webSearchTool";
 import { createRunNoteActionTool, writeNoteContentTool } from "./noteActionChatTools";
+import { createTrackingChatTools } from "./trackingChatTools";
 import type { ActionItem, NoteItem } from "../../types/electron";
 
 export { ToolRegistry } from "./ToolRegistry";
@@ -41,6 +42,7 @@ export function createToolRegistry(
   }
 
   if (context.currentNote) {
+    for (const tool of createTrackingChatTools(context.currentNote.id)) registry.register(tool);
     registry.register(writeNoteContentTool);
     registry.register(
       createRunNoteActionTool({

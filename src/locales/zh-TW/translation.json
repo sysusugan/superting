@@ -1,4 +1,24 @@
 {
+  "trackingChat": {
+    "read": "已读取已保存的事项",
+    "templates": "已读取事项模板",
+    "readFirst": "请先读取当前笔记事项，并明确要修改的记录。",
+    "noChanges": "没有提供修改内容",
+    "confirm": "确认事项修改",
+    "shared": "这是共享事项：修改也会影响其他笔记引用的同一事项。",
+    "saved": "事项修改已保存",
+    "busy": "当前笔记已有操作正在执行。",
+    "extracted": "提取记录 #{{id}}：{{status}}。待确认结果请到「事项」页审核。",
+    "fields": {
+      "title": "名称",
+      "state": "状态",
+      "properties": "属性",
+      "content": "进展内容",
+      "update_type": "进展类型",
+      "occurred_at": "发生时间",
+      "state_after": "更新后状态"
+    }
+  },
   "settings": {
     "language": {
       "sectionTitle": "語言",

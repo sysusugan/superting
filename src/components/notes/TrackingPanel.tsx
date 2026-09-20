@@ -10,7 +10,14 @@ type TrackingExtraction = {
 };
 
 type TrackingData = {
-  candidates?: Array<{ id: number; title: string; itemType: string; state: string; linked: boolean }>;
+  items?: Array<Record<string, unknown>>;
+  candidates?: Array<{
+    id: number;
+    title: string;
+    itemType: string;
+    state: string;
+    linked: boolean;
+  }>;
   loadFailed?: boolean;
   extractions?: TrackingExtraction[];
   updates?: Array<{
@@ -45,47 +52,42 @@ export default function TrackingPanel({
   const hasExtractedItems = ["matchedItems", "newItems", "updates"].some(
     (key) => Array.isArray(latest?.result?.[key]) && (latest.result[key] as unknown[]).length > 0
   );
-  const [draft, setDraft] = useState(() => JSON.stringify(latest?.reviewResult || latest?.result || {}, null, 2));
+  const [draft, setDraft] = useState(() =>
+    JSON.stringify(latest?.reviewResult || latest?.result || {}, null, 2)
+  );
 
   useEffect(() => {
     setDraft(latest?.result ? JSON.stringify(latest.reviewResult || latest.result, null, 2) : "");
   }, [latest?.id, latest?.result, latest?.reviewResult]);
 
   const confirmedUpdates = useMemo(() => data?.updates ?? [], [data?.updates]);
-  const confirmedItems = useMemo(() => {
-    const seen = new Set<string>();
-    return (data?.extractions ?? [])
-      .filter((extraction) => extraction.status === "confirmed")
-      .flatMap((extraction) => {
-        const result = extraction.result || {};
-        return [
-          ...(Array.isArray(result.matchedItems) ? result.matchedItems : []),
-          ...(Array.isArray(result.newItems) ? result.newItems : []),
-        ];
-      })
-      .filter((item) => {
-        const title = String((item as Record<string, unknown>)?.title || "").trim();
-        if (!title || seen.has(title)) return false;
-        seen.add(title);
-        return true;
-      }) as Array<Record<string, unknown>>;
-  }, [data?.extractions]);
+  const confirmedItems = data?.items ?? [];
   let parsedDraft: Record<string, unknown> | null = null;
   try {
     parsedDraft = draft ? JSON.parse(draft) : null;
   } catch {
     parsedDraft = null;
   }
-  const draftItems = ['matchedItems', 'newItems'].flatMap(key =>
-    Array.isArray(parsedDraft?.[key]) ? (parsedDraft[key] as Record<string, unknown>[]).map((item, index) => ({key, index, item})) : []);
+  const draftItems = ["matchedItems", "newItems"].flatMap((key) =>
+    Array.isArray(parsedDraft?.[key])
+      ? (parsedDraft[key] as Record<string, unknown>[]).map((item, index) => ({ key, index, item }))
+      : []
+  );
   const candidates = data?.candidates || [];
-  const resolved = !!parsedDraft && draftItems.every(({item}) =>
-    item.createNew === true || candidates.some(candidate => candidate.id === item.itemId && candidate.itemType === item.itemType));
+  const resolved =
+    !!parsedDraft &&
+    draftItems.every(
+      ({ item }) =>
+        item.createNew === true ||
+        candidates.some(
+          (candidate) => candidate.id === item.itemId && candidate.itemType === item.itemType
+        )
+    );
   const chooseItem = (key: string, index: number, value: string) => {
     if (!parsedDraft) return;
     const next = JSON.parse(JSON.stringify(parsedDraft));
-    next[key][index].itemId = value && value !== 'new' ? Number(value) : null;
-    next[key][index].createNew = value === 'new';
+    next[key][index].itemId = value && value !== "new" ? Number(value) : null;
+    next[key][index].createNew = value === "new";
     setDraft(JSON.stringify(next, null, 2));
   };
 
@@ -193,33 +195,57 @@ export default function TrackingPanel({
             </h3>
             <span className="text-[11px] text-muted-foreground">#{latest.id}</span>
           </div>
-          {draftItems.map(({key, index, item}) => (
-            <label key={`${key}:${index}`} className="block rounded-md border border-border/50 bg-card p-3 text-sm">
-              <span className="block font-medium">{String(item.title)} · {String(item.itemType)}</span>
-              <span className="mt-2 block text-xs text-muted-foreground">{t('notes.trackingIdentity.assignment')}</span>
+          {draftItems.map(({ key, index, item }) => (
+            <label
+              key={`${key}:${index}`}
+              className="block rounded-md border border-border/50 bg-card p-3 text-sm"
+            >
+              <span className="block font-medium">
+                {String(item.title)} · {String(item.itemType)}
+              </span>
+              <span className="mt-2 block text-xs text-muted-foreground">
+                {t("notes.trackingIdentity.assignment")}
+              </span>
               <select
-                aria-label={`${t('notes.trackingIdentity.assignment')}: ${String(item.title)}`}
+                aria-label={`${t("notes.trackingIdentity.assignment")}: ${String(item.title)}`}
                 className="mt-1 w-full rounded-md border border-border bg-background p-2"
-                value={item.createNew === true ? 'new' : candidates.some(c => c.id === item.itemId && c.itemType === item.itemType) ? String(item.itemId) : ''}
-                onChange={event => chooseItem(key, index, event.target.value)}
+                value={
+                  item.createNew === true
+                    ? "new"
+                    : candidates.some((c) => c.id === item.itemId && c.itemType === item.itemType)
+                      ? String(item.itemId)
+                      : ""
+                }
+                onChange={(event) => chooseItem(key, index, event.target.value)}
               >
-                <option value="">{t('notes.trackingIdentity.choose')}</option>
-                {candidates.filter(c => c.itemType === item.itemType).map(c => <option key={c.id} value={c.id}>
-                  #{c.id} · {c.title}{c.linked ? ` · ${t('notes.trackingIdentity.linked')}` : ''}
-                </option>)}
-                <option value="new">{t('notes.trackingIdentity.create')}</option>
+                <option value="">{t("notes.trackingIdentity.choose")}</option>
+                {candidates
+                  .filter((c) => c.itemType === item.itemType)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      #{c.id} · {c.title}
+                      {c.linked ? ` · ${t("notes.trackingIdentity.linked")}` : ""}
+                    </option>
+                  ))}
+                <option value="new">{t("notes.trackingIdentity.create")}</option>
               </select>
             </label>
           ))}
-          {!resolved && <p className="text-xs text-amber-600" role="status">{t('notes.trackingIdentity.required')}</p>}
+          {!resolved && (
+            <p className="text-xs text-amber-600" role="status">
+              {t("notes.trackingIdentity.required")}
+            </p>
+          )}
           <details>
-          <summary className="cursor-pointer text-xs text-muted-foreground">{t('notes.trackingIdentity.details')}</summary>
-          <textarea
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            className="min-h-48 w-full resize-y rounded-md border border-border/50 bg-card px-3 py-2 font-mono text-xs leading-relaxed text-foreground outline-none focus:border-ring/60"
-            aria-label={t("notes.editor.trackingPending")}
-          />
+            <summary className="cursor-pointer text-xs text-muted-foreground">
+              {t("notes.trackingIdentity.details")}
+            </summary>
+            <textarea
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              className="min-h-48 w-full resize-y rounded-md border border-border/50 bg-card px-3 py-2 font-mono text-xs leading-relaxed text-foreground outline-none focus:border-ring/60"
+              aria-label={t("notes.editor.trackingPending")}
+            />
           </details>
           <div className="flex justify-end gap-2">
             <button

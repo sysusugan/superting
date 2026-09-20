@@ -5,7 +5,7 @@ const { createHash, randomUUID } = require("crypto");
 const debugLogger = require("./debugLogger");
 const { app } = require("electron");
 const { isRetainedAudioFile, parseMeetingAudioFilename } = require("./audioStorageFiles");
-const { normalizeTrackingDraft } = require('./trackingIdentity');
+const { normalizeTrackingDraft } = require("./trackingIdentity");
 
 const NOTE_ORDER_BY = {
   updatedAt: "updated_at DESC, id DESC",
@@ -511,6 +511,14 @@ class DatabaseManager {
       `);
       try {
         this.db.exec("ALTER TABLE tracking_updates ADD COLUMN state_after TEXT");
+      } catch (err) {
+        if (!err.message.includes("duplicate column")) throw err;
+      }
+      try {
+        this.db.exec("ALTER TABLE tracking_items ADD COLUMN state_source_update_id INTEGER");
+        this.db.exec(`UPDATE tracking_items SET state_source_update_id = (
+          SELECT id FROM tracking_updates WHERE item_id = tracking_items.id
+          AND state_after = tracking_items.state ORDER BY id DESC LIMIT 1)`);
       } catch (err) {
         if (!err.message.includes("duplicate column")) throw err;
       }
@@ -1972,38 +1980,81 @@ class DatabaseManager {
 
   getTrackingCandidates(noteId) {
     const note = this.getNote(noteId);
-    if (!note || note.deleted_at) throw new Error('Note not found');
-    const items = this.db.prepare(`SELECT i.*, t.name AS itemType FROM tracking_items i
-      JOIN tracking_templates t ON t.id = i.template_id ORDER BY i.updated_at DESC, i.id DESC`).all()
-      .map(item => ({ id: item.id, title: item.title, itemType: item.itemType, state: item.state,
-        properties: safeJson(item.properties_json, {}), isActive: !!item.is_active }));
-    const linked = new Set(this.db.prepare('SELECT DISTINCT item_id FROM tracking_updates WHERE note_id = ?').all(noteId).map(row => row.item_id));
-    const last = this.db.prepare("SELECT result_json FROM tracking_extractions WHERE note_id = ? AND status = 'confirmed' ORDER BY id DESC LIMIT 1").get(noteId);
+    if (!note || note.deleted_at) throw new Error("Note not found");
+    const items = this.db
+      .prepare(
+        `SELECT i.*, t.name AS itemType FROM tracking_items i
+      JOIN tracking_templates t ON t.id = i.template_id ORDER BY i.updated_at DESC, i.id DESC`
+      )
+      .all()
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        itemType: item.itemType,
+        state: item.state,
+        properties: safeJson(item.properties_json, {}),
+        isActive: !!item.is_active,
+        stateSourceUpdateId: item.state_source_update_id,
+      }));
+    const linked = new Set(
+      this.db
+        .prepare("SELECT DISTINCT item_id FROM tracking_updates WHERE note_id = ?")
+        .all(noteId)
+        .map((row) => row.item_id)
+    );
+    const last = this.db
+      .prepare(
+        "SELECT result_json FROM tracking_extractions WHERE note_id = ? AND status = 'confirmed' ORDER BY id DESC LIMIT 1"
+      )
+      .get(noteId);
     const previous = safeJson(last?.result_json, {});
     for (const entry of [...(previous.matchedItems || []), ...(previous.newItems || [])]) {
       if (Number.isInteger(entry.itemId)) linked.add(entry.itemId);
       else {
-        const matches = items.filter(item => item.title === entry.title && item.itemType === entry.itemType);
+        const matches = items.filter(
+          (item) => item.title === entry.title && item.itemType === entry.itemType
+        );
         if (matches.length === 1) linked.add(matches[0].id);
       }
     }
-    const text = [note.title, note.content, note.enhanced_content, note.transcript, ...(note.tags || [])].join('\n').toLocaleLowerCase();
+    const text = [
+      note.title,
+      note.content,
+      note.enhanced_content,
+      note.transcript,
+      ...(note.tags || []),
+    ]
+      .join("\n")
+      .toLocaleLowerCase();
     // ponytail: linear candidate scan for a personal ledger; add indexed retrieval if this grows slow.
-    const score = item => {
-      const terms = [item.title, ...item.title.split(/[\s\p{P}]+/u), ...Object.values(item.properties).filter(v => typeof v === 'string')];
-      return terms.filter(term => term.length >= 2 && text.includes(term.toLocaleLowerCase())).length;
+    const score = (item) => {
+      const terms = [
+        item.title,
+        ...item.title.split(/[\s\p{P}]+/u),
+        ...Object.values(item.properties).filter((v) => typeof v === "string"),
+      ];
+      return terms.filter((term) => term.length >= 2 && text.includes(term.toLocaleLowerCase()))
+        .length;
     };
     return [
-      ...items.filter(item => linked.has(item.id)).map(item => ({ ...item, linked: true })),
-      ...items.filter(item => !linked.has(item.id)).map(item => ({...item, score: score(item)}))
-        .filter(item => item.score > 0).sort((a,b) => b.score - a.score).slice(0,20)
-        .map(({score: _score, ...item}) => ({ ...item, linked: false })),
+      ...items.filter((item) => linked.has(item.id)).map((item) => ({ ...item, linked: true })),
+      ...items
+        .filter((item) => !linked.has(item.id))
+        .map((item) => ({ ...item, score: score(item) }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 20)
+        .map(({ score: _score, ...item }) => ({ ...item, linked: false })),
     ];
   }
 
   normalizeTrackingResult(result) {
-    const items = this.db.prepare(`SELECT i.id, i.title, t.name AS itemType FROM tracking_items i
-      JOIN tracking_templates t ON t.id = i.template_id`).all();
+    const items = this.db
+      .prepare(
+        `SELECT i.id, i.title, t.name AS itemType FROM tracking_items i
+      JOIN tracking_templates t ON t.id = i.template_id`
+      )
+      .all();
     return normalizeTrackingDraft(result, items);
   }
 
@@ -2067,12 +2118,15 @@ class DatabaseManager {
     }
     try {
       // A model cannot authorize creating an item: only the review UI can set createNew.
-      for (const key of ['matchedItems', 'newItems']) {
-        if (Array.isArray(result[key])) result[key] = result[key].map(({createNew: _ignored, ...item}) => item);
+      for (const key of ["matchedItems", "newItems"]) {
+        if (Array.isArray(result[key]))
+          result[key] = result[key].map(({ createNew: _ignored, ...item }) => item);
       }
       result = this.normalizeTrackingResult(result);
       result.protocolVersion = 2;
-    } catch (error) { return { success: false, error: error.message }; }
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
     const templateVersion = this.getTrackingTemplateVersion();
     const inputHash = createHash("sha256")
       .update(
@@ -2090,7 +2144,8 @@ class DatabaseManager {
       .digest("hex");
     if (!force) {
       const cached = this.getTrackingExtraction(noteId, actionId);
-      if (cached?.result?.protocolVersion === 2) return { success: true, cached: true, extraction: cached };
+      if (cached?.result?.protocolVersion === 2)
+        return { success: true, cached: true, extraction: cached };
     }
     const previous = this.db
       .prepare(
@@ -2145,11 +2200,19 @@ class DatabaseManager {
       )
       .all(noteId);
     const candidates = this.getTrackingCandidates(noteId);
-    return { extractions: extractions.map(extraction => {
-      try {
-        return { ...extraction, reviewResult: this.normalizeTrackingResult(extraction.result) };
-      } catch { return { ...extraction, reviewResult: null }; }
-    }), updates, candidates };
+    const items = candidates.filter((item) => item.linked);
+    return {
+      items,
+      extractions: extractions.map((extraction) => {
+        try {
+          return { ...extraction, reviewResult: this.normalizeTrackingResult(extraction.result) };
+        } catch {
+          return { ...extraction, reviewResult: null };
+        }
+      }),
+      updates,
+      candidates,
+    };
   }
 
   confirmTrackingExtraction(extractionId, resultOverride) {
@@ -2172,22 +2235,29 @@ class DatabaseManager {
     if (!result || !Array.isArray(result.updates)) {
       return { success: false, error: "Tracking extraction has an invalid result" };
     }
-    try { result = this.normalizeTrackingResult(result); }
-    catch (error) { return { success: false, error: error.message }; }
+    try {
+      result = this.normalizeTrackingResult(result);
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
     const templates = new Map(
       this.getTrackingTemplates().map((template) => [template.name, template])
     );
     const findOrCreateItem = (item) => {
       const title = String(item?.title || item?.itemTitle || "").trim();
       const type = String(item?.itemType || "").trim();
-      if (!title || !templates.has(type)) throw new Error('Unknown item type or empty title');
+      if (!title || !templates.has(type)) throw new Error("Unknown item type or empty title");
       if (item.itemId != null) {
-        if (!Number.isInteger(item.itemId)) throw new Error('Invalid item ID');
-        const existing = this.db.prepare('SELECT * FROM tracking_items WHERE id = ?').get(item.itemId);
-        if (!existing || existing.template_id !== templates.get(type).id) throw new Error('Item ID does not exist or type does not match');
+        if (!Number.isInteger(item.itemId)) throw new Error("Invalid item ID");
+        const existing = this.db
+          .prepare("SELECT * FROM tracking_items WHERE id = ?")
+          .get(item.itemId);
+        if (!existing || existing.template_id !== templates.get(type).id)
+          throw new Error("Item ID does not exist or type does not match");
         return existing;
       }
-      if (item.createNew !== true) throw new Error('Choose an existing item or explicitly choose to create a new item');
+      if (item.createNew !== true)
+        throw new Error("Choose an existing item or explicitly choose to create a new item");
       const inserted = this.db
         .prepare(
           "INSERT INTO tracking_items (template_id, title, state, properties_json) VALUES (?, ?, ?, ?)"
@@ -2218,10 +2288,15 @@ class DatabaseManager {
       }
       // Relations are source-backed updates too; no separate graph table is needed.
       for (const relation of result.relations || []) {
-        result.updates.push({ itemRef: relation.sourceRef, relatedItemRef: relation.targetRef,
-          relationType: relation.relationType, updateType: '关联',
-          content: relation.content || relation.relationType, evidence: relation.evidence,
-          occurredAt: relation.occurredAt || null });
+        result.updates.push({
+          itemRef: relation.sourceRef,
+          relatedItemRef: relation.targetRef,
+          relationType: relation.relationType,
+          updateType: "关联",
+          content: relation.content || relation.relationType,
+          evidence: relation.evidence,
+          occurredAt: relation.occurredAt || null,
+        });
       }
       for (const update of result.updates) {
         const item = itemByRef.get(update.itemRef);
@@ -2231,7 +2306,10 @@ class DatabaseManager {
         const related = itemByRef.get(update.relatedItemRef) || null;
         update.itemId = item.id;
         update.itemTitle = item.title;
-        if (related) { update.relatedItemId = related.id; update.relatedItemTitle = related.title; }
+        if (related) {
+          update.relatedItemId = related.id;
+          update.relatedItemTitle = related.title;
+        }
         this.db
           .prepare(
             `INSERT INTO tracking_updates
@@ -2251,14 +2329,22 @@ class DatabaseManager {
           );
         this.db
           .prepare(
-            "UPDATE tracking_items SET state = COALESCE(?, state), updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+            "UPDATE tracking_items SET state = COALESCE(?, state), state_source_update_id = CASE WHEN ? IS NOT NULL THEN last_insert_rowid() ELSE state_source_update_id END, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
           )
-          .run(update.stateAfter || null, item.id);
+          .run(update.stateAfter || null, update.stateAfter || null, item.id);
       }
       for (const { item_id } of affected) {
+        const source = this.db
+          .prepare("SELECT state_source_update_id FROM tracking_items WHERE id = ?")
+          .get(item_id)?.state_source_update_id;
+        if (
+          source == null ||
+          this.db.prepare("SELECT id FROM tracking_updates WHERE id = ?").get(source)
+        )
+          continue;
         const state = this.db
           .prepare(
-            "SELECT state_after FROM tracking_updates WHERE item_id = ? AND state_after IS NOT NULL ORDER BY id DESC LIMIT 1"
+            "SELECT id, state_after FROM tracking_updates WHERE item_id = ? AND state_after IS NOT NULL ORDER BY id DESC LIMIT 1"
           )
           .get(item_id);
         const item = this.db
@@ -2267,9 +2353,13 @@ class DatabaseManager {
         const template = [...templates.values()].find((t) => t.id === item?.template_id);
         this.db
           .prepare(
-            "UPDATE tracking_items SET state = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+            "UPDATE tracking_items SET state = ?, state_source_update_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
           )
-          .run(state?.state_after || template?.definition?.states?.[0] || "进行中", item_id);
+          .run(
+            state?.state_after || template?.definition?.states?.[0] || "进行中",
+            state?.id || null,
+            item_id
+          );
       }
       this.db
         .prepare(
@@ -2288,6 +2378,137 @@ class DatabaseManager {
       return { success: false, error: error.message };
     }
     return { success: true, data: this.getNoteTracking(extraction.note_id) };
+  }
+
+  updateNoteTracking(noteId, request) {
+    try {
+      this.db.transaction(() => {
+        const { itemId, updateId, itemPatch = {}, updatePatch = {}, expected } = request;
+        const tracking = this.getNoteTracking(noteId);
+        const item = tracking.items.find((row) => row.id === itemId);
+        const update =
+          updateId == null
+            ? null
+            : tracking.updates.find((row) => row.id === updateId && row.item_id === itemId);
+        if (!item || (updateId != null && !update))
+          throw new Error("Tracking record not linked to current note");
+        if (
+          !expected ||
+          JSON.stringify(expected.item) !== JSON.stringify(item) ||
+          JSON.stringify(expected.update ?? null) !== JSON.stringify(update)
+        )
+          throw new Error("Tracking record changed; read again before editing");
+        const validatePatch = (patch, allowed) => {
+          if (
+            !patch ||
+            typeof patch !== "object" ||
+            Array.isArray(patch) ||
+            Object.keys(patch).some((key) => !allowed.includes(key))
+          )
+            throw new Error("Invalid tracking fields");
+        };
+        validatePatch(itemPatch, ["title", "state", "properties"]);
+        validatePatch(updatePatch, ["content", "update_type", "occurred_at", "state_after"]);
+        if (!Object.keys(itemPatch).length && !Object.keys(updatePatch).length)
+          throw new Error("No changes supplied");
+        if (Object.keys(updatePatch).length && !update) throw new Error("Progress ID required");
+        for (const [key, value] of [...Object.entries(itemPatch), ...Object.entries(updatePatch)]) {
+          if (key === "properties") {
+            if (!value || typeof value !== "object" || Array.isArray(value))
+              throw new Error("Invalid properties");
+          } else if (
+            !(value === null && ["occurred_at", "state_after"].includes(key)) &&
+            (typeof value !== "string" || !value.trim())
+          )
+            throw new Error("Invalid tracking value");
+        }
+        const template = this.getTrackingTemplates().find((t) => t.name === item.itemType);
+        if (
+          updatePatch.update_type &&
+          !template.definition.updateTypes.includes(updatePatch.update_type)
+        )
+          throw new Error("Invalid progress type");
+        if (updatePatch.occurred_at && !/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(updatePatch.occurred_at))
+          throw new Error("Use an ISO date");
+        if (updatePatch.occurred_at && !Number.isFinite(Date.parse(updatePatch.occurred_at)))
+          throw new Error("Invalid date");
+        // Backfill legacy identity before renaming; keep all extracted text unchanged.
+        if (itemPatch.title && itemPatch.title !== item.title) {
+          const unique =
+            this.db
+              .prepare(
+                `SELECT COUNT(*) AS count FROM tracking_items i
+            JOIN tracking_templates t ON t.id = i.template_id WHERE i.title = ? AND t.name = ?`
+              )
+              .get(item.title, item.itemType).count === 1;
+          if (unique) {
+            for (const row of this.db
+              .prepare(
+                "SELECT id, result_json FROM tracking_extractions WHERE status = 'confirmed'"
+              )
+              .all()) {
+              const result = safeJson(row.result_json, {});
+              let changed = false;
+              for (const entry of [...(result.matchedItems || []), ...(result.newItems || [])]) {
+                if (
+                  entry.itemId == null &&
+                  entry.title === item.title &&
+                  entry.itemType === item.itemType
+                ) {
+                  entry.itemId = itemId;
+                  changed = true;
+                }
+              }
+              if (changed)
+                this.db
+                  .prepare("UPDATE tracking_extractions SET result_json = ? WHERE id = ?")
+                  .run(JSON.stringify(result), row.id);
+            }
+          }
+        }
+        let state = item.state;
+        let stateSource = item.stateSourceUpdateId;
+        if (update && Object.hasOwn(updatePatch, "state_after")) {
+          const latest = this.db
+            .prepare(
+              "SELECT id, state_after FROM tracking_updates WHERE item_id = ? AND state_after IS NOT NULL ORDER BY id DESC LIMIT 1"
+            )
+            .get(itemId);
+          if (latest?.id === updateId && item.stateSourceUpdateId === updateId) {
+            const previous = this.db
+              .prepare(
+                "SELECT id, state_after FROM tracking_updates WHERE item_id = ? AND id != ? AND state_after IS NOT NULL ORDER BY id DESC LIMIT 1"
+              )
+              .get(itemId, updateId);
+            state =
+              updatePatch.state_after || previous?.state_after || template.definition.states[0];
+            stateSource = updatePatch.state_after ? updateId : previous?.id || null;
+          }
+        }
+        this.db
+          .prepare(
+            "UPDATE tracking_items SET title = ?, state = ?, properties_json = ?, state_source_update_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+          )
+          .run(
+            itemPatch.title ?? item.title,
+            itemPatch.state ?? state,
+            JSON.stringify({ ...item.properties, ...itemPatch.properties }),
+            Object.hasOwn(itemPatch, "state") ? null : stateSource,
+            itemId
+          );
+        if (update) {
+          const next = { ...update, ...updatePatch };
+          this.db
+            .prepare(
+              "UPDATE tracking_updates SET content = ?, update_type = ?, occurred_at = ?, state_after = ? WHERE id = ?"
+            )
+            .run(next.content, next.update_type, next.occurred_at, next.state_after, updateId);
+        }
+      })();
+      return { success: true, data: this.getNoteTracking(noteId) };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   }
 
   rejectTrackingExtraction(extractionId) {

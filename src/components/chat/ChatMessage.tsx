@@ -147,6 +147,23 @@ function ToolCallStep({
       )}
 
       {isConfirmationPending && (
+        <div className="px-2.5 text-xs whitespace-pre-wrap">
+          {toolCall.metadata?.shared === true && <p>{t("trackingChat.shared")}</p>}
+          {(
+            (toolCall.metadata?.changes || []) as Array<{
+              field: string;
+              before: unknown;
+              after: unknown;
+            }>
+          ).map((change, index) => (
+            <p key={index}>
+              {t(`trackingChat.fields.${change.field}`, { defaultValue: change.field })}:{" "}
+              {JSON.stringify(change.before) ?? "—"} → {JSON.stringify(change.after)}
+            </p>
+          ))}
+        </div>
+      )}
+      {isConfirmationPending && (
         <div className="flex items-center gap-1.5 px-2.5 pb-1.5">
           <button
             type="button"
@@ -272,12 +289,7 @@ export function ChatMessage({
         className="ow-chat-message-row ow-chat-message-row-user"
         style={{ animation: "agent-message-in 200ms ease-out both" }}
       >
-        <div
-          data-chat-bubble
-          className={cn(
-            "ow-chat-bubble ow-chat-bubble-user"
-          )}
-        >
+        <div data-chat-bubble className={cn("ow-chat-bubble ow-chat-bubble-user")}>
           {content}
         </div>
       </div>
@@ -293,12 +305,7 @@ export function ChatMessage({
       className="group/msg ow-chat-message-row ow-chat-message-row-assistant"
       style={{ animation: "agent-message-in 200ms ease-out both" }}
     >
-      <div
-        data-chat-bubble
-        className={cn(
-          "ow-chat-bubble ow-chat-bubble-assistant"
-        )}
-      >
+      <div data-chat-bubble className={cn("ow-chat-bubble ow-chat-bubble-assistant")}>
         {hasToolCalls && (
           <div
             className={cn(

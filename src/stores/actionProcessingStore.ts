@@ -24,6 +24,14 @@ interface ActionProcessingStoreState {
 
 const cancelledFlags = new Map<number, boolean>();
 const processingFlags = new Map<number, boolean>();
+export function beginChatNoteAction(noteId: number): boolean {
+  if (processingFlags.get(noteId)) return false;
+  processingFlags.set(noteId, true);
+  return true;
+}
+export function endChatNoteAction(noteId: number): void {
+  processingFlags.set(noteId, false);
+}
 const successTimers = new Map<number, NodeJS.Timeout>();
 
 const IDLE_STATE: NoteActionState = { status: "idle", actionName: null, outputTarget: null };
