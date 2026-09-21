@@ -270,6 +270,10 @@
     @apply mx-auto flex h-full w-full min-w-0 max-w-5xl flex-col px-6 py-4;
   }
 
+  .ow-page-column--fluid {
+    @apply max-w-none px-4 sm:px-6;
+  }
+
   .ow-page-header {
     @apply mb-5 flex min-h-14 shrink-0 items-start justify-between gap-4 border-b border-border/50 pb-4 dark:border-white/8;
     -webkit-app-region: drag;

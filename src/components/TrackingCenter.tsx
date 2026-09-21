@@ -256,7 +256,7 @@ export default function TrackingCenter({
 
   return (
     <section className="ow-workspace-page min-h-0 text-foreground">
-      <div className="ow-page-column min-h-0">
+      <div className="ow-page-column ow-page-column--fluid min-h-0">
         <header className="ow-page-header flex-wrap">
           <div className="ow-page-heading">
             <h1 className="ow-page-title">{t("trackingCenter.title")}</h1>
@@ -542,9 +542,11 @@ export default function TrackingCenter({
                         {t("trackingCenter.noProgress")}
                       </p>
                     )}
-                    {pagination(page, detail.updates.total, setPage)}
+                    {detail.updates.total > 0 && pagination(page, detail.updates.total, setPage)}
                   </div>
-                  <h3 className="mt-4 text-sm font-semibold">{t("trackingCenter.relations")}</h3>
+                  {detail.relations.length > 0 && (
+                    <h3 className="mt-4 text-sm font-semibold">{t("trackingCenter.relations")}</h3>
+                  )}
                   {detail.relations.map((relation) => (
                     <button
                       key={relation.id}
@@ -575,7 +577,9 @@ export default function TrackingCenter({
                       {note.deleted_at ? t("trackingCenter.missingSource") : ""}
                     </button>
                   ))}
-                  <h3 className="mt-5 text-sm font-semibold">{t("trackingCenter.history")}</h3>
+                  {detail.operations.length > 0 && (
+                    <h3 className="mt-5 text-sm font-semibold">{t("trackingCenter.history")}</h3>
+                  )}
                   {detail.operations.map((operation) => (
                     <details key={operation.id} className="mt-2 text-xs">
                       <summary>

@@ -76,7 +76,7 @@ test("tracking center offers localized inventory and read-only template tabs wit
   );
   assert.match(html, /事项中心/);
   assert.match(html, /<h1 class="ow-page-title"/);
-  assert.match(html, /ow-page-column/);
+  assert.match(html, /ow-page-column ow-page-column--fluid/);
   assert.match(html, /搜索事项/);
   assert.match(html, /批量提取/);
   assert.match(html, /待确认/);

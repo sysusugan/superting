@@ -244,7 +244,7 @@ export default function DictionaryView() {
 
   return (
     <div className="ow-workspace-page">
-      <div className="ow-page-column">
+      <div className="ow-page-column ow-page-column--fluid">
         <ConfirmDialog
           open={confirmClear}
           onOpenChange={setConfirmClear}
