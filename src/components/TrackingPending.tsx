@@ -65,8 +65,8 @@ export default function TrackingPending({
   }, [selected, revision]);
   const current = list?.items.find((n) => n.id === selected);
   return (
-    <div className="grid min-h-0 flex-1 gap-4 overflow-auto md:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="max-h-64 space-y-2 overflow-auto pr-2 md:max-h-none">
+    <div className="grid min-h-0 min-w-0 flex-1 gap-4 overflow-y-auto md:grid-cols-[240px_minmax(0,1fr)] md:grid-rows-[minmax(0,1fr)] md:overflow-hidden">
+      <aside className="min-h-0 min-w-0 max-h-64 space-y-2 overflow-y-auto pr-2 md:max-h-none">
         {list?.items.map((n) => (
           <button
             key={n.id}
@@ -101,7 +101,7 @@ export default function TrackingPending({
           </Button>
         </div>
       </aside>
-      <div className="min-w-0 space-y-5 overflow-auto px-1 pb-4">
+      <div className="min-h-0 min-w-0 space-y-4 overflow-x-hidden px-1 pb-4 md:overflow-y-auto">
         {error && <p role="alert">{error}</p>}
         {current && (
           <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 border-b border-border bg-background py-3">

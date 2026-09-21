@@ -34,7 +34,7 @@ export function ChatMessages({
   }, [messages]);
 
   return (
-    <div ref={scrollRef} className={cn("flex-1 overflow-y-auto agent-chat-scroll")}>
+    <div ref={scrollRef} className={cn("min-h-0 min-w-0 flex-1 overflow-y-auto agent-chat-scroll")}>
       {messages.length === 0 ? (
         (emptyState ?? null)
       ) : (

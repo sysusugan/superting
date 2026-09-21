@@ -45,6 +45,19 @@ function loadComponent(file) {
   return exports;
 }
 
+test("chat layout keeps a nonshrinking header outside message and composer slots", () => {
+  const Workspace = loadComponent(
+    path.resolve(__dirname, "../../src/components/chat/ChatWorkspace.tsx")
+  ).ChatWorkspace;
+  const html = renderToStaticMarkup(
+    React.createElement(Workspace, null, React.createElement("div", { "data-message-slot": true }))
+  );
+  assert.match(html, /min-h-0/);
+  assert.match(html, /overflow-hidden/);
+  assert.match(html, /ow-page-column[^"]*shrink-0/);
+  assert.ok(html.indexOf("ow-page-title") < html.indexOf("data-message-slot"));
+});
+
 test("tracking center offers localized inventory and read-only template tabs without unfinished actions", async () => {
   const i18n = i18next.createInstance();
   await i18n.init({
@@ -62,6 +75,8 @@ test("tracking center offers localized inventory and read-only template tabs wit
     )
   );
   assert.match(html, /事项中心/);
+  assert.match(html, /<h1 class="ow-page-title"/);
+  assert.match(html, /ow-page-column/);
   assert.match(html, /搜索事项/);
   assert.match(html, /批量提取/);
   assert.match(html, /待确认/);

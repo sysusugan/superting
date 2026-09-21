@@ -17,9 +17,12 @@ export function TrackingItemCard({
   controls?: ReactNode;
   children?: ReactNode;
 }) {
+  const fields = Object.entries(properties || {}).filter(
+    ([, value]) => value != null && (typeof value !== "string" || value.trim() !== "")
+  );
   return (
-    <article className="overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-      <header className="space-y-4 p-4 sm:p-5">
+    <article className="min-w-0 overflow-hidden rounded-lg border border-border bg-card text-card-foreground">
+      <header className="space-y-3 p-4">
         <div className="flex items-start gap-3">
           <span className="rounded-lg bg-primary/10 p-2 text-primary">
             <GitBranch size={16} aria-hidden />
@@ -36,9 +39,9 @@ export function TrackingItemCard({
             </div>
           </div>
         </div>
-        {properties && Object.keys(properties).length > 0 && (
-          <dl className="grid gap-x-5 gap-y-3 text-sm sm:grid-cols-2">
-            {Object.entries(properties).map(([key, value]) => (
+        {fields.length > 0 && (
+          <dl className="grid gap-x-5 gap-y-2 text-sm sm:grid-cols-2">
+            {fields.map(([key, value]) => (
               <div key={key} className="min-w-0">
                 <dt className="text-xs text-muted-foreground">{key}</dt>
                 <dd className="mt-1 whitespace-pre-wrap break-words">
@@ -51,7 +54,7 @@ export function TrackingItemCard({
         {controls}
       </header>
       {children && (
-        <div className="border-t border-border/60 bg-muted/20 p-3 sm:p-5">{children}</div>
+        <div className="border-t border-border/60 bg-muted/20 p-3 sm:p-4">{children}</div>
       )}
     </article>
   );

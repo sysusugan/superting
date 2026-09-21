@@ -255,501 +255,511 @@ export default function TrackingCenter({
   );
 
   return (
-    <section className="flex h-full min-h-0 flex-col px-5 pb-5 pt-5 text-foreground">
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">{t("trackingCenter.title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("trackingCenter.description")}</p>
+    <section className="ow-workspace-page min-h-0 text-foreground">
+      <div className="ow-page-column min-h-0">
+        <header className="ow-page-header flex-wrap">
+          <div className="ow-page-heading">
+            <h1 className="ow-page-title">{t("trackingCenter.title")}</h1>
+            <p className="ow-page-description">{t("trackingCenter.description")}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="outline"
+              disabled={saving}
+              onClick={() => {
+                if (canLeave()) setRefresh((value) => value + 1);
+              }}
+            >
+              {t("trackingCenter.refresh")}
+            </Button>
+            <Button
+              className="whitespace-nowrap"
+              onClick={() => {
+                setBatchTarget(null);
+                setBatchOpen(true);
+              }}
+            >
+              {t(batchRunning ? "trackingBatch.viewProgress" : "trackingBatch.extract")}
+            </Button>
+          </div>
+        </header>
+        <TrackingBatchDialog open={batchOpen} onOpenChange={setBatchOpen} target={batchTarget} />
+
+        <div
+          className="mb-4 flex shrink-0 gap-2"
+          role="tablist"
+          aria-label={t("trackingCenter.title")}
+        >
+          {(["items", "pending", "templates"] as const).map((key) => (
+            <Button
+              key={key}
+              role="tab"
+              aria-selected={tab === key}
+              variant={tab === key ? "secondary" : "ghost"}
+              onClick={() => {
+                if (canLeave()) setTab(key);
+              }}
+            >
+              {key === "pending"
+                ? t("trackingBatch.pending", { count: pendingCount })
+                : t(`trackingCenter.${key}`)}
+            </Button>
+          ))}
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            disabled={saving}
-            onClick={() => {
-              if (canLeave()) setRefresh((value) => value + 1);
-            }}
-          >
-            {t("trackingCenter.refresh")}
-          </Button>
-          <Button
-            className="whitespace-nowrap"
-            onClick={() => {
-              setBatchTarget(null);
+        {error && (
+          <p role="alert" className="mb-3 text-sm text-destructive">
+            {t("trackingCenter.failed")} {error}
+          </p>
+        )}
+        {tab === "pending" ? (
+          <TrackingPending
+            onOpenNote={onOpenNote}
+            onExtract={(note) => {
+              setBatchTarget(note);
               setBatchOpen(true);
             }}
-          >
-            {t(batchRunning ? "trackingBatch.viewProgress" : "trackingBatch.extract")}
-          </Button>
-        </div>
-      </header>
-      <TrackingBatchDialog open={batchOpen} onOpenChange={setBatchOpen} target={batchTarget} />
-
-      <div className="mb-4 flex gap-2" role="tablist" aria-label={t("trackingCenter.title")}>
-        {(["items", "pending", "templates"] as const).map((key) => (
-          <Button
-            key={key}
-            role="tab"
-            aria-selected={tab === key}
-            variant={tab === key ? "secondary" : "ghost"}
-            onClick={() => {
-              if (canLeave()) setTab(key);
-            }}
-          >
-            {key === "pending"
-              ? t("trackingBatch.pending", { count: pendingCount })
-              : t(`trackingCenter.${key}`)}
-          </Button>
-        ))}
-      </div>
-      {error && (
-        <p role="alert" className="mb-3 text-sm text-destructive">
-          {t("trackingCenter.failed")} {error}
-        </p>
-      )}
-      {tab === "pending" ? (
-        <TrackingPending
-          onOpenNote={onOpenNote}
-          onExtract={(note) => {
-            setBatchTarget(note);
-            setBatchOpen(true);
-          }}
-          onCount={setPendingCount}
-        />
-      ) : tab === "templates" ? (
-        <div className="grid gap-4 overflow-y-auto md:grid-cols-2">
-          {templates.map((entry) => (
-            <article key={entry.id} className="rounded-lg border border-border bg-card p-4">
-              <h2 className="font-semibold">
-                {entry.name} <span className="text-xs text-muted-foreground">v{entry.version}</span>
-              </h2>
-              {(["fields", "states", "updateTypes"] as const).map((key) => (
-                <div key={key} className="mt-3">
-                  <h3 className="text-xs text-muted-foreground">{t(`trackingCenter.${key}`)}</h3>
-                  <p className="mt-1 text-sm">{entry.definition[key].join(" · ")}</p>
-                </div>
-              ))}
-              <Button
-                variant="ghost"
-                className="mt-4"
-                onClick={() => {
-                  filter({ templateId: entry.id, state: "" });
-                  setTab("items");
-                }}
-              >
-                {t("trackingCenter.viewItems")}
-              </Button>
-            </article>
-          ))}
-          {!loading && !templates.length && !error && <p>{t("trackingCenter.empty")}</p>}
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1 gap-5">
-          <aside
-            className={`${selected !== null ? "hidden lg:flex" : "flex"} w-full shrink-0 flex-col lg:w-80`}
-          >
-            <input
-              className={field}
-              aria-label={t("trackingCenter.search")}
-              placeholder={t("trackingCenter.search")}
-              value={query.search || ""}
-              onChange={(event) => filter({ search: event.target.value })}
-            />
-            <div className="my-3 grid grid-cols-2 gap-2">
-              <select
-                className={field}
-                aria-label={t("trackingCenter.templates")}
-                value={query.templateId ?? ""}
-                onChange={(event) =>
-                  filter({
-                    templateId: event.target.value ? Number(event.target.value) : null,
-                    state: "",
-                  })
-                }
-              >
-                <option value="">{t("trackingCenter.allTypes")}</option>
-                {templates.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                className={field}
-                aria-label={t("trackingCenter.state")}
-                value={query.state || ""}
-                onChange={(event) => filter({ state: event.target.value })}
-              >
-                <option value="">{t("trackingCenter.allStates")}</option>
-                {list?.states.map((value) => (
-                  <option key={value}>{value}</option>
-                ))}
-              </select>
-              <select
-                className={`${field} col-span-2`}
-                aria-label={t("trackingCenter.tracking")}
-                value={query.active}
-                onChange={(event) =>
-                  filter({ active: event.target.value as TrackingQuery["active"] })
-                }
-              >
-                {["all", "active", "inactive"].map((key) => (
-                  <option key={key} value={key}>
-                    {t(`trackingCenter.${key}`)}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {loading && (
-              <p role="status" className="py-2 text-sm">
-                {t("trackingCenter.loading")}
-              </p>
-            )}
-            <div className="min-h-0 flex-1 overflow-y-auto space-y-2" aria-busy={loading}>
-              {!loading && !error && list?.total === 0 && (
-                <p className="p-4 text-sm text-muted-foreground">{t("trackingCenter.empty")}</p>
-              )}
-              {!error &&
-                list?.items.map((item) => (
-                  <button
-                    key={item.id}
-                    disabled={loading}
-                    onClick={() => select(item.id)}
-                    className={`w-full rounded-lg border p-3 text-left focus-visible:ring-2 focus-visible:ring-ring ${selected === item.id ? "border-primary bg-primary/5" : "border-border bg-card"}`}
-                  >
-                    <p className="text-sm font-medium">{item.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {item.itemType} · {item.state} ·{" "}
-                      {t(item.isActive ? "trackingCenter.active" : "trackingCenter.inactive")}
-                    </p>
-                    <p className="mt-3 line-clamp-2 text-xs">
-                      {item.latestContent || t("trackingCenter.noProgress")}
-                    </p>
-                    {item.latestRecordedAt && (
-                      <time className="mt-1 block text-xs text-muted-foreground">
-                        {item.latestRecordedAt}
-                      </time>
-                    )}
-                  </button>
-                ))}
-            </div>
-            {list &&
-              pagination(query.page || 1, list.total, (next) =>
-                setQuery((previous) => ({ ...previous, page: next }))
-              )}
-          </aside>
-          <main
-            className={`${selected === null ? "hidden lg:block" : "block"} min-w-0 flex-1 overflow-y-auto rounded-lg border border-border bg-card p-5`}
-          >
-            <Button variant="ghost" className="mb-3 lg:hidden" onClick={() => select(null)}>
-              {t("trackingCenter.back")}
-            </Button>
-            {loadingDetail && <p role="status">{t("trackingCenter.loading")}</p>}
-            {detailError && (
-              <p role="alert" className="mb-3 text-sm text-destructive">
-                {t("trackingCenter.failed")} {detailError}
-              </p>
-            )}
-            {saved && (
-              <p role="status" className="mb-3 text-sm text-success">
-                {t("trackingCenter.saved")}
-              </p>
-            )}
-            {selected === null && (
-              <p className="text-sm text-muted-foreground">{t("trackingCenter.select")}</p>
-            )}
-            {detail && !editor && (
-              <>
-                <TrackingItemCard
-                  title={detail.item.title}
-                  itemType={detail.item.itemType}
-                  state={detail.item.state}
-                  properties={detail.item.properties}
-                  controls={
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-xs text-muted-foreground">
-                        #{detail.item.id} · {t("trackingCenter.modified")} {detail.item.updated_at}
-                      </p>
-                      <Button variant="outline" onClick={beginEdit}>
-                        {t("trackingCenter.edit")}
-                      </Button>
-                    </div>
-                  }
-                />
-                <div className="mt-5">
-                  <h3 className="mb-2 text-sm font-semibold">{t("trackingCenter.progress")}</h3>
-                  <div className="mb-3 grid grid-cols-2 gap-2">
-                    {(["from", "to"] as const).map((key) => (
-                      <label key={key} className="text-xs text-muted-foreground">
-                        {t(`trackingCenter.${key}`)}
-                        <input
-                          className={field}
-                          type="date"
-                          value={range[key]}
-                          onChange={(event) => {
-                            setRange({ ...range, [key]: event.target.value });
-                            setPage(1);
-                          }}
-                        />
-                      </label>
-                    ))}
+            onCount={setPendingCount}
+          />
+        ) : tab === "templates" ? (
+          <div className="grid gap-4 overflow-y-auto md:grid-cols-2">
+            {templates.map((entry) => (
+              <article key={entry.id} className="rounded-lg border border-border bg-card p-4">
+                <h2 className="font-semibold">
+                  {entry.name}{" "}
+                  <span className="text-xs text-muted-foreground">v{entry.version}</span>
+                </h2>
+                {(["fields", "states", "updateTypes"] as const).map((key) => (
+                  <div key={key} className="mt-3">
+                    <h3 className="text-xs text-muted-foreground">{t(`trackingCenter.${key}`)}</h3>
+                    <p className="mt-1 text-sm">{entry.definition[key].join(" · ")}</p>
                   </div>
-                  <select
-                    className={`${field} mb-3`}
-                    aria-label={t("trackingCenter.updateTypes")}
-                    value={updateType}
-                    onChange={(event) => {
-                      setUpdateType(event.target.value);
-                      setPage(1);
-                    }}
-                  >
-                    <option value="">{t("trackingCenter.allTypes")}</option>
-                    {template?.definition.updateTypes.map((value) => (
-                      <option key={value}>{value}</option>
-                    ))}
-                  </select>
-                  <TrackingProgressList>
-                    {detail.updates.items.map((update) => (
-                      <TrackingProgressEntry
-                        key={update.id}
-                        type={update.update_type}
-                        content={update.content}
-                        evidence={update.evidence_text}
-                        date={
-                          update.unknown_date
-                            ? `${t("trackingCenter.unknownDate")}${update.occurred_at ? ` (${update.occurred_at})` : ""}`
-                            : update.occurred_at
-                        }
-                        meta={
-                          <>
-                            <p>{update.note_title || t("trackingCenter.missingSource")}</p>
-                            <p>
-                              {t("trackingCenter.recorded")} {update.created_at}
-                            </p>
-                          </>
-                        }
-                      />
-                    ))}
-                  </TrackingProgressList>
-                  {!detail.updates.total && (
-                    <p className="text-sm text-muted-foreground">
-                      {t("trackingCenter.noProgress")}
-                    </p>
-                  )}
-                  {pagination(page, detail.updates.total, setPage)}
-                </div>
-                <h3 className="mt-4 text-sm font-semibold">{t("trackingCenter.relations")}</h3>
-                {detail.relations.map((relation) => (
-                  <button
-                    key={relation.id}
-                    className="mt-2 block text-left text-sm text-primary"
-                    onClick={() =>
-                      select(
-                        relation.item_id === selected ? relation.related_item_id : relation.item_id
-                      )
+                ))}
+                <Button
+                  variant="ghost"
+                  className="mt-4"
+                  onClick={() => {
+                    filter({ templateId: entry.id, state: "" });
+                    setTab("items");
+                  }}
+                >
+                  {t("trackingCenter.viewItems")}
+                </Button>
+              </article>
+            ))}
+            {!loading && !templates.length && !error && <p>{t("trackingCenter.empty")}</p>}
+          </div>
+        ) : (
+          <div className="flex min-h-0 flex-1 gap-5">
+            <aside
+              className={`${selected !== null ? "hidden lg:flex" : "flex"} w-full shrink-0 flex-col lg:w-80`}
+            >
+              <input
+                className={field}
+                aria-label={t("trackingCenter.search")}
+                placeholder={t("trackingCenter.search")}
+                value={query.search || ""}
+                onChange={(event) => filter({ search: event.target.value })}
+              />
+              <div className="my-3 grid grid-cols-2 gap-2">
+                <select
+                  className={field}
+                  aria-label={t("trackingCenter.templates")}
+                  value={query.templateId ?? ""}
+                  onChange={(event) =>
+                    filter({
+                      templateId: event.target.value ? Number(event.target.value) : null,
+                      state: "",
+                    })
+                  }
+                >
+                  <option value="">{t("trackingCenter.allTypes")}</option>
+                  {templates.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className={field}
+                  aria-label={t("trackingCenter.state")}
+                  value={query.state || ""}
+                  onChange={(event) => filter({ state: event.target.value })}
+                >
+                  <option value="">{t("trackingCenter.allStates")}</option>
+                  {list?.states.map((value) => (
+                    <option key={value}>{value}</option>
+                  ))}
+                </select>
+                <select
+                  className={`${field} col-span-2`}
+                  aria-label={t("trackingCenter.tracking")}
+                  value={query.active}
+                  onChange={(event) =>
+                    filter({ active: event.target.value as TrackingQuery["active"] })
+                  }
+                >
+                  {["all", "active", "inactive"].map((key) => (
+                    <option key={key} value={key}>
+                      {t(`trackingCenter.${key}`)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {loading && (
+                <p role="status" className="py-2 text-sm">
+                  {t("trackingCenter.loading")}
+                </p>
+              )}
+              <div className="min-h-0 flex-1 overflow-y-auto space-y-2" aria-busy={loading}>
+                {!loading && !error && list?.total === 0 && (
+                  <p className="p-4 text-sm text-muted-foreground">{t("trackingCenter.empty")}</p>
+                )}
+                {!error &&
+                  list?.items.map((item) => (
+                    <button
+                      key={item.id}
+                      disabled={loading}
+                      onClick={() => select(item.id)}
+                      className={`w-full rounded-lg border p-3 text-left focus-visible:ring-2 focus-visible:ring-ring ${selected === item.id ? "border-primary bg-primary/5" : "border-border bg-card"}`}
+                    >
+                      <p className="text-sm font-medium">{item.title}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {item.itemType} · {item.state} ·{" "}
+                        {t(item.isActive ? "trackingCenter.active" : "trackingCenter.inactive")}
+                      </p>
+                      <p className="mt-3 line-clamp-2 text-xs">
+                        {item.latestContent || t("trackingCenter.noProgress")}
+                      </p>
+                      {item.latestRecordedAt && (
+                        <time className="mt-1 block text-xs text-muted-foreground">
+                          {item.latestRecordedAt}
+                        </time>
+                      )}
+                    </button>
+                  ))}
+              </div>
+              {list &&
+                pagination(query.page || 1, list.total, (next) =>
+                  setQuery((previous) => ({ ...previous, page: next }))
+                )}
+            </aside>
+            <main
+              className={`${selected === null ? "hidden lg:block" : "block"} min-w-0 flex-1 overflow-y-auto rounded-lg border border-border bg-card p-5`}
+            >
+              <Button variant="ghost" className="mb-3 lg:hidden" onClick={() => select(null)}>
+                {t("trackingCenter.back")}
+              </Button>
+              {loadingDetail && <p role="status">{t("trackingCenter.loading")}</p>}
+              {detailError && (
+                <p role="alert" className="mb-3 text-sm text-destructive">
+                  {t("trackingCenter.failed")} {detailError}
+                </p>
+              )}
+              {saved && (
+                <p role="status" className="mb-3 text-sm text-success">
+                  {t("trackingCenter.saved")}
+                </p>
+              )}
+              {selected === null && (
+                <p className="text-sm text-muted-foreground">{t("trackingCenter.select")}</p>
+              )}
+              {detail && !editor && (
+                <>
+                  <TrackingItemCard
+                    title={detail.item.title}
+                    itemType={detail.item.itemType}
+                    state={detail.item.state}
+                    properties={detail.item.properties}
+                    controls={
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          #{detail.item.id} · {t("trackingCenter.modified")}{" "}
+                          {detail.item.updated_at}
+                        </p>
+                        <Button variant="outline" onClick={beginEdit}>
+                          {t("trackingCenter.edit")}
+                        </Button>
+                      </div>
                     }
-                  >
-                    {relation.source_title} → {relation.relation_type} → {relation.target_title}
-                    <span className="block text-xs text-muted-foreground">
-                      {relation.evidence_text}
-                    </span>
-                  </button>
-                ))}
-                <h3 className="mt-5 text-sm font-semibold">{t("trackingCenter.sources")}</h3>
-                {detail.notes.map((note) => (
-                  <button
-                    key={note.id}
-                    className="mt-2 block text-sm text-primary disabled:text-muted-foreground"
-                    disabled={!!note.deleted_at}
-                    onClick={() => onOpenNote(note.id, note.folder_id)}
-                  >
-                    {note.title || `#${note.id}`}{" "}
-                    {note.deleted_at ? t("trackingCenter.missingSource") : ""}
-                  </button>
-                ))}
-                <h3 className="mt-5 text-sm font-semibold">{t("trackingCenter.history")}</h3>
-                {detail.operations.map((operation) => (
-                  <details key={operation.id} className="mt-2 text-xs">
-                    <summary>
-                      {operation.created_at} · {t("trackingCenter.edit")}
-                    </summary>
-                    <pre className="mt-2 whitespace-pre-wrap break-all">
-                      {operation.before_json}
-                      {"\n→\n"}
-                      {operation.after_json}
-                    </pre>
-                  </details>
-                ))}
-              </>
-            )}
-            {editor && (
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (review) void save();
-                  else setReview(true);
-                }}
-              >
-                <h2 className="text-lg font-semibold">{t("trackingCenter.edit")}</h2>
-                <p className="my-3 text-sm text-muted-foreground">{t("trackingCenter.shared")}</p>
-                {review ? (
-                  <>
-                    <h3 className="mb-3 text-sm font-semibold">{t("trackingCenter.review")}</h3>
-                    <dl className="space-y-3 text-sm">
-                      {Object.entries(patch)
-                        .filter(([key]) => key !== "properties" && key !== "removePropertyKeys")
-                        .map(([key, value]) => (
+                  />
+                  <div className="mt-5">
+                    <h3 className="mb-2 text-sm font-semibold">{t("trackingCenter.progress")}</h3>
+                    <div className="mb-3 grid grid-cols-2 gap-2">
+                      {(["from", "to"] as const).map((key) => (
+                        <label key={key} className="text-xs text-muted-foreground">
+                          {t(`trackingCenter.${key}`)}
+                          <input
+                            className={field}
+                            type="date"
+                            value={range[key]}
+                            onChange={(event) => {
+                              setRange({ ...range, [key]: event.target.value });
+                              setPage(1);
+                            }}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                    <select
+                      className={`${field} mb-3`}
+                      aria-label={t("trackingCenter.updateTypes")}
+                      value={updateType}
+                      onChange={(event) => {
+                        setUpdateType(event.target.value);
+                        setPage(1);
+                      }}
+                    >
+                      <option value="">{t("trackingCenter.allTypes")}</option>
+                      {template?.definition.updateTypes.map((value) => (
+                        <option key={value}>{value}</option>
+                      ))}
+                    </select>
+                    <TrackingProgressList>
+                      {detail.updates.items.map((update) => (
+                        <TrackingProgressEntry
+                          key={update.id}
+                          type={update.update_type}
+                          content={update.content}
+                          evidence={update.evidence_text}
+                          date={
+                            update.unknown_date
+                              ? `${t("trackingCenter.unknownDate")}${update.occurred_at ? ` (${update.occurred_at})` : ""}`
+                              : update.occurred_at
+                          }
+                          meta={
+                            <>
+                              <p>{update.note_title || t("trackingCenter.missingSource")}</p>
+                              <p>
+                                {t("trackingCenter.recorded")} {update.created_at}
+                              </p>
+                            </>
+                          }
+                        />
+                      ))}
+                    </TrackingProgressList>
+                    {!detail.updates.total && (
+                      <p className="text-sm text-muted-foreground">
+                        {t("trackingCenter.noProgress")}
+                      </p>
+                    )}
+                    {pagination(page, detail.updates.total, setPage)}
+                  </div>
+                  <h3 className="mt-4 text-sm font-semibold">{t("trackingCenter.relations")}</h3>
+                  {detail.relations.map((relation) => (
+                    <button
+                      key={relation.id}
+                      className="mt-2 block text-left text-sm text-primary"
+                      onClick={() =>
+                        select(
+                          relation.item_id === selected
+                            ? relation.related_item_id
+                            : relation.item_id
+                        )
+                      }
+                    >
+                      {relation.source_title} → {relation.relation_type} → {relation.target_title}
+                      <span className="block text-xs text-muted-foreground">
+                        {relation.evidence_text}
+                      </span>
+                    </button>
+                  ))}
+                  <h3 className="mt-5 text-sm font-semibold">{t("trackingCenter.sources")}</h3>
+                  {detail.notes.map((note) => (
+                    <button
+                      key={note.id}
+                      className="mt-2 block text-sm text-primary disabled:text-muted-foreground"
+                      disabled={!!note.deleted_at}
+                      onClick={() => onOpenNote(note.id, note.folder_id)}
+                    >
+                      {note.title || `#${note.id}`}{" "}
+                      {note.deleted_at ? t("trackingCenter.missingSource") : ""}
+                    </button>
+                  ))}
+                  <h3 className="mt-5 text-sm font-semibold">{t("trackingCenter.history")}</h3>
+                  {detail.operations.map((operation) => (
+                    <details key={operation.id} className="mt-2 text-xs">
+                      <summary>
+                        {operation.created_at} · {t("trackingCenter.edit")}
+                      </summary>
+                      <pre className="mt-2 whitespace-pre-wrap break-all">
+                        {operation.before_json}
+                        {"\n→\n"}
+                        {operation.after_json}
+                      </pre>
+                    </details>
+                  ))}
+                </>
+              )}
+              {editor && (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (review) void save();
+                    else setReview(true);
+                  }}
+                >
+                  <h2 className="text-lg font-semibold">{t("trackingCenter.edit")}</h2>
+                  <p className="my-3 text-sm text-muted-foreground">{t("trackingCenter.shared")}</p>
+                  {review ? (
+                    <>
+                      <h3 className="mb-3 text-sm font-semibold">{t("trackingCenter.review")}</h3>
+                      <dl className="space-y-3 text-sm">
+                        {Object.entries(patch)
+                          .filter(([key]) => key !== "properties" && key !== "removePropertyKeys")
+                          .map(([key, value]) => (
+                            <div key={key}>
+                              <dt>{t(`trackingCenter.${key === "title" ? "name" : key}`)}</dt>
+                              <dd className="break-words">
+                                {key === "isActive"
+                                  ? t(
+                                      editor.expected.isActive
+                                        ? "trackingCenter.active"
+                                        : "trackingCenter.inactive"
+                                    )
+                                  : display(editor.expected[key as keyof TrackingItem])}{" "}
+                                →{" "}
+                                {key === "isActive"
+                                  ? t(value ? "trackingCenter.active" : "trackingCenter.inactive")
+                                  : display(value)}
+                              </dd>
+                            </div>
+                          ))}
+                        {Object.entries(patch.properties || {}).map(([key, value]) => (
                           <div key={key}>
-                            <dt>{t(`trackingCenter.${key === "title" ? "name" : key}`)}</dt>
-                            <dd className="break-words">
-                              {key === "isActive"
-                                ? t(
-                                    editor.expected.isActive
-                                      ? "trackingCenter.active"
-                                      : "trackingCenter.inactive"
-                                  )
-                                : display(editor.expected[key as keyof TrackingItem])}{" "}
-                              →{" "}
-                              {key === "isActive"
-                                ? t(value ? "trackingCenter.active" : "trackingCenter.inactive")
-                                : display(value)}
+                            <dt>{key}</dt>
+                            <dd>
+                              {display(editor.expected.properties[key])} → {display(value)}
                             </dd>
                           </div>
                         ))}
-                      {Object.entries(patch.properties || {}).map(([key, value]) => (
-                        <div key={key}>
-                          <dt>{key}</dt>
-                          <dd>
-                            {display(editor.expected.properties[key])} → {display(value)}
-                          </dd>
-                        </div>
-                      ))}
-                      {editor.removed.map((key) => (
-                        <div key={key}>
-                          {key}: {display(editor.expected.properties[key])} →{" "}
-                          {t("trackingCenter.removed")}
-                        </div>
-                      ))}
-                    </dl>
-                  </>
-                ) : (
-                  <div className="space-y-4">
-                    <label className="block text-sm">
-                      {t("trackingCenter.name")}
-                      <input
-                        className={field}
-                        required
-                        value={editor.title}
-                        onChange={(event) => setEditor({ ...editor, title: event.target.value })}
-                      />
-                    </label>
-                    <label className="block text-sm">
-                      {t("trackingCenter.state")}
-                      <select
-                        className={field}
-                        value={editor.state}
-                        onChange={(event) => setEditor({ ...editor, state: event.target.value })}
-                      >
-                        {[
-                          ...new Set([
-                            editor.expected.state,
-                            ...(template?.definition.states || []),
-                          ]),
-                        ].map((state) => (
-                          <option key={state}>{state}</option>
+                        {editor.removed.map((key) => (
+                          <div key={key}>
+                            {key}: {display(editor.expected.properties[key])} →{" "}
+                            {t("trackingCenter.removed")}
+                          </div>
                         ))}
-                      </select>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={editor.isActive}
-                        onChange={(event) =>
-                          setEditor({ ...editor, isActive: event.target.checked })
-                        }
-                      />
-                      {t("trackingCenter.active")}
-                    </label>
-                    {[
-                      ...new Set([
-                        ...(template?.definition.fields || []),
-                        ...Object.keys(editor.expected.properties),
-                      ]),
-                    ].map((key) => (
-                      <div key={key} className="flex items-end gap-2">
-                        <label className="min-w-0 flex-1 text-sm">
-                          {key}
-                          {editor.removed.includes(key) ? (
-                            <p>{t("trackingCenter.removed")}</p>
-                          ) : typeof editor.expected.properties[key] === "object" ||
-                            typeof editor.expected.properties[key] === "number" ||
-                            typeof editor.expected.properties[key] === "boolean" ? (
-                            <pre className="whitespace-pre-wrap text-xs">
-                              {display(editor.expected.properties[key])}
-                            </pre>
-                          ) : (
-                            <input
-                              className={field}
-                              value={editor.values[key] ?? ""}
-                              onChange={(event) =>
+                      </dl>
+                    </>
+                  ) : (
+                    <div className="space-y-4">
+                      <label className="block text-sm">
+                        {t("trackingCenter.name")}
+                        <input
+                          className={field}
+                          required
+                          value={editor.title}
+                          onChange={(event) => setEditor({ ...editor, title: event.target.value })}
+                        />
+                      </label>
+                      <label className="block text-sm">
+                        {t("trackingCenter.state")}
+                        <select
+                          className={field}
+                          value={editor.state}
+                          onChange={(event) => setEditor({ ...editor, state: event.target.value })}
+                        >
+                          {[
+                            ...new Set([
+                              editor.expected.state,
+                              ...(template?.definition.states || []),
+                            ]),
+                          ].map((state) => (
+                            <option key={state}>{state}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={editor.isActive}
+                          onChange={(event) =>
+                            setEditor({ ...editor, isActive: event.target.checked })
+                          }
+                        />
+                        {t("trackingCenter.active")}
+                      </label>
+                      {[
+                        ...new Set([
+                          ...(template?.definition.fields || []),
+                          ...Object.keys(editor.expected.properties),
+                        ]),
+                      ].map((key) => (
+                        <div key={key} className="flex items-end gap-2">
+                          <label className="min-w-0 flex-1 text-sm">
+                            {key}
+                            {editor.removed.includes(key) ? (
+                              <p>{t("trackingCenter.removed")}</p>
+                            ) : typeof editor.expected.properties[key] === "object" ||
+                              typeof editor.expected.properties[key] === "number" ||
+                              typeof editor.expected.properties[key] === "boolean" ? (
+                              <pre className="whitespace-pre-wrap text-xs">
+                                {display(editor.expected.properties[key])}
+                              </pre>
+                            ) : (
+                              <input
+                                className={field}
+                                value={editor.values[key] ?? ""}
+                                onChange={(event) =>
+                                  setEditor({
+                                    ...editor,
+                                    values: { ...editor.values, [key]: event.target.value },
+                                  })
+                                }
+                              />
+                            )}
+                          </label>
+                          {Object.hasOwn(editor.expected.properties, key) && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() =>
                                 setEditor({
                                   ...editor,
-                                  values: { ...editor.values, [key]: event.target.value },
+                                  removed: editor.removed.includes(key)
+                                    ? editor.removed.filter((value) => value !== key)
+                                    : [...editor.removed, key],
                                 })
                               }
-                            />
+                            >
+                              {t(
+                                editor.removed.includes(key)
+                                  ? "trackingCenter.undo"
+                                  : "trackingCenter.remove"
+                              )}
+                            </Button>
                           )}
-                        </label>
-                        {Object.hasOwn(editor.expected.properties, key) && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() =>
-                              setEditor({
-                                ...editor,
-                                removed: editor.removed.includes(key)
-                                  ? editor.removed.filter((value) => value !== key)
-                                  : [...editor.removed, key],
-                              })
-                            }
-                          >
-                            {t(
-                              editor.removed.includes(key)
-                                ? "trackingCenter.undo"
-                                : "trackingCenter.remove"
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-6 flex gap-2">
+                    <Button type="submit" disabled={saving || !dirty || !editor.title.trim()}>
+                      {t(
+                        saving
+                          ? "trackingCenter.saving"
+                          : review
+                            ? "trackingCenter.confirm"
+                            : "trackingCenter.review"
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={saving}
+                      onClick={() => {
+                        if (review) setReview(false);
+                        else canLeave();
+                      }}
+                    >
+                      {t(review ? "trackingCenter.back" : "trackingCenter.cancel")}
+                    </Button>
                   </div>
-                )}
-                <div className="mt-6 flex gap-2">
-                  <Button type="submit" disabled={saving || !dirty || !editor.title.trim()}>
-                    {t(
-                      saving
-                        ? "trackingCenter.saving"
-                        : review
-                          ? "trackingCenter.confirm"
-                          : "trackingCenter.review"
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={saving}
-                    onClick={() => {
-                      if (review) setReview(false);
-                      else canLeave();
-                    }}
-                  >
-                    {t(review ? "trackingCenter.back" : "trackingCenter.cancel")}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </main>
-        </div>
-      )}
+                </form>
+              )}
+            </main>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

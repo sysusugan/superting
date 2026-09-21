@@ -1,3 +1,4 @@
+import { ChatWorkspace } from "./ChatWorkspace";
 import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -22,9 +23,7 @@ function NewChatEmptyState() {
   return (
     <div className="ow-empty-state h-full -mt-6 select-none">
       <ChatEmptyIllustration />
-      <p className="ow-empty-state-description mt-4">
-        {t("chat.newChatEmpty")}
-      </p>
+      <p className="ow-empty-state-description mt-4">{t("chat.newChatEmpty")}</p>
     </div>
   );
 }
@@ -179,21 +178,21 @@ export default function ChatView() {
             type="button"
             className="ow-pane-toggle"
             onClick={() => setIsListCollapsed((value) => !value)}
-            aria-label={isListCollapsed ? t("chat.expandConversationList") : t("chat.collapseConversationList")}
-            title={isListCollapsed ? t("chat.expandConversationList") : t("chat.collapseConversationList")}
+            aria-label={
+              isListCollapsed
+                ? t("chat.expandConversationList")
+                : t("chat.collapseConversationList")
+            }
+            title={
+              isListCollapsed
+                ? t("chat.expandConversationList")
+                : t("chat.collapseConversationList")
+            }
           >
             {isListCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
           </button>
         </div>
-        <div className="flex-1 min-w-0 flex flex-col bg-background">
-          <div className="ow-page-column h-auto max-w-4xl pb-0">
-            <div className="ow-page-header mb-0">
-              <div className="ow-page-heading">
-                <h1 className="ow-page-title">{t("sidebar.chat")}</h1>
-                <p className="ow-page-description">{t("chat.newChatEmpty")}</p>
-              </div>
-            </div>
-          </div>
+        <ChatWorkspace>
           {hasActiveChat ? (
             <>
               <ChatMessages messages={persistence.messages} emptyState={<NewChatEmptyState />} />
@@ -208,7 +207,7 @@ export default function ChatView() {
           ) : (
             <EmptyChatState />
           )}
-        </div>
+        </ChatWorkspace>
       </div>
     </>
   );

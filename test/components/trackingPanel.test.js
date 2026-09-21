@@ -61,6 +61,23 @@ const render = (data) =>
   );
 const empty = { newItems: [], matchedItems: [], updates: [], uncertainties: [] };
 
+test("tracking properties hide empty values but preserve zero and false", () => {
+  const html = render({
+    items: [
+      {
+        id: 1,
+        title: "Properties",
+        properties: { empty: " ", missing: null, zero: 0, disabled: false },
+      },
+    ],
+    updates: [],
+  });
+  assert.doesNotMatch(html, /<dt[^>]*>(empty|missing)</);
+  assert.match(html, />zero</);
+  assert.match(html, />0</);
+  assert.match(html, />false</);
+});
+
 test("same-title items group interleaved progress by ID without dropping unassigned updates", () => {
   const html = render({
     items: [
