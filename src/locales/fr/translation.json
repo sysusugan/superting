@@ -1,4 +1,9 @@
 {
+  "trackingUI": {
+    "evidence": "Source",
+    "assignment": "Association",
+    "unassigned": "Mises à jour non associées"
+  },
   "trackingBatch": {
     "extract": "Extraction par lot",
     "viewProgress": "Voir la progression",

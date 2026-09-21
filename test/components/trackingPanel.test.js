@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
+const path = require("node:path");
 const ts = require("typescript");
 const React = require("react");
 const { renderToStaticMarkup } = require("react-dom/server");
@@ -20,11 +21,32 @@ const compiled = ts.transpileModule(source, {
   },
 }).outputText;
 const exportsObject = {};
+function loadTracking(name) {
+  const file = path.resolve(__dirname, "../../src/components/notes", name);
+  const filename = fs.existsSync(file + ".tsx") ? file + ".tsx" : file + ".ts";
+  const result = {};
+  vm.runInNewContext(
+    ts.transpileModule(fs.readFileSync(filename, "utf8"), {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        jsx: ts.JsxEmit.ReactJSX,
+        target: ts.ScriptTarget.ES2022,
+      },
+    }).outputText,
+    {
+      exports: result,
+      require: (dep) =>
+        dep === "react-i18next" ? { useTranslation: () => ({ t }) } : require(dep),
+    }
+  );
+  return result;
+}
 vm.runInNewContext(compiled, {
   exports: exportsObject,
   require: (name) => {
     if (name === "react-i18next") return { useTranslation: () => ({ t }) };
     if (name === "./TrackingReview") return { __esModule: true, default: () => null };
+    if (name.startsWith("../tracking/")) return loadTracking(name);
     return require(name);
   },
 });
@@ -38,6 +60,51 @@ const render = (data) =>
     })
   );
 const empty = { newItems: [], matchedItems: [], updates: [], uncertainties: [] };
+
+test("same-title items group interleaved progress by ID without dropping unassigned updates", () => {
+  const html = render({
+    items: [
+      { id: 1, title: "同名", itemType: "项目" },
+      { id: 2, title: "同名", itemType: "项目" },
+      { id: 3, title: "暂无记录" },
+    ],
+    updates: [
+      { id: 1, item_id: 1, content: "A1" },
+      { id: 2, item_id: 2, content: "B1" },
+      { id: 3, item_id: 1, content: "A2" },
+      { id: 4, item_id: 99, content: "未归属内容" },
+    ],
+  });
+  assert.ok(html.indexOf("A1") < html.indexOf("A2"));
+  assert.ok(html.indexOf("A2") < html.indexOf("B1"));
+  assert.match(html, /暂无记录/);
+  assert.match(html, /未归属进展/);
+  assert.match(html, /未归属内容/);
+});
+
+test("draft ref grouping retains order and does not merge equal titles", () => {
+  const { groupTrackingUpdates } = loadTracking("../tracking/groupTrackingUpdates");
+  const items = [
+    { ref: "a", title: "Same" },
+    { ref: "b", title: "Same" },
+  ];
+  const updates = [
+    { itemRef: "b", content: "B" },
+    { itemRef: "a", content: "A" },
+    { itemRef: "a", content: "A2" },
+    { content: "unknown" },
+  ];
+  const result = groupTrackingUpdates(
+    items,
+    updates,
+    (i) => i.ref,
+    (u) => u.itemRef
+  );
+  assert.equal(result.groups[0].updates.map((u) => u.content).join(","), "A,A2");
+  assert.equal(result.groups[1].updates[0].content, "B");
+  assert.equal(result.unassigned[0].content, "unknown");
+  assert.equal(updates[0].content, "B");
+});
 
 test("confirmed uncertainty-only extraction displays its content and re-extract button", () => {
   const html = render({

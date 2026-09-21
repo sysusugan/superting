@@ -1,4 +1,9 @@
 {
+  "trackingUI": {
+    "evidence": "Fonte",
+    "assignment": "Associazione",
+    "unassigned": "Aggiornamenti non assegnati"
+  },
   "trackingBatch": {
     "extract": "Estrazione in gruppo",
     "viewProgress": "Mostra avanzamento",

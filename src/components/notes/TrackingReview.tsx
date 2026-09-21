@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../ui/button";
+import {
+  TrackingItemCard,
+  TrackingProgressList,
+  TrackingProgressEntry,
+} from "../tracking/TrackingCards";
+import { groupTrackingUpdates } from "../tracking/groupTrackingUpdates";
 import type { TrackingItem } from "../../types/tracking";
 
 export interface ReviewData {
@@ -146,65 +152,86 @@ export default function TrackingReview({
   const updates = Array.isArray(parsed?.updates)
     ? (parsed.updates as Record<string, unknown>[])
     : [];
+  const { groups, unassigned } = groupTrackingUpdates(
+    items,
+    updates,
+    (item) => item.ref,
+    (update) => (typeof update.itemRef === "string" ? update.itemRef : undefined)
+  );
+  const progress = (entries: Record<string, unknown>[]) => (
+    <TrackingProgressList>
+      {entries.map((u, index) => (
+        <TrackingProgressEntry
+          key={index}
+          type={String(u.updateType || "")}
+          content={String(u.content || "")}
+          date={String(u.occurredAt || "")}
+          evidence={String(u.evidence || "")}
+        />
+      ))}
+    </TrackingProgressList>
+  );
   return (
-    <section className="space-y-3">
+    <section className="space-y-5">
       {latest.stale && <p role="alert">{t("trackingBatch.stale")}</p>}
-      <input
-        className="w-full rounded border bg-background p-2"
-        aria-label={t("trackingBatch.search")}
-        placeholder={t("trackingBatch.search")}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-      {items.map((item) => (
-        <div className="rounded border p-3" key={item.ref}>
-          <p>
-            {item.title} · {item.itemType}
-          </p>
-          {item.state && <p className="text-sm text-muted-foreground">{String(item.state)}</p>}
-          {item.properties &&
-            typeof item.properties === "object" &&
-            Object.entries(item.properties).map(([key, value]) => (
-              <p className="text-sm" key={key}>
-                {key}: {typeof value === "string" ? value : JSON.stringify(value)}
-              </p>
-            ))}
-          <select
-            className="mt-2 w-full rounded border bg-background p-2"
-            aria-label={item.title}
-            value={item.createNew ? "new" : item.itemId || ""}
-            onChange={(e) => choose(item.ref, e.target.value)}
-          >
-            <option value="">{t("notes.trackingIdentity.choose")}</option>
-            {[
-              ...new Map(
-                candidates.filter((c) => c.itemType === item.itemType).map((c) => [c.id, c])
-              ).values(),
-            ].map((c) => (
-              <option key={c.id} value={c.id}>
-                #{c.id} · {c.title} · {c.state}
-              </option>
-            ))}
-            <option value="new">{t("notes.trackingIdentity.create")}</option>
-          </select>
-        </div>
+      <label className="block space-y-2 text-xs font-medium text-muted-foreground">
+        <span>{t("trackingBatch.search")}</span>
+        <input
+          className="w-full rounded border bg-background p-2"
+          aria-label={t("trackingBatch.search")}
+          placeholder={t("trackingBatch.search")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </label>
+      {groups.map(({ item, updates: entries }) => (
+        <TrackingItemCard
+          key={item.ref}
+          title={item.title}
+          itemType={item.itemType}
+          state={item.state}
+          properties={item.properties}
+          controls={
+            <label className="block text-xs font-medium text-muted-foreground">
+              {t("trackingUI.assignment")}
+              <select
+                className="mt-2 w-full rounded-lg border border-input bg-background p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={item.title}
+                value={item.createNew ? "new" : item.itemId || ""}
+                onChange={(e) => choose(item.ref, e.target.value)}
+              >
+                <option value="">{t("notes.trackingIdentity.choose")}</option>
+                {[
+                  ...new Map(
+                    candidates.filter((c) => c.itemType === item.itemType).map((c) => [c.id, c])
+                  ).values(),
+                ].map((c) => (
+                  <option key={c.id} value={c.id}>
+                    #{c.id} · {c.title} · {c.state}
+                  </option>
+                ))}
+                <option value="new">{t("notes.trackingIdentity.create")}</option>
+              </select>
+            </label>
+          }
+        >
+          {entries.length ? (
+            progress(entries)
+          ) : (
+            <p className="text-xs text-muted-foreground">{t("trackingCenter.noProgress")}</p>
+          )}
+        </TrackingItemCard>
       ))}
       {!items.length && !updates.length && <p>{t("trackingBatch.empty")}</p>}
-      {updates.map((u, index) => (
-        <div className="rounded border p-3" key={index}>
-          <p>{items.find((item) => item.ref === u.itemRef)?.title}</p>
-          <p className="text-xs text-muted-foreground">
-            {String(u.updateType || "")} · {String(u.occurredAt || "")}
-          </p>
-          <p>{String(u.content || "")}</p>
-          <blockquote className="mt-2 border-l-2 pl-2 text-sm text-muted-foreground">
-            {String(u.evidence || "")}
-          </blockquote>
-        </div>
-      ))}
+      {!!unassigned.length && (
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold">{t("trackingUI.unassigned")}</h3>
+          {progress(unassigned)}
+        </section>
+      )}
       {Array.isArray(parsed?.uncertainties) && parsed.uncertainties.length > 0 && (
-        <div>
-          <h3>{t("notes.trackingStatus.uncertainties")}</h3>
+        <div className="space-y-2 rounded-xl border border-border bg-muted/40 p-4 text-sm">
+          <h3 className="font-semibold">{t("notes.trackingStatus.uncertainties")}</h3>
           {parsed.uncertainties.map((u: { content?: string; evidence?: string }, i: number) => (
             <p key={i}>
               {String(u.content || "")} {String(u.evidence || "")}

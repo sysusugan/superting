@@ -1,4 +1,9 @@
 {
+  "trackingUI": {
+    "evidence": "出典",
+    "assignment": "項目の関連付け",
+    "unassigned": "未割り当ての更新"
+  },
   "trackingBatch": {
     "extract": "一括抽出",
     "viewProgress": "抽出の進捗を表示",

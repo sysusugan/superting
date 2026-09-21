@@ -1,3 +1,8 @@
+import {
+  TrackingItemCard,
+  TrackingProgressList,
+  TrackingProgressEntry,
+} from "./tracking/TrackingCards";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
@@ -250,32 +255,35 @@ export default function TrackingCenter({
   );
 
   return (
-    <section className="flex h-full min-h-0 flex-col px-5 pb-5 pt-8 text-foreground">
-      <header className="mb-5 flex items-start justify-between gap-4">
+    <section className="flex h-full min-h-0 flex-col px-5 pb-5 pt-5 text-foreground">
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">{t("trackingCenter.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("trackingCenter.description")}</p>
         </div>
-        <Button
-          variant="outline"
-          disabled={saving}
-          onClick={() => {
-            if (canLeave()) setRefresh((value) => value + 1);
-          }}
-        >
-          {t("trackingCenter.refresh")}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            disabled={saving}
+            onClick={() => {
+              if (canLeave()) setRefresh((value) => value + 1);
+            }}
+          >
+            {t("trackingCenter.refresh")}
+          </Button>
+          <Button
+            className="whitespace-nowrap"
+            onClick={() => {
+              setBatchTarget(null);
+              setBatchOpen(true);
+            }}
+          >
+            {t(batchRunning ? "trackingBatch.viewProgress" : "trackingBatch.extract")}
+          </Button>
+        </div>
       </header>
       <TrackingBatchDialog open={batchOpen} onOpenChange={setBatchOpen} target={batchTarget} />
-      <Button
-        className="mb-3 self-end"
-        onClick={() => {
-          setBatchTarget(null);
-          setBatchOpen(true);
-        }}
-      >
-        {t(batchRunning ? "trackingBatch.viewProgress" : "trackingBatch.extract")}
-      </Button>
+
       <div className="mb-4 flex gap-2" role="tablist" aria-label={t("trackingCenter.title")}>
         {(["items", "pending", "templates"] as const).map((key) => (
           <Button
@@ -451,89 +459,84 @@ export default function TrackingCenter({
             )}
             {detail && !editor && (
               <>
-                <div className="flex justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-semibold">{detail.item.title}</h2>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      #{detail.item.id} · {detail.item.itemType} · {detail.item.state}
-                    </p>
-                  </div>
-                  <Button variant="outline" onClick={beginEdit}>
-                    {t("trackingCenter.edit")}
-                  </Button>
-                </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {t("trackingCenter.modified")} {detail.item.updated_at}
-                </p>
-                <dl className="my-5 grid gap-3 sm:grid-cols-2">
-                  {Object.entries(detail.item.properties).map(([key, value]) => (
-                    <div key={key}>
-                      <dt className="text-xs text-muted-foreground">{key}</dt>
-                      <dd className="break-words text-sm">{display(value)}</dd>
+                <TrackingItemCard
+                  title={detail.item.title}
+                  itemType={detail.item.itemType}
+                  state={detail.item.state}
+                  properties={detail.item.properties}
+                  controls={
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        #{detail.item.id} · {t("trackingCenter.modified")} {detail.item.updated_at}
+                      </p>
+                      <Button variant="outline" onClick={beginEdit}>
+                        {t("trackingCenter.edit")}
+                      </Button>
                     </div>
-                  ))}
-                </dl>
-                <h3 className="mb-2 text-sm font-semibold">{t("trackingCenter.progress")}</h3>
-                <div className="mb-3 grid grid-cols-2 gap-2">
-                  {(["from", "to"] as const).map((key) => (
-                    <label key={key} className="text-xs text-muted-foreground">
-                      {t(`trackingCenter.${key}`)}
-                      <input
-                        className={field}
-                        type="date"
-                        value={range[key]}
-                        onChange={(event) => {
-                          setRange({ ...range, [key]: event.target.value });
-                          setPage(1);
-                        }}
-                      />
-                    </label>
-                  ))}
-                </div>
-                <select
-                  className={`${field} mb-3`}
-                  aria-label={t("trackingCenter.updateTypes")}
-                  value={updateType}
-                  onChange={(event) => {
-                    setUpdateType(event.target.value);
-                    setPage(1);
-                  }}
-                >
-                  <option value="">{t("trackingCenter.allTypes")}</option>
-                  {template?.definition.updateTypes.map((value) => (
-                    <option key={value}>{value}</option>
-                  ))}
-                </select>
-                {detail.updates.items.map((update) => (
-                  <article
-                    key={update.id}
-                    className="mb-3 border-l-2 border-primary/30 pl-3 text-sm"
+                  }
+                />
+                <div className="mt-5">
+                  <h3 className="mb-2 text-sm font-semibold">{t("trackingCenter.progress")}</h3>
+                  <div className="mb-3 grid grid-cols-2 gap-2">
+                    {(["from", "to"] as const).map((key) => (
+                      <label key={key} className="text-xs text-muted-foreground">
+                        {t(`trackingCenter.${key}`)}
+                        <input
+                          className={field}
+                          type="date"
+                          value={range[key]}
+                          onChange={(event) => {
+                            setRange({ ...range, [key]: event.target.value });
+                            setPage(1);
+                          }}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <select
+                    className={`${field} mb-3`}
+                    aria-label={t("trackingCenter.updateTypes")}
+                    value={updateType}
+                    onChange={(event) => {
+                      setUpdateType(event.target.value);
+                      setPage(1);
+                    }}
                   >
-                    <p className="text-xs text-muted-foreground">
-                      {update.update_type} ·{" "}
-                      {update.note_title || t("trackingCenter.missingSource")}
+                    <option value="">{t("trackingCenter.allTypes")}</option>
+                    {template?.definition.updateTypes.map((value) => (
+                      <option key={value}>{value}</option>
+                    ))}
+                  </select>
+                  <TrackingProgressList>
+                    {detail.updates.items.map((update) => (
+                      <TrackingProgressEntry
+                        key={update.id}
+                        type={update.update_type}
+                        content={update.content}
+                        evidence={update.evidence_text}
+                        date={
+                          update.unknown_date
+                            ? `${t("trackingCenter.unknownDate")}${update.occurred_at ? ` (${update.occurred_at})` : ""}`
+                            : update.occurred_at
+                        }
+                        meta={
+                          <>
+                            <p>{update.note_title || t("trackingCenter.missingSource")}</p>
+                            <p>
+                              {t("trackingCenter.recorded")} {update.created_at}
+                            </p>
+                          </>
+                        }
+                      />
+                    ))}
+                  </TrackingProgressList>
+                  {!detail.updates.total && (
+                    <p className="text-sm text-muted-foreground">
+                      {t("trackingCenter.noProgress")}
                     </p>
-                    <p className="my-2 whitespace-pre-wrap">{update.content}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {t("trackingCenter.occurred")}{" "}
-                      {update.unknown_date
-                        ? `${t("trackingCenter.unknownDate")}${update.occurred_at ? ` (${update.occurred_at})` : ""}`
-                        : update.occurred_at}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t("trackingCenter.recorded")} {update.created_at}
-                    </p>
-                    {update.evidence_text && (
-                      <blockquote className="mt-2 whitespace-pre-wrap text-xs text-muted-foreground">
-                        {update.evidence_text}
-                      </blockquote>
-                    )}
-                  </article>
-                ))}
-                {!detail.updates.total && (
-                  <p className="text-sm text-muted-foreground">{t("trackingCenter.noProgress")}</p>
-                )}
-                {pagination(page, detail.updates.total, setPage)}
+                  )}
+                  {pagination(page, detail.updates.total, setPage)}
+                </div>
                 <h3 className="mt-4 text-sm font-semibold">{t("trackingCenter.relations")}</h3>
                 {detail.relations.map((relation) => (
                   <button

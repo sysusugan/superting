@@ -65,22 +65,30 @@ export default function TrackingPending({
   }, [selected, revision]);
   const current = list?.items.find((n) => n.id === selected);
   return (
-    <div className="grid min-h-0 flex-1 gap-4 overflow-auto md:grid-cols-[260px_1fr]">
-      <aside className="max-h-64 space-y-2 overflow-auto md:max-h-none">
+    <div className="grid min-h-0 flex-1 gap-4 overflow-auto md:grid-cols-[280px_minmax(0,1fr)]">
+      <aside className="max-h-64 space-y-2 overflow-auto pr-2 md:max-h-none">
         {list?.items.map((n) => (
           <button
             key={n.id}
             className={
-              "block w-full rounded border p-3 text-left " + (selected === n.id ? "bg-muted" : "")
+              "block w-full rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+              (selected === n.id
+                ? "border-primary/40 bg-primary/5 shadow-sm"
+                : "border-transparent bg-muted/30 hover:bg-muted/60")
             }
+            aria-pressed={selected === n.id}
             onClick={() => setSelected(n.id)}
           >
-            <strong>{n.title}</strong>
-            <p className="text-xs">{n.recordedAt}</p>
-            <p className="text-xs">
+            <strong className="block break-words text-sm font-semibold leading-relaxed">
+              {n.title}
+            </strong>
+            <p className="mt-1 text-xs text-muted-foreground">{n.recordedAt}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               {t("trackingBatch.counts", { items: n.itemCount, updates: n.updateCount })}
             </p>
-            {n.stale && <p className="text-xs">{t("trackingBatch.stale")}</p>}
+            {n.stale && (
+              <p className="mt-1 text-xs text-muted-foreground">{t("trackingBatch.stale")}</p>
+            )}
           </button>
         ))}
         {list?.total === 0 && <p>{t("trackingBatch.noPending")}</p>}
@@ -93,17 +101,24 @@ export default function TrackingPending({
           </Button>
         </div>
       </aside>
-      <div className="min-w-0 space-y-3 overflow-auto">
+      <div className="min-w-0 space-y-5 overflow-auto px-1 pb-4">
         {error && <p role="alert">{error}</p>}
         {current && (
-          <div className="flex flex-wrap items-center gap-2">
-            <h2>{current.title}</h2>
+          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 border-b border-border bg-background py-3">
+            <h2 className="min-w-0 flex-1 break-words text-base font-semibold">{current.title}</h2>
             <Button variant="outline" onClick={() => onOpenNote(current.id, current.folder_id)}>
               {t("trackingBatch.openNote")}
             </Button>
             {current.stale && (
               <Button onClick={() => onExtract(current)}>{t("trackingBatch.extract")}</Button>
             )}
+          </div>
+        )}
+        {current && !data && !error && (
+          <div role="status" className="space-y-3">
+            <span className="sr-only">{t("common.loading")}</span>
+            <div className="h-32 rounded-xl bg-muted motion-safe:animate-pulse" />
+            <div className="ml-6 h-24 rounded-lg bg-muted/50 motion-safe:animate-pulse" />
           </div>
         )}
         {data && (

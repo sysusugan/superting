@@ -58,20 +58,42 @@ let pending = [
     folder_id: null,
     recordedAt: "2026-09-21 09:00:00",
     stale: false,
-    itemCount: 1,
-    updateCount: 1,
+    itemCount: 3,
+    updateCount: 3,
   },
 ];
 const draft = {
   protocolVersion: 2,
-  newItems: [{ ref: "new:1", title: "验证项目 1", itemType: "项目" }],
+  newItems: [
+    {
+      ref: "new:1",
+      title: "汽车业务联合团队架构与成本分摊机制建设（测试）",
+      itemType: "项目",
+      state: "方案讨论",
+      properties: { 客户: "测试汽车客户", 负责人: "项目团队" },
+    },
+    { ref: "new:2", title: "订单审批与采购预算控制（测试）", itemType: "产品能力" },
+    { ref: "new:3", title: "独立产品建设（暂无进展测试）", itemType: "产品能力" },
+  ],
   matchedItems: [],
   updates: [
+    {
+      itemRef: "new:2",
+      updateType: "下一步",
+      content: "与交付团队确认采购预算字段及审批流程。",
+      evidence: "待双方进一步确认审批流程。",
+    },
     {
       itemRef: "new:1",
       updateType: "进展",
       content: "完成技术方案讨论，下一步进行客户验证。",
       evidence: "本周已完成方案讨论。",
+    },
+    {
+      itemRef: "new:1",
+      updateType: "风险",
+      content: "成本分摊比例尚未确认，可能影响报价评估。",
+      evidence: "成本分摊仍需要补充测算。",
     },
   ],
   uncertainties: [],
@@ -169,6 +191,9 @@ function Fixture() {
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       <div className="flex gap-4 bg-muted p-2 text-xs">
+        <button onClick={() => document.documentElement.classList.toggle("dark")}>
+          Toggle theme
+        </button>
         <button
           onClick={() => {
             if (

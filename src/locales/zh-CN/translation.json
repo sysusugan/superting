@@ -1,4 +1,5 @@
 {
+  "trackingUI": { "evidence": "原文证据", "assignment": "关联到事项", "unassigned": "未归属进展" },
   "trackingBatch": {
     "extract": "批量提取",
     "viewProgress": "查看提取进度",

@@ -1,4 +1,9 @@
-import { useMemo } from "react";
+import {
+  TrackingItemCard,
+  TrackingProgressList,
+  TrackingProgressEntry,
+} from "../tracking/TrackingCards";
+import { groupTrackingUpdates } from "../tracking/groupTrackingUpdates";
 import TrackingReview from "./TrackingReview";
 import { Loader2, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -26,6 +31,7 @@ type TrackingData = {
   extractions?: TrackingExtraction[];
   updates?: Array<{
     id: number;
+    item_id?: number;
     item_title: string;
     item_type: string;
     update_type: string;
@@ -54,8 +60,27 @@ export default function TrackingPanel({
   const hasExtractedItems = ["matchedItems", "newItems", "updates"].some(
     (key) => Array.isArray(latest?.result?.[key]) && (latest.result[key] as unknown[]).length > 0
   );
-  const confirmedUpdates = useMemo(() => data?.updates ?? [], [data?.updates]);
+  const confirmedUpdates = data?.updates ?? [];
   const confirmedItems = data?.items ?? [];
+  const { groups, unassigned } = groupTrackingUpdates(
+    confirmedItems,
+    confirmedUpdates,
+    (item) => (typeof item.id === "number" ? item.id : undefined),
+    (update) => update.item_id
+  );
+  const progress = (entries: typeof confirmedUpdates) => (
+    <TrackingProgressList>
+      {entries.map((update) => (
+        <TrackingProgressEntry
+          key={update.id}
+          type={update.update_type}
+          content={update.content}
+          date={update.occurred_at}
+          evidence={update.evidence_text}
+        />
+      ))}
+    </TrackingProgressList>
+  );
   return (
     <div className="mx-5 mt-5 mb-24 flex h-[calc(100%-7rem)] flex-col gap-4 overflow-y-auto rounded-xl border border-border/50 bg-background/70 p-4">
       <div className="flex items-center justify-between gap-3">
@@ -90,7 +115,7 @@ export default function TrackingPanel({
       {latest && !hasExtractedItems && (
         <p className="text-sm text-muted-foreground">{t("notes.trackingStatus.empty")}</p>
       )}
-      {uncertainties.length > 0 && (
+      {latest?.status !== "pending" && uncertainties.length > 0 && (
         <section className="space-y-2">
           <h3 className="text-sm font-semibold">{t("notes.trackingStatus.uncertainties")}</h3>
           {uncertainties.map((value, index) => {
@@ -110,22 +135,24 @@ export default function TrackingPanel({
         </section>
       )}
 
-      {confirmedItems.length > 0 && (
-        <section className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground/50">
-            {t("notes.editor.trackingConfirmed")}
-          </h3>
-          {confirmedItems.map((item) => (
-            <div
+      {!!groups.length && (
+        <section className="space-y-4">
+          <h3 className="text-sm font-semibold">{t("notes.editor.trackingConfirmed")}</h3>
+          {groups.map(({ item, updates }) => (
+            <TrackingItemCard
               key={String(item.id)}
-              className="rounded-md border border-border/40 bg-card px-3 py-2"
-            >
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="font-medium text-foreground">{String(item.title)}</span>
-                <span className="text-muted-foreground">{String(item.itemType || "")}</span>
+              title={String(item.title)}
+              itemType={String(item.itemType || "")}
+              state={String(item.state || "")}
+              properties={
+                item.properties && typeof item.properties === "object"
+                  ? (item.properties as Record<string, unknown>)
+                  : undefined
+              }
+              controls={
                 <button
                   type="button"
-                  className="text-primary"
+                  className="text-xs font-medium text-primary hover:underline"
                   onClick={() =>
                     window.dispatchEvent(
                       new CustomEvent("superting-open-tracking-item", { detail: item.id })
@@ -134,32 +161,21 @@ export default function TrackingPanel({
                 >
                   {t("trackingCenter.open")}
                 </button>
-              </div>
-              {item.state && (
-                <p className="mt-1 text-xs text-muted-foreground">{String(item.state)}</p>
+              }
+            >
+              {updates.length ? (
+                progress(updates)
+              ) : (
+                <p className="text-xs text-muted-foreground">{t("trackingCenter.noProgress")}</p>
               )}
-            </div>
+            </TrackingItemCard>
           ))}
         </section>
       )}
-
-      {confirmedUpdates.length > 0 && (
-        <section className="space-y-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground/50">
-            {t("notes.editor.trackingConfirmed")}
-          </h3>
-          {confirmedUpdates.map((update) => (
-            <div key={update.id} className="rounded-md border border-border/40 bg-card px-3 py-2">
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="font-medium text-foreground">{update.item_title}</span>
-                <span className="text-muted-foreground">{update.update_type}</span>
-              </div>
-              <p className="mt-1 text-sm text-foreground/80">{update.content}</p>
-              {update.evidence_text && (
-                <p className="mt-1 text-xs text-muted-foreground">“{update.evidence_text}”</p>
-              )}
-            </div>
-          ))}
+      {!!unassigned.length && (
+        <section className="space-y-3">
+          <h3 className="text-sm font-semibold">{t("trackingUI.unassigned")}</h3>
+          {progress(unassigned)}
         </section>
       )}
 
