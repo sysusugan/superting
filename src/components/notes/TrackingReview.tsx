@@ -105,7 +105,9 @@ export default function TrackingReview({
     ...(Array.isArray(parsed?.matchedItems) ? parsed.matchedItems : []),
     ...(Array.isArray(parsed?.newItems) ? parsed.newItems : []),
   ] as DraftItem[];
-  const candidates = [...(data.candidates || []), ...matches, ...chosenMatches];
+  const candidates = search.trim()
+    ? [...matches, ...chosenMatches]
+    : [...(data.candidates || []), ...chosenMatches];
   const resolved =
     parsed &&
     items.every(
@@ -115,7 +117,9 @@ export default function TrackingReview({
     );
   const choose = (ref: string, value: string) => {
     if (!parsed) return;
-    const selected = matches.find((item) => item.id === Number(value));
+    const selected =
+      matches.find((item) => item.id === Number(value)) ||
+      chosenMatches.find((item) => item.id === Number(value));
     if (selected)
       setChosenMatches((previous) => [
         ...previous.filter((item) => item.id !== selected.id),

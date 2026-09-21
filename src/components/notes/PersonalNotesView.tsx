@@ -330,25 +330,6 @@ export default function PersonalNotesView({
         : notes,
     [notes, selectedTags]
   );
-  const [trackingSummaries, setTrackingSummaries] = useState<
-    Record<number, import("../../types/tracking").TrackingSummary>
-  >({});
-  useEffect(() => {
-    let alive = true;
-    const load = () =>
-      window.electronAPI
-        .getNoteTrackingSummaries(visibleNotes.map((n) => n.id))
-        .then((rows) => {
-          if (alive) setTrackingSummaries(Object.fromEntries(rows.map((row) => [row.noteId, row])));
-        })
-        .catch((error) => logger.warn("Failed to load tracking summaries", error));
-    void load();
-    window.addEventListener("superting-tracking-updated", load);
-    return () => {
-      alive = false;
-      window.removeEventListener("superting-tracking-updated", load);
-    };
-  }, [visibleNotes]);
   const selectedTagSummary = selectedTags[0] || "";
   const remainingSelectedTagCount = Math.max(0, selectedTags.length - 1);
   const tagCheckboxItemClass =
@@ -2109,7 +2090,6 @@ export default function PersonalNotesView({
                   <NoteListItem
                     key={note.id}
                     note={note}
-                    trackingSummary={trackingSummaries[note.id]}
                     isActive={note.id === activeNoteId}
                     onClick={() => setActiveNoteId(note.id)}
                     onDelete={handleDelete}

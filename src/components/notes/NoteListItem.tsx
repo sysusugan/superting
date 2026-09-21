@@ -35,7 +35,6 @@ const RE_BLOCKQUOTE = />\s+/g;
 const RE_NEWLINES = /\n+/g;
 
 interface NoteListItemProps {
-  trackingSummary?: import("../../types/tracking").TrackingSummary;
   note: NoteItem;
   isActive: boolean;
   onClick: () => void;
@@ -90,7 +89,6 @@ function relativeTime(
 }
 
 export default function NoteListItem({
-  trackingSummary,
   note,
   isActive,
   onClick,
@@ -112,10 +110,6 @@ export default function NoteListItem({
   const { t } = useTranslation();
   const preview = stripMarkdown(note.content);
   const actionState = useActionProcessingStore((state) => state.noteStates[note.id] ?? null);
-  const batchEntry = useActionProcessingStore((state) =>
-    state.batch.entries.find((entry) => entry.id === note.id)
-  );
-  const trackingError = useActionProcessingStore((state) => state.trackingErrors[note.id]);
   const isProcessingAction = actionState?.status === "processing";
   const backgroundStatus = getNoteListBackgroundStatus({
     noteId: note.id,
@@ -350,19 +344,6 @@ export default function NoteListItem({
               )}
             </div>
           </div>
-          {trackingSummary && (
-            <p className="mt-1 truncate text-xs text-muted-foreground">
-              {trackingSummary.hasConfirmed && trackingSummary.status !== "confirmed"
-                ? t("trackingBatch.status.confirmed") + " · "
-                : ""}
-              {t("trackingBatch.status." + trackingSummary.status)}
-              {trackingError
-                ? " · " + t("trackingBatch.status.failed")
-                : batchEntry &&
-                  ["queued", "processing", "busy"].includes(batchEntry.status) &&
-                  " · " + t("trackingBatch.status." + batchEntry.status)}
-            </p>
-          )}
           {backgroundStatus ? (
             <p className="mt-0.5 flex min-w-0 items-center gap-1 overflow-hidden truncate text-xs text-primary">
               {backgroundStatus.isLoading ? (

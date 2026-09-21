@@ -83,6 +83,8 @@ test("tracking center offers localized inventory and read-only template tabs wit
   assert.match(html, /批量提取/);
   assert.match(html, /待确认/);
   assert.match(html, /role="tab"[^>]*>模板/);
+  assert.ok(html.indexOf("事项中心</h1>") < html.indexOf("刷新"));
+  assert.ok(html.indexOf("批量提取") < html.indexOf("选择事项，查看持续进展"));
   assert.doesNotMatch(html, /trackingCenter\./);
   assert.doesNotMatch(html, /合并事项|删除事项|确认全部/);
 });

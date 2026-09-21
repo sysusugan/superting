@@ -257,10 +257,35 @@ export default function TrackingCenter({
   return (
     <section className="ow-workspace-page min-h-0 text-foreground">
       <div className="ow-page-column ow-page-column--fluid min-h-0">
-        <header className="ow-page-header flex-wrap">
+        <header className="ow-page-header mb-3 border-b-0 pb-0">
           <div className="ow-page-heading">
             <h1 className="ow-page-title">{t("trackingCenter.title")}</h1>
             <p className="ow-page-description">{t("trackingCenter.description")}</p>
+          </div>
+        </header>
+        <TrackingBatchDialog open={batchOpen} onOpenChange={setBatchOpen} target={batchTarget} />
+
+        <div
+          className="mb-4 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3 dark:border-white/8"
+          role="tablist"
+          aria-label={t("trackingCenter.title")}
+        >
+          <div className="flex min-w-0 flex-wrap gap-2">
+            {(["items", "pending", "templates"] as const).map((key) => (
+              <Button
+                key={key}
+                role="tab"
+                aria-selected={tab === key}
+                variant={tab === key ? "secondary" : "ghost"}
+                onClick={() => {
+                  if (canLeave()) setTab(key);
+                }}
+              >
+                {key === "pending"
+                  ? t("trackingBatch.pending", { count: pendingCount })
+                  : t(`trackingCenter.${key}`)}
+              </Button>
+            ))}
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <Button
@@ -282,29 +307,6 @@ export default function TrackingCenter({
               {t(batchRunning ? "trackingBatch.viewProgress" : "trackingBatch.extract")}
             </Button>
           </div>
-        </header>
-        <TrackingBatchDialog open={batchOpen} onOpenChange={setBatchOpen} target={batchTarget} />
-
-        <div
-          className="mb-4 flex shrink-0 gap-2"
-          role="tablist"
-          aria-label={t("trackingCenter.title")}
-        >
-          {(["items", "pending", "templates"] as const).map((key) => (
-            <Button
-              key={key}
-              role="tab"
-              aria-selected={tab === key}
-              variant={tab === key ? "secondary" : "ghost"}
-              onClick={() => {
-                if (canLeave()) setTab(key);
-              }}
-            >
-              {key === "pending"
-                ? t("trackingBatch.pending", { count: pendingCount })
-                : t(`trackingCenter.${key}`)}
-            </Button>
-          ))}
         </div>
         {error && (
           <p role="alert" className="mb-3 text-sm text-destructive">
