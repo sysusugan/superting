@@ -14,7 +14,7 @@ export default function IntegrationsView() {
 
   return (
     <div className="ow-workspace-page">
-      <div className="ow-page-column">
+      <div className="ow-page-column ow-page-column--fluid">
         <div className="ow-page-header">
           <div className="ow-page-heading">
             <h1 className="ow-page-title">{t("integrations.title")}</h1>
@@ -23,7 +23,7 @@ export default function IntegrationsView() {
         </div>
 
         <div className="ow-page-body">
-          <section className="ow-section max-w-3xl">
+          <section className="ow-section">
             <SectionLabel>{t("integrations.sections.mcp")}</SectionLabel>
             <McpIntegrationCard />
           </section>

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Search } from "lucide-react";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import {
   TrackingItemCard,
   TrackingProgressList,
@@ -174,15 +176,25 @@ export default function TrackingReview({
   return (
     <section className="space-y-5">
       {latest.stale && <p role="alert">{t("trackingBatch.stale")}</p>}
-      <label className="block space-y-2 text-xs font-medium text-muted-foreground">
-        <span>{t("trackingBatch.search")}</span>
-        <input
-          className="w-full rounded border bg-background p-2"
-          aria-label={t("trackingBatch.search")}
-          placeholder={t("trackingBatch.search")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <label className="ow-tracking-search block">
+        <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
+          {t("trackingBatch.search")}
+        </span>
+        <span className="relative block">
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70"
+            size={15}
+            strokeWidth={1.8}
+          />
+          <Input
+            className="h-10 bg-background pl-9 shadow-none"
+            aria-label={t("trackingBatch.search")}
+            placeholder={t("trackingBatch.search")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </span>
       </label>
       {groups.map(({ item, updates: entries }) => (
         <TrackingItemCard

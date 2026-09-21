@@ -380,7 +380,7 @@ export default function UploadAudioView({ onNoteCreated, onOpenSettings }: Uploa
 
   return (
     <div className="ow-workspace-page overflow-y-auto">
-      <div className="ow-page-column">
+      <div className="ow-page-column ow-page-column--fluid">
         <div className="ow-page-header">
           <div className="ow-page-heading">
             <h1 className="ow-page-title">{t("notes.upload.title")}</h1>
@@ -392,7 +392,7 @@ export default function UploadAudioView({ onNoteCreated, onOpenSettings }: Uploa
 
         <div className="w-full shrink-0" style={{ animation: "float-up 0.4s ease-out" }}>
           {showSetup && (
-            <div className="mx-auto mb-6 w-full max-w-4xl" style={{ animation: "float-up 0.3s ease-out" }}>
+            <div className="mb-6 w-full" style={{ animation: "float-up 0.3s ease-out" }}>
               <div className="flex flex-col items-center mb-5">
                 <div className="w-10 h-10 rounded-md bg-muted border border-border flex items-center justify-center mb-3">
                   <Upload size={17} strokeWidth={1.5} className="text-muted-foreground" />
@@ -423,7 +423,7 @@ export default function UploadAudioView({ onNoteCreated, onOpenSettings }: Uploa
             </div>
           )}
 
-          <div className="mx-auto w-full max-w-4xl">
+          <div className="w-full">
             {state === "idle" && providerReady === false && (
               <NoProviderView t={t} onOpenSettings={() => onOpenSettings?.("transcription")} />
             )}
@@ -482,7 +482,7 @@ export default function UploadAudioView({ onNoteCreated, onOpenSettings }: Uploa
           </div>
 
           {!showSetup && (state === "idle" || state === "selected") && (
-            <div className="mx-auto mt-5 w-full max-w-4xl">
+            <div className="mt-5 w-full">
               <button
                 onClick={() => setAdvancedOpen(!advancedOpen)}
                 className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors mx-auto"

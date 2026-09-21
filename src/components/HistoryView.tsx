@@ -6,7 +6,6 @@ import TranscriptionItem from "./ui/TranscriptionItem";
 import type { TranscriptionItem as TranscriptionItemType } from "../types/electron";
 import { formatHotkeyLabel } from "../utils/hotkeys";
 import { formatDateGroup } from "../utils/dateFormatting";
-import { cn } from "./lib/utils";
 import { useSettingsStore } from "../stores/settingsStore";
 
 interface HistoryViewProps {
@@ -71,12 +70,7 @@ export default function HistoryView({
 
   return (
     <div className="ow-workspace-page">
-      <div
-        className={cn(
-          "ow-page-column",
-          "max-w-4xl xl:max-w-4xl"
-        )}
-      >
+      <div className="ow-page-column ow-page-column--fluid">
         <div className="ow-page-header">
           <div className="ow-page-heading">
             <h1 className="ow-page-title">{t("sidebar.home")}</h1>

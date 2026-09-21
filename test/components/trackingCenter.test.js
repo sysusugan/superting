@@ -54,6 +54,8 @@ test("chat layout keeps a nonshrinking header outside message and composer slots
   );
   assert.match(html, /min-h-0/);
   assert.match(html, /overflow-hidden/);
+  assert.match(html, /ow-chat-workspace/);
+  assert.match(html, /ow-page-column ow-page-column--fluid/);
   assert.match(html, /ow-page-column[^"]*shrink-0/);
   assert.ok(html.indexOf("ow-page-title") < html.indexOf("data-message-slot"));
 });

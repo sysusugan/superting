@@ -406,6 +406,23 @@
     @apply mx-auto flex min-h-11 w-full max-w-4xl items-center gap-2 rounded-md border border-border/70 bg-card px-3 shadow-sm transition-colors duration-150 dark:border-white/10 dark:bg-surface-2;
   }
 
+  .ow-chat-workspace .ow-chat-stream,
+  .ow-chat-workspace .ow-chat-input-shell {
+    @apply max-w-none px-4 sm:px-6;
+  }
+
+  .ow-chat-workspace .ow-chat-input-inner {
+    @apply max-w-none;
+  }
+
+  .ow-tracking-search input {
+    @apply border-border/70 bg-surface-0/70 dark:bg-surface-1/70;
+  }
+
+  .ow-tracking-search input:focus-visible {
+    @apply border-primary/45 ring-2 ring-primary/10;
+  }
+
   .ow-page-block {
     @apply rounded-md border border-border bg-card dark:border-white/10 dark:bg-surface-2;
   }

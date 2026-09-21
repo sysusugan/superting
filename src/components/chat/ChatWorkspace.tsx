@@ -5,8 +5,8 @@ import { useTranslation } from "react-i18next";
 export function ChatWorkspace({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
-    <div className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden bg-background">
-      <div className="ow-page-column h-auto max-w-4xl shrink-0 px-5 pb-0">
+    <div className="ow-chat-workspace flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden bg-background">
+      <div className="ow-page-column ow-page-column--fluid h-auto shrink-0 pb-0">
         <div className="ow-page-header mb-0">
           <div className="ow-page-heading">
             <h1 className="ow-page-title">{t("sidebar.chat")}</h1>
