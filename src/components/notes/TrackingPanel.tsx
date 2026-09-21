@@ -152,12 +152,23 @@ export default function TrackingPanel({
           </h3>
           {confirmedItems.map((item) => (
             <div
-              key={String(item.title)}
+              key={String(item.id)}
               className="rounded-md border border-border/40 bg-card px-3 py-2"
             >
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="font-medium text-foreground">{String(item.title)}</span>
                 <span className="text-muted-foreground">{String(item.itemType || "")}</span>
+                <button
+                  type="button"
+                  className="text-primary"
+                  onClick={() =>
+                    window.dispatchEvent(
+                      new CustomEvent("superting-open-tracking-item", { detail: item.id })
+                    )
+                  }
+                >
+                  {t("trackingCenter.open")}
+                </button>
               </div>
               {item.state && (
                 <p className="mt-1 text-xs text-muted-foreground">{String(item.state)}</p>

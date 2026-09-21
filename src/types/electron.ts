@@ -818,6 +818,24 @@ declare global {
       ) => Promise<{ success: boolean; action?: ActionItem; error?: string }>;
       deleteAction: (id: number) => Promise<{ success: boolean; id?: number; error?: string }>;
       getTrackingTemplates: () => Promise<Array<Record<string, unknown>>>;
+      listTrackingItems: (
+        query?: import("./tracking").TrackingQuery
+      ) => Promise<import("./tracking").TrackingList>;
+      getTrackingItemDetail: (
+        id: number,
+        query?: { page?: number; updateType?: string; from?: string; to?: string }
+      ) => Promise<import("./tracking").TrackingDetail>;
+      updateTrackingItem: (
+        id: number,
+        request: {
+          expected: import("./tracking").TrackingItem;
+          patch: import("./tracking").TrackingItemPatch;
+        }
+      ) => Promise<{
+        success: boolean;
+        error?: string;
+        data?: import("./tracking").TrackingDetail;
+      }>;
       getNoteTracking: (noteId: number) => Promise<Record<string, unknown>>;
       updateNoteTracking: (
         noteId: number,

@@ -1,0 +1,59 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+const { createRequire } = require("node:module");
+const ts = require("typescript");
+const React = require("react");
+const { renderToStaticMarkup } = require("react-dom/server");
+const i18next = require("i18next");
+const { I18nextProvider } = require("react-i18next");
+
+function loadComponent(file) {
+  const localRequire = createRequire(file);
+  const exports = {};
+  const code = ts.transpileModule(fs.readFileSync(file, "utf8"), {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      jsx: ts.JsxEmit.ReactJSX,
+      target: ts.ScriptTarget.ES2022,
+    },
+  }).outputText;
+  vm.runInNewContext(code, {
+    exports,
+    require(name) {
+      if (name.startsWith(".")) {
+        const candidate = path.resolve(path.dirname(file), `${name}.tsx`);
+        if (fs.existsSync(candidate)) return loadComponent(candidate);
+        const plain = path.resolve(path.dirname(file), `${name}.ts`);
+        if (fs.existsSync(plain)) return loadComponent(plain);
+      }
+      return localRequire(name);
+    },
+  });
+  return exports;
+}
+
+test("tracking center offers localized inventory and read-only template tabs without unfinished actions", async () => {
+  const i18n = i18next.createInstance();
+  await i18n.init({
+    lng: "zh-CN",
+    resources: { "zh-CN": { translation: require("../../src/locales/zh-CN/translation.json") } },
+  });
+  const Center = loadComponent(
+    path.resolve(__dirname, "../../src/components/TrackingCenter.tsx")
+  ).default;
+  const html = renderToStaticMarkup(
+    React.createElement(
+      I18nextProvider,
+      { i18n },
+      React.createElement(Center, { active: true, request: null, onOpenNote() {} })
+    )
+  );
+  assert.match(html, /事项中心/);
+  assert.match(html, /搜索事项/);
+  assert.match(html, /role="tab"[^>]*>模板/);
+  assert.doesNotMatch(html, /trackingCenter\./);
+  assert.doesNotMatch(html, /合并事项|删除事项|确认全部/);
+});

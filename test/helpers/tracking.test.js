@@ -24,6 +24,212 @@ function createDatabase(t) {
   return db;
 }
 
+test("global tracking lists items without updates and resolves their source notes", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Source", "text").note;
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const extraction = db.saveTrackingExtraction(
+    note.id,
+    action.id,
+    JSON.stringify({
+      newItems: [{ title: "No progress", itemType: "项目" }],
+      updates: [],
+    })
+  ).extraction;
+  assert.equal(confirmReviewed(db, extraction.id).success, true);
+  const list = db.listTrackingItems({ search: "progress" });
+  assert.equal(list.total, 1);
+  assert.equal(list.items[0].title, "No progress");
+  const detail = db.getTrackingItemDetail(list.items[0].id);
+  assert.equal(detail.updates.total, 0);
+  assert.deepEqual(
+    detail.notes.map((n) => n.id),
+    [note.id]
+  );
+});
+
+test("global edits preserve identity and properties, reject conflicts and keep stopped items in notes", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Source", "text").note;
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const extraction = db.saveTrackingExtraction(
+    note.id,
+    action.id,
+    JSON.stringify({
+      newItems: [
+        {
+          title: "Original",
+          itemType: "项目",
+          properties: { customer: "A", owner: "B", obsolete: "old" },
+        },
+      ],
+      updates: [],
+    })
+  ).extraction;
+  confirmReviewed(db, extraction.id);
+  const item = db.getTrackingItemDetail(db.listTrackingItems().items[0].id).item;
+  const request = {
+    expected: item,
+    patch: {
+      title: "Renamed",
+      state: "暂停",
+      isActive: false,
+      properties: { owner: "C" },
+      removePropertyKeys: ["obsolete"],
+    },
+  };
+  const result = db.updateTrackingItem(item.id, request);
+  assert.equal(result.success, true, result.error);
+  assert.equal(result.data.item.id, item.id);
+  assert.deepEqual(result.data.item.properties, { customer: "A", owner: "C" });
+  assert.equal(db.getNoteTracking(note.id).items[0].title, "Renamed");
+  assert.equal(db.listTrackingItems({ active: "active" }).total, 0);
+  assert.equal(db.listTrackingItems({ active: "inactive" }).total, 1);
+  assert.equal(db.updateTrackingItem(item.id, request).success, false);
+  assert.equal(
+    db.updateTrackingItem(item.id, { expected: result.data.item, patch: { template_id: 9 } })
+      .success,
+    false
+  );
+  assert.equal(db.getTrackingItemDetail(item.id).operations[0].operation, "edit-item");
+});
+
+test("manual item state survives subsequent extraction from another note", (t) => {
+  const db = createDatabase(t);
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const first = db.saveNote("First", "text").note;
+  const second = db.saveNote("Second", "text").note;
+  const extraction = db.saveTrackingExtraction(
+    first.id,
+    action.id,
+    JSON.stringify({
+      newItems: [{ title: "Delivery", itemType: "项目" }],
+      updates: [],
+    })
+  ).extraction;
+  confirmReviewed(db, extraction.id);
+  const item = db.getTrackingItemDetail(db.listTrackingItems().items[0].id).item;
+  assert.equal(
+    db.updateTrackingItem(item.id, { expected: item, patch: { state: "暂停" } }).success,
+    true
+  );
+  const next = db.saveTrackingExtraction(
+    second.id,
+    action.id,
+    JSON.stringify({
+      matchedItems: [{ ref: "existing", itemId: item.id, title: "Delivery", itemType: "项目" }],
+      updates: [{ itemRef: "existing", content: "New progress", stateAfter: "已完成" }],
+    })
+  ).extraction;
+  assert.equal(confirmReviewed(db, next.id).success, true);
+  assert.equal(db.getTrackingItemDetail(item.id).item.state, "暂停");
+  assert.equal(db.getTrackingItemDetail(item.id).updates.items[0].state_after, "已完成");
+});
+
+test("global pagination, literal search and invalid query boundaries", (t) => {
+  const db = createDatabase(t);
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const note = db.saveNote("Many", "text").note;
+  const extraction = db.saveTrackingExtraction(
+    note.id,
+    action.id,
+    JSON.stringify({
+      newItems: Array.from({ length: 31 }, (_, i) => ({ title: `Item ${i}%`, itemType: "项目" })),
+      updates: [],
+    })
+  ).extraction;
+  confirmReviewed(db, extraction.id);
+  assert.equal(db.listTrackingItems({ search: "%" }).total, 31);
+  assert.equal(db.listTrackingItems().items.length, 30);
+  assert.equal(db.listTrackingItems({ page: 2 }).items.length, 1);
+  assert.equal(db.listTrackingItems({ search: "absent" }).total, 0);
+  assert.throws(() => db.listTrackingItems({ page: -1 }), /Invalid/);
+  assert.throws(() => db.getTrackingItemDetail("1"), /Invalid/);
+});
+
+test("progress date filtering preserves unknown dates without treating them as in-range facts", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Dates", "text").note;
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const extraction = db.saveTrackingExtraction(
+    note.id,
+    action.id,
+    JSON.stringify({
+      newItems: [{ title: "Dates", itemType: "项目" }],
+      updates: ["2026-09-21", "2026-09-01", "会议结束"].map((occurredAt) => ({
+        itemTitle: "Dates",
+        content: occurredAt,
+        occurredAt,
+      })),
+    })
+  ).extraction;
+  confirmReviewed(db, extraction.id);
+  const item = db.listTrackingItems().items[0];
+  const detail = db.getTrackingItemDetail(item.id, { from: "2026-09-21", to: "2026-09-21" });
+  assert.equal(detail.updates.total, 2);
+  assert.equal(detail.updates.items.filter((update) => update.unknown_date).length, 1);
+  assert.throws(() => db.getTrackingItemDetail(item.id, { from: "2026-02-30" }), /Invalid/);
+});
+
+test("tracking migration creates a readable consistent backup before adding the new schema", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Keep this note", "Original fact").note;
+  db.db.exec("ALTER TABLE tracking_items DROP COLUMN manual_state; DROP TABLE tracking_operations");
+  const migrated = new DatabaseManager({ dbPath: db.dbPath });
+  t.after(() => migrated.cleanup());
+  assert.equal(migrated.getNote(note.id).content, "Original fact");
+  const backup = fs.readdirSync(path.dirname(db.dbPath)).find((file) => file.endsWith(".bak"));
+  assert.ok(backup);
+  const snapshot = new (require("better-sqlite3"))(path.join(path.dirname(db.dbPath), backup), {
+    readonly: true,
+  });
+  try {
+    assert.equal(
+      snapshot.prepare("SELECT content FROM notes WHERE id = ?").get(note.id).content,
+      "Original fact"
+    );
+    assert.equal(
+      snapshot
+        .pragma("table_info(tracking_items)")
+        .some((column) => column.name === "manual_state"),
+      false
+    );
+  } finally {
+    snapshot.close();
+  }
+});
+
+test("audit write failure rolls back a global edit", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Atomic", "text").note;
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const extraction = db.saveTrackingExtraction(
+    note.id,
+    action.id,
+    JSON.stringify({ newItems: [{ title: "Before", itemType: "项目" }], updates: [] })
+  ).extraction;
+  confirmReviewed(db, extraction.id);
+  const before = db.getTrackingItemDetail(db.listTrackingItems().items[0].id).item;
+  db.db.exec(
+    "CREATE TRIGGER fail_audit BEFORE INSERT ON tracking_operations BEGIN SELECT RAISE(ABORT, 'audit unavailable'); END"
+  );
+  assert.equal(
+    db.updateTrackingItem(before.id, { expected: before, patch: { title: "After" } }).success,
+    false
+  );
+  assert.equal(db.getTrackingItemDetail(before.id).item.title, "Before");
+});
+
+test("failed tracking migration rolls back its schema change and preserves the source database", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Migration failure", "Keep original").note;
+  db.db.exec("ALTER TABLE tracking_items DROP COLUMN manual_state; DROP TABLE tracking_operations; CREATE TABLE tracking_operations (unexpected TEXT)");
+  assert.throws(() => new DatabaseManager({ dbPath: db.dbPath }), /item_id/);
+  assert.equal(db.getNote(note.id).content, "Keep original");
+  assert.equal(db.db.pragma("table_info(tracking_items)").some((column) => column.name === "manual_state"), false);
+  assert.ok(fs.readdirSync(path.dirname(db.dbPath)).some((file) => file.endsWith(".bak")));
+});
+
 test("chat edits use live items, preserve properties, reject stale and foreign records", (t) => {
   const db = createDatabase(t);
   const action = db.getActions().find((a) => a.output_target === "tracking");
@@ -118,7 +324,16 @@ test("candidate picker includes active same-type items even without text matches
   const db = createDatabase(t);
   const action = db.getActions().find((a) => a.output_target === "tracking");
   const source = db.saveNote("客户甲", "已确认", "personal", null, null, null, null, []).note;
-  const unrelated = db.saveNote("完全不同的笔记", "没有项目名称", "personal", null, null, null, null, []).note;
+  const unrelated = db.saveNote(
+    "完全不同的笔记",
+    "没有项目名称",
+    "personal",
+    null,
+    null,
+    null,
+    null,
+    []
+  ).note;
   const extraction = db.saveTrackingExtraction(
     source.id,
     action.id,

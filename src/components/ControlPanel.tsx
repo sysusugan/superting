@@ -45,6 +45,7 @@ const platform = getCachedPlatform();
 const SettingsModal = React.lazy(() => import("./SettingsModal"));
 const PersonalNotesView = React.lazy(() => import("./notes/PersonalNotesView"));
 const DictionaryView = React.lazy(() => import("./DictionaryView"));
+const TrackingCenter = React.lazy(() => import("./TrackingCenter"));
 const UploadAudioView = React.lazy(() => import("./notes/UploadAudioView"));
 const IntegrationsView = React.lazy(() => import("./IntegrationsView"));
 const ChatView = React.lazy(() => import("./chat/ChatView"));
@@ -69,7 +70,28 @@ export default function ControlPanel() {
     () => localStorage.getItem("aiCTADismissed") === "true"
   );
   const [showSearch, setShowSearch] = useState(false);
-  const [activeView, setActiveView] = useState<ControlPanelView>("home");
+  const [activeView, setActiveViewState] = useState<ControlPanelView>("home");
+  const [trackingRequest, setTrackingRequest] = useState<{ id: number; serial: number } | null>(
+    null
+  );
+  const [trackingVisited, setTrackingVisited] = useState(false);
+  const [trackingNoteId, setTrackingNoteId] = useState<number | null>(null);
+  const setActiveView = useCallback((view: ControlPanelView) => {
+    if (!window.dispatchEvent(new Event("superting-before-navigation", { cancelable: true })))
+      return false;
+    if (view === "tracking") setTrackingVisited(true);
+    setActiveViewState(view);
+    return true;
+  }, []);
+  useEffect(() => {
+    const listener = (event: Event) => {
+      const id = (event as CustomEvent<number>).detail;
+      if (Number.isSafeInteger(id) && id > 0 && setActiveView("tracking"))
+        setTrackingRequest({ id, serial: Date.now() });
+    };
+    window.addEventListener("superting-open-tracking-item", listener);
+    return () => window.removeEventListener("superting-open-tracking-item", listener);
+  }, [setActiveView]);
   const [isPrimarySidebarCollapsed, setIsPrimarySidebarCollapsed] = useState(false);
   const [primarySidebarWidth, setPrimarySidebarWidth] = useState(() => {
     const saved = Number(localStorage.getItem(PRIMARY_SIDEBAR_WIDTH_KEY));
@@ -248,7 +270,7 @@ export default function ControlPanel() {
     drain();
     const cleanup = window.electronAPI?.onMeetingNoteNavigationPending?.(drain);
     return () => cleanup?.();
-  }, []);
+  }, [setActiveView]);
 
   useEffect(() => {
     const cleanup = window.electronAPI?.onNavigateToNote?.((data) => {
@@ -260,7 +282,7 @@ export default function ControlPanel() {
       setActiveView("personal-notes");
     });
     return () => cleanup?.();
-  }, []);
+  }, [setActiveView]);
 
   useEffect(() => {
     const cleanup = window.electronAPI?.onShowSettings?.(() => {
@@ -826,6 +848,7 @@ export default function ControlPanel() {
             {activeView === "personal-notes" && (
               <Suspense fallback={null}>
                 <PersonalNotesView
+                  initialTrackingNoteId={trackingNoteId}
                   onOpenSettings={(section) => {
                     setSettingsSection(section);
                     setShowSettings(true);
@@ -835,6 +858,22 @@ export default function ControlPanel() {
                   onMeetingRecordingRequestHandled={handleMeetingRecordingRequestHandled}
                 />
               </Suspense>
+            )}
+            {trackingVisited && (
+              <div className={activeView === "tracking" ? "h-full min-h-0" : "hidden"}>
+                <Suspense fallback={null}>
+                  <TrackingCenter
+                    active={activeView === "tracking"}
+                    request={trackingRequest}
+                    onOpenNote={(id, folderId) => {
+                      if (!setActiveView("personal-notes")) return;
+                      setTrackingNoteId(id);
+                      setActiveFolderId(folderId);
+                      setActiveNoteId(id);
+                    }}
+                  />
+                </Suspense>
+              </div>
             )}
             {activeView === "dictionary" && (
               <Suspense fallback={null}>

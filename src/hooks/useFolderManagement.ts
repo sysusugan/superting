@@ -37,7 +37,8 @@ export interface UseFolderManagementReturn {
 }
 
 export function useFolderManagement(
-  noteSortBy: NoteSortBy = "updatedAt"
+  noteSortBy: NoteSortBy = "updatedAt",
+  preserveNoteId: number | null = null
 ): UseFolderManagementReturn {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -90,7 +91,11 @@ export function useFolderManagement(
         const notes = await initializeNotes(null, 50, null, "createdAt");
         if (!isMountedRef.current) return;
         const presetNoteId = getActiveNoteIdValue();
-        if (presetNoteId && !notes.some((note) => note.id === presetNoteId)) {
+        if (
+          presetNoteId &&
+          presetNoteId !== preserveNoteId &&
+          !notes.some((note) => note.id === presetNoteId)
+        ) {
           setActiveNoteId(notes[0]?.id ?? null);
         } else if (!presetNoteId) {
           setActiveNoteId(notes[0]?.id ?? null);
@@ -104,7 +109,7 @@ export function useFolderManagement(
     return () => {
       isMountedRef.current = false;
     };
-  }, [loadFolders]);
+  }, [loadFolders, preserveNoteId]);
 
   // Re-initialize notes when the folder or sort changes. Null is the all-notes view.
   useEffect(() => {
@@ -117,7 +122,10 @@ export function useFolderManagement(
         const notes = await initializeNotes(null, 50, activeFolderId, noteSortBy);
         if (getActiveFolderIdValue() !== activeFolderId) return;
         const presetNoteId = getActiveNoteIdValue();
-        if (!presetNoteId || !notes.some((n) => n.id === presetNoteId)) {
+        if (
+          !presetNoteId ||
+          (presetNoteId !== preserveNoteId && !notes.some((n) => n.id === presetNoteId))
+        ) {
           setActiveNoteId(notes.length > 0 ? notes[0].id : null);
         }
       } catch (err) {
@@ -129,7 +137,7 @@ export function useFolderManagement(
       }
     };
     loadForFolder();
-  }, [activeFolderId, isLoading, noteSortBy]);
+  }, [activeFolderId, isLoading, noteSortBy, preserveNoteId]);
 
   // Focus new folder input when creating
   useEffect(() => {

@@ -247,6 +247,7 @@ function getMeetingEchoCancellationMessage(
 }
 
 interface PersonalNotesViewProps {
+  initialTrackingNoteId?: number | null;
   onOpenSettings?: (section: string) => void;
   onOpenSearch?: () => void;
   meetingRecordingRequest?: {
@@ -258,6 +259,7 @@ interface PersonalNotesViewProps {
 }
 
 export default function PersonalNotesView({
+  initialTrackingNoteId,
   onOpenSettings,
   onOpenSearch,
   meetingRecordingRequest,
@@ -275,6 +277,8 @@ export default function PersonalNotesView({
   const [localContent, setLocalContent] = useState("");
   const [localEnhancedContent, setLocalEnhancedContent] = useState<string | null>(null);
   const [trackingData, setTrackingData] = useState<Record<string, unknown> | null>(null);
+  const [trackingSourceNote, setTrackingSourceNote] =
+    useState<Awaited<ReturnType<typeof window.electronAPI.getNote>>>(null);
   const trackingNoteRef = useRef(activeNoteId);
   trackingNoteRef.current = activeNoteId;
   const trackingRequestRef = useRef(0);
@@ -487,7 +491,7 @@ export default function PersonalNotesView({
     handleConfirmRename,
     handleDeleteFolder,
     handleReorderFolders,
-  } = useFolderManagement(noteSortBy);
+  } = useFolderManagement(noteSortBy, initialTrackingNoteId);
 
   const totalNoteCount = Object.values(folderCounts).reduce((sum, count) => sum + count, 0);
   const currentNoteCount =
@@ -550,7 +554,33 @@ export default function PersonalNotesView({
     [folderCounts, handleDeleteFolder, showConfirmDialog, t]
   );
 
-  const activeNote = notes.find((n) => n.id === activeNoteId) ?? null;
+  useEffect(() => {
+    if (!initialTrackingNoteId || activeNoteId !== initialTrackingNoteId) return;
+    let cancelled = false;
+    window.electronAPI
+      .getNote(initialTrackingNoteId)
+      .then((note) => {
+        if (!cancelled) {
+          setTrackingSourceNote(note?.deleted_at ? null : note);
+          if (!note || note.deleted_at)
+            toast({ title: t("trackingCenter.missingSource"), variant: "destructive" });
+        }
+      })
+      .catch((error) => {
+        if (!cancelled)
+          toast({
+            title: t("trackingCenter.failed"),
+            description: String(error),
+            variant: "destructive",
+          });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialTrackingNoteId, activeNoteId, t, toast]);
+  const activeNote =
+    notes.find((n) => n.id === activeNoteId) ??
+    (trackingSourceNote?.id === activeNoteId ? trackingSourceNote : null);
   const selectedCount = selectedNoteIds.size;
 
   const clearNoteSelection = useCallback(() => {
@@ -2205,6 +2235,7 @@ export default function PersonalNotesView({
               onRecordedAtChange={handleRecordedAtChange}
               availableTags={availableTags}
               onTagsChange={handleTagsChange}
+              initialTrackingView={initialTrackingNoteId === editorNote.id}
               trackingData={trackingData?.noteId === editorNote.id ? trackingData : null}
               trackingExtracting={trackingExtracting}
               onExtractTracking={extractTracking}

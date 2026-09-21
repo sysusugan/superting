@@ -1898,6 +1898,15 @@ class IPCHandlers {
       return result;
     });
 
+    ipcMain.handle("db-list-tracking-items", async (_event, query) =>
+      this.databaseManager.listTrackingItems(query)
+    );
+    ipcMain.handle("db-get-tracking-item-detail", async (_event, id, query) =>
+      this.databaseManager.getTrackingItemDetail(id, query)
+    );
+    ipcMain.handle("db-update-tracking-item", async (_event, id, request) =>
+      this.databaseManager.updateTrackingItem(id, request)
+    );
     ipcMain.handle("db-get-tracking-templates", async () =>
       this.databaseManager.getTrackingTemplates()
     );

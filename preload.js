@@ -166,6 +166,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   updateAction: (id, updates) => ipcRenderer.invoke("db-update-action", id, updates),
   deleteAction: (id) => ipcRenderer.invoke("db-delete-action", id),
   getTrackingTemplates: () => ipcRenderer.invoke("db-get-tracking-templates"),
+  listTrackingItems: (query) => ipcRenderer.invoke("db-list-tracking-items", query),
+  getTrackingItemDetail: (id, query) => ipcRenderer.invoke("db-get-tracking-item-detail", id, query),
+  updateTrackingItem: (id, request) => ipcRenderer.invoke("db-update-tracking-item", id, request),
   getNoteTracking: (noteId) => ipcRenderer.invoke("db-get-note-tracking", noteId),
   updateNoteTracking: (noteId, request) => ipcRenderer.invoke("db-update-note-tracking", noteId, request),
   getTrackingExtraction: (noteId, actionId) =>

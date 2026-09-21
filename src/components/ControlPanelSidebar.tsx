@@ -4,6 +4,7 @@ import {
   MessageSquare,
   NotebookPen,
   BookOpen,
+  ListChecks,
   Upload,
   Blocks,
   Settings,
@@ -26,6 +27,7 @@ export type ControlPanelView =
   | "chat"
   | "personal-notes"
   | "dictionary"
+  | "tracking"
   | "upload"
   | "integrations";
 
@@ -66,6 +68,7 @@ export default function ControlPanelSidebar({
     { id: "home", label: t("sidebar.home"), icon: Home },
     { id: "chat", label: t("sidebar.chat"), icon: MessageSquare },
     { id: "personal-notes", label: t("sidebar.notes"), icon: NotebookPen },
+    { id: "tracking", label: t("trackingCenter.title"), icon: ListChecks },
     { id: "upload", label: t("sidebar.upload"), icon: Upload },
     { id: "dictionary", label: t("sidebar.dictionary"), icon: BookOpen },
     { id: "integrations", label: t("sidebar.integrations"), icon: Blocks },
@@ -116,9 +119,7 @@ export default function ControlPanelSidebar({
                 aria-label={item.label}
                 className={cn(
                   "ow-nav-item flex h-10 w-10 justify-center px-0",
-                  isActive
-                    ? "ow-nav-item-active"
-                    : ""
+                  isActive ? "ow-nav-item-active" : ""
                 )}
               >
                 <Icon size={18} />
@@ -199,10 +200,7 @@ export default function ControlPanelSidebar({
 
       {onOpenSearch && (
         <div className="px-4 pt-2 pb-2">
-          <button
-            onClick={onOpenSearch}
-            className="ow-command-field group h-10 px-3"
-          >
+          <button onClick={onOpenSearch} className="ow-command-field group h-10 px-3">
             <Search size={15} className="text-muted-foreground shrink-0" />
             <span className="flex-1 text-xs text-left font-medium text-muted-foreground">
               {t("commandSearch.shortPlaceholder")}
@@ -228,10 +226,7 @@ export default function ControlPanelSidebar({
             <button
               key={item.id}
               onClick={() => onViewChange(item.id)}
-              className={cn(
-                "ow-nav-item group h-10",
-                isActive && "ow-nav-item-active"
-              )}
+              className={cn("ow-nav-item group h-10", isActive && "ow-nav-item-active")}
             >
               <Icon
                 size={16}
@@ -278,10 +273,7 @@ export default function ControlPanelSidebar({
 
         <SupportDropdown
           trigger={
-            <button
-              aria-label={t("sidebar.support")}
-              className="ow-nav-item group h-10"
-            >
+            <button aria-label={t("sidebar.support")} className="ow-nav-item group h-10">
               <HelpCircle
                 size={15}
                 className="shrink-0 text-muted-foreground group-hover:text-foreground transition-colors duration-150"
@@ -292,7 +284,6 @@ export default function ControlPanelSidebar({
             </button>
           }
         />
-
       </div>
     </div>
   );

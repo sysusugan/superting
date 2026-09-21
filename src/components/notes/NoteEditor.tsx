@@ -611,6 +611,7 @@ function TranscriptSpeakerFilter({
 }
 
 interface NoteEditorProps {
+  initialTrackingView?: boolean;
   note: NoteItem;
   onTitleChange: (title: string) => void;
   onContentChange: (content: string) => void;
@@ -702,10 +703,11 @@ export default function NoteEditor({
   onExtractTracking,
   onConfirmTracking,
   onRejectTracking,
+  initialTrackingView = false,
 }: NoteEditorProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [viewMode, setViewMode] = useState<MeetingViewMode>("raw");
+  const [viewMode, setViewMode] = useState<MeetingViewMode>(initialTrackingView ? "tracking" : "raw");
   const [editorMode, setEditorMode] = useState<EditorMode>(readEditorModePreference);
   const [chatMode, setChatMode] = useState<EmbeddedChatMode>("hidden");
   const [folderSearch, setFolderSearch] = useState("");
