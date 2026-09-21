@@ -1,15 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
-import { Check, Loader2, Sparkles, X } from "lucide-react";
+import { useMemo } from "react";
+import TrackingReview from "./TrackingReview";
+import { Loader2, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 type TrackingExtraction = {
   id: number;
   status: string;
   result?: Record<string, unknown> | null;
+  stale?: boolean;
   reviewResult?: Record<string, unknown> | null;
 };
 
 type TrackingData = {
+  noteId?: number;
+  reviewSnapshot?: string;
   items?: Array<Record<string, unknown>>;
   candidates?: Array<{
     id: number;
@@ -35,14 +39,12 @@ export default function TrackingPanel({
   data,
   isExtracting,
   onExtract,
-  onConfirm,
-  onReject,
+  onReviewSaved,
 }: {
   data: TrackingData | null;
   isExtracting: boolean;
   onExtract: (force?: boolean) => void;
-  onConfirm: (id: number, result: Record<string, unknown>) => void;
-  onReject: (id: number) => void;
+  onReviewSaved: () => void | Promise<void>;
 }) {
   const { t } = useTranslation();
   const latest = data?.extractions?.[0] ?? null;
@@ -52,45 +54,8 @@ export default function TrackingPanel({
   const hasExtractedItems = ["matchedItems", "newItems", "updates"].some(
     (key) => Array.isArray(latest?.result?.[key]) && (latest.result[key] as unknown[]).length > 0
   );
-  const [draft, setDraft] = useState(() =>
-    JSON.stringify(latest?.reviewResult || latest?.result || {}, null, 2)
-  );
-
-  useEffect(() => {
-    setDraft(latest?.result ? JSON.stringify(latest.reviewResult || latest.result, null, 2) : "");
-  }, [latest?.id, latest?.result, latest?.reviewResult]);
-
   const confirmedUpdates = useMemo(() => data?.updates ?? [], [data?.updates]);
   const confirmedItems = data?.items ?? [];
-  let parsedDraft: Record<string, unknown> | null = null;
-  try {
-    parsedDraft = draft ? JSON.parse(draft) : null;
-  } catch {
-    parsedDraft = null;
-  }
-  const draftItems = ["matchedItems", "newItems"].flatMap((key) =>
-    Array.isArray(parsedDraft?.[key])
-      ? (parsedDraft[key] as Record<string, unknown>[]).map((item, index) => ({ key, index, item }))
-      : []
-  );
-  const candidates = data?.candidates || [];
-  const resolved =
-    !!parsedDraft &&
-    draftItems.every(
-      ({ item }) =>
-        item.createNew === true ||
-        candidates.some(
-          (candidate) => candidate.id === item.itemId && candidate.itemType === item.itemType
-        )
-    );
-  const chooseItem = (key: string, index: number, value: string) => {
-    if (!parsedDraft) return;
-    const next = JSON.parse(JSON.stringify(parsedDraft));
-    next[key][index].itemId = value && value !== "new" ? Number(value) : null;
-    next[key][index].createNew = value === "new";
-    setDraft(JSON.stringify(next, null, 2));
-  };
-
   return (
     <div className="mx-5 mt-5 mb-24 flex h-[calc(100%-7rem)] flex-col gap-4 overflow-y-auto rounded-xl border border-border/50 bg-background/70 p-4">
       <div className="flex items-center justify-between gap-3">
@@ -198,87 +163,7 @@ export default function TrackingPanel({
         </section>
       )}
 
-      {latest && latest.status === "pending" && (
-        <section className="space-y-2 border-t border-border/40 pt-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-foreground/50">
-              {t("notes.editor.trackingPending")}
-            </h3>
-            <span className="text-[11px] text-muted-foreground">#{latest.id}</span>
-          </div>
-          {draftItems.map(({ key, index, item }) => (
-            <label
-              key={`${key}:${index}`}
-              className="block rounded-md border border-border/50 bg-card p-3 text-sm"
-            >
-              <span className="block font-medium">
-                {String(item.title)} · {String(item.itemType)}
-              </span>
-              <span className="mt-2 block text-xs text-muted-foreground">
-                {t("notes.trackingIdentity.assignment")}
-              </span>
-              <select
-                aria-label={`${t("notes.trackingIdentity.assignment")}: ${String(item.title)}`}
-                className="mt-1 w-full rounded-md border border-border bg-background p-2"
-                value={
-                  item.createNew === true
-                    ? "new"
-                    : candidates.some((c) => c.id === item.itemId && c.itemType === item.itemType)
-                      ? String(item.itemId)
-                      : ""
-                }
-                onChange={(event) => chooseItem(key, index, event.target.value)}
-              >
-                <option value="">{t("notes.trackingIdentity.choose")}</option>
-                {candidates
-                  .filter((c) => c.itemType === item.itemType)
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      #{c.id} · {c.title}
-                      {c.linked ? ` · ${t("notes.trackingIdentity.linked")}` : ""}
-                    </option>
-                  ))}
-                <option value="new">{t("notes.trackingIdentity.create")}</option>
-              </select>
-            </label>
-          ))}
-          {!resolved && (
-            <p className="text-xs text-amber-600" role="status">
-              {t("notes.trackingIdentity.required")}
-            </p>
-          )}
-          <details>
-            <summary className="cursor-pointer text-xs text-muted-foreground">
-              {t("notes.trackingIdentity.details")}
-            </summary>
-            <textarea
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              className="min-h-48 w-full resize-y rounded-md border border-border/50 bg-card px-3 py-2 font-mono text-xs leading-relaxed text-foreground outline-none focus:border-ring/60"
-              aria-label={t("notes.editor.trackingPending")}
-            />
-          </details>
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => onReject(latest.id)}
-              className="inline-flex h-8 items-center gap-1 rounded-md px-3 text-xs text-muted-foreground hover:bg-muted"
-            >
-              <X size={13} />
-              {t("common.cancel")}
-            </button>
-            <button
-              type="button"
-              onClick={() => parsedDraft && onConfirm(latest.id, parsedDraft)}
-              disabled={!resolved || isExtracting}
-              className="inline-flex h-8 items-center gap-1 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground disabled:opacity-50"
-            >
-              <Check size={13} />
-              {t("common.save")}
-            </button>
-          </div>
-        </section>
-      )}
+      {data && <TrackingReview data={data} disabled={isExtracting} onSaved={onReviewSaved} />}
       {(data?.extractions ?? []).map((extraction) => (
         <details key={extraction.id} className="rounded-md border border-border/40 p-3 text-xs">
           <summary className="cursor-pointer">

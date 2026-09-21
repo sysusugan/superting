@@ -2240,31 +2240,184 @@ class DatabaseManager {
       .get().version;
   }
 
-  getTrackingExtraction(noteId, actionId) {
+  trackingInputHash(note, action) {
+    return (
+      "v3:" +
+      createHash("sha256")
+        .update(
+          JSON.stringify({
+            title: note.title,
+            content: note.content,
+            enhanced: note.enhanced_content,
+            transcript: note.transcript,
+            recordedAt: note.recorded_at,
+            tags: note.tags,
+            action,
+            templates: this.getTrackingTemplates(),
+          })
+        )
+        .digest("hex")
+    );
+  }
+
+  prepareTrackingExtraction(noteId, actionId) {
+    if (!Number.isSafeInteger(noteId) || !Number.isSafeInteger(actionId))
+      throw new Error("Invalid note or action ID");
     const note = this.getNote(noteId);
-    if (!note) return null;
     const action = this.getAction(actionId);
-    if (!action || action.output_target !== "tracking") return null;
-    const templateVersion = this.getTrackingTemplateVersion();
-    const inputHash = createHash("sha256")
+    if (!note || note.deleted_at || !action || action.output_target !== "tracking")
+      throw new Error("Tracking note or action unavailable");
+    return {
+      note,
+      action,
+      templates: this.getTrackingTemplates(),
+      inputHash: this.trackingInputHash(note, action),
+    };
+  }
+
+  trackingExtractionStale(row) {
+    if (!row || !row.input_hash.startsWith("v3:")) return true;
+    try {
+      return (
+        row.input_hash !== this.prepareTrackingExtraction(row.note_id, row.action_id).inputHash
+      );
+    } catch {
+      return true;
+    }
+  }
+
+  trackingReviewSnapshot(noteId) {
+    // ponytail: hash the local item ledger; narrow to reviewed targets if the ledger becomes large.
+    return createHash("sha256")
       .update(
         JSON.stringify({
-          title: note.title,
-          content: note.content,
-          enhanced_content: note.enhanced_content,
-          transcript: note.transcript,
-          tags: note.tags || [],
-          recorded_at: note.recorded_at,
-          prompt: action.prompt,
-          templateVersion,
+          items: this.db.prepare("SELECT * FROM tracking_items ORDER BY id").all(),
+          updates: this.db
+            .prepare("SELECT * FROM tracking_updates WHERE note_id = ? ORDER BY id")
+            .all(noteId),
         })
       )
       .digest("hex");
+  }
+
+  getNoteTrackingSummaries(noteIds, actionId = null) {
+    if (
+      !Array.isArray(noteIds) ||
+      noteIds.length > 10000 ||
+      noteIds.some((id) => !Number.isSafeInteger(id) || id <= 0)
+    )
+      throw new Error("Invalid note IDs (maximum 10000)");
+    if (!noteIds.length) return [];
+    const rows = this.db
+      .prepare(
+        `SELECT e.* FROM tracking_extractions e
+      WHERE e.note_id IN (${noteIds.map(() => "?").join(",")})
+      ORDER BY e.id DESC`
+      )
+      .all(...noteIds);
+    return noteIds.map((noteId) => {
+      const latest = rows.find((e) => e.note_id === noteId);
+      const confirmed = rows.some((e) => e.note_id === noteId && e.status === "confirmed");
+      const stale = latest
+        ? this.trackingExtractionStale(latest) ||
+          (actionId != null && latest.action_id !== actionId)
+        : false;
+      return {
+        noteId,
+        extractionId: latest?.id ?? null,
+        hasConfirmed: confirmed,
+        stale,
+        status: !latest ? "notExtracted" : stale ? "stale" : latest.status,
+      };
+    });
+  }
+
+  listTrackingSourceNotes({ from, to, actionId, page = 1, selection = false } = {}) {
+    if (
+      typeof from !== "string" ||
+      typeof to !== "string" ||
+      !Number.isFinite(Date.parse(from)) ||
+      !Number.isFinite(Date.parse(to)) ||
+      Date.parse(from) >= Date.parse(to) ||
+      !Number.isSafeInteger(page) ||
+      page < 1
+    )
+      throw new Error("Invalid date range or page");
+    const action = this.getAction(actionId);
+    if (!Number.isSafeInteger(actionId) || !action || action.output_target !== "tracking")
+      throw new Error("Tracking action unavailable");
+    const rows = this.db
+      .prepare(
+        `SELECT id, title, folder_id,
+      COALESCE(recorded_at, created_at) AS recordedAt,
+      CASE WHEN trim(COALESCE(content,'')) != '' OR trim(COALESCE(transcript,'')) != ''
+        THEN 1 ELSE 0 END AS eligible
+      FROM notes WHERE deleted_at IS NULL
+      AND julianday(COALESCE(recorded_at, created_at)) >= julianday(?)
+      AND julianday(COALESCE(recorded_at, created_at)) < julianday(?)
+      ORDER BY julianday(COALESCE(recorded_at, created_at)), id`
+      )
+      .all(from, to);
+    if (rows.length > 10000) throw new Error("Too many notes; choose a smaller date range");
+    const visible = selection ? rows : rows.slice((page - 1) * 50, page * 50);
+    const summaries = new Map(
+      this.getNoteTrackingSummaries(
+        visible.map((n) => n.id),
+        actionId
+      ).map((s) => [s.noteId, s])
+    );
+    return {
+      total: rows.length,
+      page,
+      items: visible.map((n) => ({ ...n, ...summaries.get(n.id) })),
+    };
+  }
+
+  listPendingTrackingNotes({ page = 1 } = {}) {
+    if (!Number.isSafeInteger(page) || page < 1) throw new Error("Invalid page");
+    const condition = `FROM tracking_extractions e JOIN notes n ON n.id=e.note_id
+      WHERE n.deleted_at IS NULL AND e.status='pending'
+      AND e.id=(SELECT MAX(id) FROM tracking_extractions WHERE note_id=e.note_id)`;
+    const total = this.db.prepare("SELECT COUNT(*) AS count " + condition).get().count;
+    const rows = this.db
+      .prepare(
+        `SELECT e.*, n.title, n.folder_id,
+      COALESCE(n.recorded_at,n.created_at) AS recordedAt ${condition}
+      ORDER BY e.id DESC LIMIT 50 OFFSET ?`
+      )
+      .all((page - 1) * 50);
+    return {
+      total,
+      page,
+      items: rows.map((row) => {
+        const result = safeJson(row.result_json, {});
+        return {
+          id: row.note_id,
+          extractionId: row.id,
+          title: row.title,
+          folder_id: row.folder_id,
+          recordedAt: row.recordedAt,
+          stale: this.trackingExtractionStale(row),
+          itemCount: (result.newItems?.length || 0) + (result.matchedItems?.length || 0),
+          updateCount: result.updates?.length || 0,
+        };
+      }),
+    };
+  }
+
+  getTrackingExtraction(noteId, actionId) {
+    const note = this.getNote(noteId);
+    if (!note || note.deleted_at) return null;
+    const action = this.getAction(actionId);
+    if (!action || action.output_target !== "tracking") return null;
+    const templateVersion = this.getTrackingTemplateVersion();
+    const inputHash = this.trackingInputHash(note, action);
     const row = this.db
       .prepare(
         `SELECT * FROM tracking_extractions
          WHERE note_id = ? AND action_id = ? AND input_hash = ? AND template_version = ?
            AND status IN ('pending', 'confirmed')
+           AND id = (SELECT MAX(e.id) FROM tracking_extractions e WHERE e.note_id = tracking_extractions.note_id)
          ORDER BY id DESC LIMIT 1`
       )
       .get(noteId, actionId, inputHash, templateVersion);
@@ -2273,10 +2426,10 @@ class DatabaseManager {
       : null;
   }
 
-  saveTrackingExtraction(noteId, actionId, generatedContent, force = false) {
+  saveTrackingExtraction(noteId, actionId, generatedContent, force = false, requestHash) {
     const note = this.getNote(noteId);
     const action = this.getAction(actionId);
-    if (!note || !action || action.output_target !== "tracking") {
+    if (!note || note.deleted_at || !action || action.output_target !== "tracking") {
       return { success: false, error: "Tracking action or note not found" };
     }
     let result;
@@ -2304,21 +2457,10 @@ class DatabaseManager {
       return { success: false, error: error.message };
     }
     const templateVersion = this.getTrackingTemplateVersion();
-    const inputHash = createHash("sha256")
-      .update(
-        JSON.stringify({
-          title: note.title,
-          content: note.content,
-          enhanced_content: note.enhanced_content,
-          transcript: note.transcript,
-          tags: note.tags || [],
-          recorded_at: note.recorded_at,
-          prompt: action.prompt,
-          templateVersion,
-        })
-      )
-      .digest("hex");
-    if (!force) {
+    const inputHash = requestHash || this.trackingInputHash(note, action);
+    if (!/^v3:[a-f0-9]{64}$/.test(inputHash))
+      return { success: false, error: "Invalid tracking request fingerprint" };
+    if (!force && inputHash === this.trackingInputHash(note, action)) {
       const cached = this.getTrackingExtraction(noteId, actionId);
       if (cached?.result?.protocolVersion === 2)
         return { success: true, cached: true, extraction: cached };
@@ -2380,11 +2522,17 @@ class DatabaseManager {
     const items = all.filter((item) => item.linked);
     return {
       items,
+      noteId,
+      reviewSnapshot: this.trackingReviewSnapshot(noteId),
       extractions: extractions.map((extraction) => {
         try {
-          return { ...extraction, reviewResult: this.normalizeTrackingResult(extraction.result) };
+          return {
+            ...extraction,
+            stale: this.trackingExtractionStale(extraction),
+            reviewResult: this.normalizeTrackingResult(extraction.result),
+          };
         } catch {
-          return { ...extraction, reviewResult: null };
+          return { ...extraction, stale: true, reviewResult: null };
         }
       }),
       updates,
@@ -2392,7 +2540,7 @@ class DatabaseManager {
     };
   }
 
-  confirmTrackingExtraction(extractionId, resultOverride) {
+  confirmTrackingExtraction(extractionId, resultOverride, review) {
     const extraction = this.db
       .prepare("SELECT * FROM tracking_extractions WHERE id = ?")
       .get(extractionId);
@@ -2435,6 +2583,16 @@ class DatabaseManager {
       }
       if (item.createNew !== true)
         throw new Error("Choose an existing item or explicitly choose to create a new item");
+      const normalized = (value) =>
+        String(value).normalize("NFKC").trim().toLocaleLowerCase().replace(/\s+/g, "");
+      const duplicate = this.db
+        .prepare("SELECT id, title FROM tracking_items WHERE template_id=?")
+        .all(templates.get(type).id)
+        .find((entry) => normalized(entry.title) === normalized(title));
+      if (duplicate)
+        throw new Error(
+          `Existing item #${duplicate.id}: ${duplicate.title}; choose it instead of creating a duplicate`
+        );
       const inserted = this.db
         .prepare(
           "INSERT INTO tracking_items (template_id, title, state, properties_json) VALUES (?, ?, ?, ?)"
@@ -2450,6 +2608,16 @@ class DatabaseManager {
         .get(inserted.lastInsertRowid);
     };
     const transaction = this.db.transaction(() => {
+      if (review && review.expected !== this.trackingReviewSnapshot(extraction.note_id))
+        throw new Error("Tracking data changed; reload the review");
+      if (
+        review &&
+        !review.replaceUpdates &&
+        this.db
+          .prepare("SELECT 1 FROM tracking_updates WHERE note_id=? LIMIT 1")
+          .get(extraction.note_id)
+      )
+        throw new Error("Confirm replacement of this note's saved updates");
       const affected = this.db
         .prepare("SELECT DISTINCT item_id FROM tracking_updates WHERE note_id = ?")
         .all(extraction.note_id);

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
+import TrackingBatchDialog from "./TrackingBatchDialog";
+import TrackingPending from "./TrackingPending";
+import { useActionProcessingStore } from "../stores/actionProcessingStore";
 import type {
   TrackingDetail,
   TrackingItem,
@@ -31,7 +34,11 @@ export default function TrackingCenter({
   onOpenNote: (id: number, folderId: number | null) => void;
 }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<"items" | "templates">("items");
+  const [tab, setTab] = useState<"items" | "templates" | "pending">("items");
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchTarget, setBatchTarget] = useState<{ id: number; recordedAt: string } | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
+  const batchRunning = useActionProcessingStore((s) => s.batch.running);
   const [query, setQuery] = useState<TrackingQuery>({ page: 1, active: "all" });
   const [list, setList] = useState<TrackingList | null>(null);
   const [templates, setTemplates] = useState<TrackingTemplate[]>([]);
@@ -45,6 +52,21 @@ export default function TrackingCenter({
   const [loading, setLoading] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [refresh, setRefresh] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    let alive = true;
+    window.electronAPI
+      .listPendingTrackingNotes()
+      .then((r) => {
+        if (alive) setPendingCount(r.total);
+      })
+      .catch((e) => {
+        if (alive) setError(String(e));
+      });
+    return () => {
+      alive = false;
+    };
+  }, [active, refresh]);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [review, setReview] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -244,8 +266,18 @@ export default function TrackingCenter({
           {t("trackingCenter.refresh")}
         </Button>
       </header>
+      <TrackingBatchDialog open={batchOpen} onOpenChange={setBatchOpen} target={batchTarget} />
+      <Button
+        className="mb-3 self-end"
+        onClick={() => {
+          setBatchTarget(null);
+          setBatchOpen(true);
+        }}
+      >
+        {t(batchRunning ? "trackingBatch.viewProgress" : "trackingBatch.extract")}
+      </Button>
       <div className="mb-4 flex gap-2" role="tablist" aria-label={t("trackingCenter.title")}>
-        {(["items", "templates"] as const).map((key) => (
+        {(["items", "pending", "templates"] as const).map((key) => (
           <Button
             key={key}
             role="tab"
@@ -255,7 +287,9 @@ export default function TrackingCenter({
               if (canLeave()) setTab(key);
             }}
           >
-            {t(`trackingCenter.${key}`)}
+            {key === "pending"
+              ? t("trackingBatch.pending", { count: pendingCount })
+              : t(`trackingCenter.${key}`)}
           </Button>
         ))}
       </div>
@@ -264,7 +298,16 @@ export default function TrackingCenter({
           {t("trackingCenter.failed")} {error}
         </p>
       )}
-      {tab === "templates" ? (
+      {tab === "pending" ? (
+        <TrackingPending
+          onOpenNote={onOpenNote}
+          onExtract={(note) => {
+            setBatchTarget(note);
+            setBatchOpen(true);
+          }}
+          onCount={setPendingCount}
+        />
+      ) : tab === "templates" ? (
         <div className="grid gap-4 overflow-y-auto md:grid-cols-2">
           {templates.map((entry) => (
             <article key={entry.id} className="rounded-lg border border-border bg-card p-4">

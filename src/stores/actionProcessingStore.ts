@@ -17,7 +17,20 @@ export interface ActionErrorEvent {
   message: string;
 }
 
+export interface ActionRunResult {
+  status: "draft" | "reused" | "skipped" | "busy" | "failed" | "cancelled";
+  error?: string;
+  extraction?: Record<string, unknown>;
+}
+export interface BatchEntry {
+  id: number;
+  title: string;
+  status: "queued" | "processing" | ActionRunResult["status"];
+  error?: string;
+}
 interface ActionProcessingStoreState {
+  trackingErrors: Record<number, string>;
+  batch: { running: boolean; stopped: boolean; entries: BatchEntry[] };
   noteStates: Record<number, NoteActionState>;
   errorEvents: ActionErrorEvent[];
 }
@@ -57,6 +70,8 @@ function pushErrorEvent(event: ActionErrorEvent) {
 }
 
 export const useActionProcessingStore = create<ActionProcessingStoreState>()(() => ({
+  trackingErrors: {},
+  batch: { running: false, stopped: false, entries: [] },
   noteStates: {},
   errorEvents: [],
 }));
@@ -87,14 +102,14 @@ export interface RunActionLabels {
  * Start processing an action on a note. Runs in the background — survives
  * component unmounts and navigation so the user can switch notes mid-action.
  */
-export function runBackgroundAction(
+export async function runBackgroundAction(
   noteId: number,
   noteContent: string,
   contentHash: string,
   action: ActionItem,
   options: RunActionOptions,
   labels: RunActionLabels
-): void {
+): Promise<ActionRunResult> {
   const operationId = makeNoteActionOperationId(noteId, action.id);
   if (processingFlags.get(noteId)) {
     logNoteAction(
@@ -107,10 +122,15 @@ export function runBackgroundAction(
       },
       "warn"
     );
-    return;
+    return { status: "busy" };
   }
 
   const modelId = options.modelId;
+  if (action.output_target === "tracking") {
+    const errors = { ...useActionProcessingStore.getState().trackingErrors };
+    delete errors[noteId];
+    useActionProcessingStore.setState({ trackingErrors: errors });
+  }
   if (!modelId && !options.isCloudMode) {
     logNoteAction(
       "NOTE_ACTION_SKIPPED_NO_MODEL",
@@ -124,7 +144,11 @@ export function runBackgroundAction(
       "error"
     );
     pushErrorEvent({ noteId, message: labels.noModel });
-    return;
+    if (action.output_target === "tracking")
+      useActionProcessingStore.setState((state) => ({
+        trackingErrors: { ...state.trackingErrors, [noteId]: labels.noModel },
+      }));
+    return { status: "failed", error: labels.noModel };
   }
 
   logNoteAction("NOTE_ACTION_START", {
@@ -146,6 +170,9 @@ export function runBackgroundAction(
     currentCreatedAt: options.currentCreatedAt ?? null,
   });
 
+  const previousTimer = successTimers.get(noteId);
+  if (previousTimer) clearTimeout(previousTimer);
+  successTimers.delete(noteId);
   cancelledFlags.set(noteId, false);
   processingFlags.set(noteId, true);
   setNoteState(noteId, {
@@ -154,7 +181,7 @@ export function runBackgroundAction(
     outputTarget: action.output_target,
   });
 
-  (async () => {
+  return await (async (): Promise<ActionRunResult> => {
     try {
       if (action.output_target === "tracking" && !options.forceTracking) {
         const cached = await window.electronAPI.getTrackingExtraction(noteId, action.id);
@@ -162,15 +189,17 @@ export function runBackgroundAction(
           window.dispatchEvent(new CustomEvent("superting-tracking-updated", { detail: noteId }));
           setNoteState(noteId, { status: "success", actionName: action.name });
           const timer = setTimeout(() => {
-            processingFlags.set(noteId, false);
             clearNoteState(noteId);
             successTimers.delete(noteId);
           }, 600);
           successTimers.set(noteId, timer);
-          return;
+          return {
+            status: cached.status === "confirmed" ? "skipped" : "reused",
+            extraction: cached,
+          };
         }
       }
-      const { generatedContent, updates } = await runNoteActionOnce({
+      const { generatedContent, updates, inputHash } = await runNoteActionOnce({
         noteId,
         note: {
           title: options.currentTitle ?? "",
@@ -200,19 +229,22 @@ export function runBackgroundAction(
           },
           "warn"
         );
-        return;
+        return { status: "cancelled" };
       }
 
+      let savedExtraction: Record<string, unknown> | undefined;
       if (action.output_target === "tracking") {
         const extractionResult = await window.electronAPI.saveTrackingExtraction(
           noteId,
           action.id,
           generatedContent,
-          options.forceTracking === true
+          options.forceTracking === true,
+          inputHash
         );
         if (!extractionResult?.success) {
           throw new Error(extractionResult?.error || labels.actionFailed);
         }
+        savedExtraction = extractionResult.extraction;
         window.dispatchEvent(new CustomEvent("superting-tracking-updated", { detail: noteId }));
       } else {
         logNoteAction("NOTE_ACTION_DB_UPDATE_START", {
@@ -243,11 +275,11 @@ export function runBackgroundAction(
       });
 
       const timer = setTimeout(() => {
-        processingFlags.set(noteId, false);
         clearNoteState(noteId);
         successTimers.delete(noteId);
       }, 600);
       successTimers.set(noteId, timer);
+      return { status: "draft", extraction: savedExtraction };
     } catch (err) {
       if (cancelledFlags.get(noteId)) {
         logNoteAction(
@@ -261,7 +293,7 @@ export function runBackgroundAction(
           },
           "warn"
         );
-        return;
+        return { status: "cancelled" };
       }
       processingFlags.set(noteId, false);
       clearNoteState(noteId);
@@ -279,7 +311,13 @@ export function runBackgroundAction(
         "error"
       );
       pushErrorEvent({ noteId, message });
+      if (action.output_target === "tracking")
+        useActionProcessingStore.setState((state) => ({
+          trackingErrors: { ...state.trackingErrors, [noteId]: message },
+        }));
+      return { status: "failed", error: message };
     } finally {
+      processingFlags.set(noteId, false);
       cancelledFlags.delete(noteId);
     }
   })();
@@ -288,7 +326,6 @@ export function runBackgroundAction(
 /** Soft cancel: the HTTP request continues but the result is discarded. */
 export function cancelAction(noteId: number): void {
   cancelledFlags.set(noteId, true);
-  processingFlags.set(noteId, false);
   const timer = successTimers.get(noteId);
   if (timer) {
     clearTimeout(timer);
@@ -310,4 +347,41 @@ export function selectNoteActionState(
 ): NoteActionState {
   if (noteId == null) return IDLE_STATE;
   return state.noteStates[noteId] ?? IDLE_STATE;
+}
+
+export function stopTrackingBatch() {
+  const batch = useActionProcessingStore.getState().batch;
+  useActionProcessingStore.setState({ batch: { ...batch, stopped: true } });
+}
+export async function runTrackingBatch(
+  notes: { id: number; title: string }[],
+  action: ActionItem,
+  options: RunActionOptions,
+  labels: RunActionLabels
+) {
+  if (useActionProcessingStore.getState().batch.running) return;
+  const entries: BatchEntry[] = notes.map((n) => ({ ...n, status: "queued" }));
+  const publish = (running = true) =>
+    useActionProcessingStore.setState({
+      batch: {
+        ...useActionProcessingStore.getState().batch,
+        running,
+        entries: entries.map((e) => ({ ...e })),
+      },
+    });
+  useActionProcessingStore.setState({ batch: { running: true, stopped: false, entries } });
+  try {
+    for (const entry of entries) {
+      if (useActionProcessingStore.getState().batch.stopped) break;
+      entry.status = "processing";
+      publish();
+      const result = await runBackgroundAction(entry.id, "", "", action, options, labels);
+      entry.status = result.status;
+      entry.error = result.error;
+      publish();
+    }
+  } finally {
+    for (const entry of entries) if (entry.status === "queued") entry.status = "cancelled";
+    publish(false);
+  }
 }

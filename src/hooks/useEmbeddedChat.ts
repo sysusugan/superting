@@ -13,7 +13,11 @@ import {
 import { runNoteActionOnce } from "../stores/runNoteActionOnce";
 import { buildWriteNoteContentUpdates } from "../stores/actionProcessingCore";
 import { createPendingRunNoteActionToolCall } from "./embeddedChatActions";
-import { beginChatNoteAction, endChatNoteAction } from "../stores/actionProcessingStore";
+import {
+  beginChatNoteAction,
+  endChatNoteAction,
+  runBackgroundAction,
+} from "../stores/actionProcessingStore";
 
 interface UseEmbeddedChatOptions {
   noteId: number | null;
@@ -287,6 +291,40 @@ export function useEmbeddedChat({
           const actionId = Number(payload.actionId);
           const action = actionsRef.current.find((item) => item.id === actionId);
           if (!action) throw new Error(t("embeddedChat.confirmation.actionNotFound"));
+          if (action.output_target === "tracking") {
+            const settings = useSettingsStore.getState();
+            const result = await runBackgroundAction(
+              noteIdFromPayload,
+              "",
+              "",
+              action,
+              {
+                forceTracking: payload.forceTracking === true,
+                modelId: selectResolvedNoteFormatting(settings).model,
+                isCloudMode: selectIsCloudNoteFormattingMode(settings),
+                speakerLabels: { you: t("notes.speaker.you"), them: t("notes.speaker.them") },
+              },
+              {
+                noModel: t("notes.actions.errors.noModel"),
+                actionFailed: t("notes.actions.errors.actionFailed"),
+              }
+            );
+            if (["failed", "busy", "cancelled"].includes(result.status))
+              throw new Error(result.error || t("trackingChat.busy"));
+            patchToolCall(toolCall.id, {
+              status: "completed",
+              result: t("trackingChat.extracted", {
+                id: result.extraction?.id,
+                status: t("notes.trackingStatus." + result.extraction?.status),
+              }),
+              metadata: {
+                ...metadata,
+                confirmationStatus: "confirmed",
+                extraction: result.extraction,
+              },
+            });
+            return;
+          }
           if (!beginChatNoteAction(noteIdFromPayload)) throw new Error(t("trackingChat.busy"));
           lockedNoteId = noteIdFromPayload;
           const note = await window.electronAPI.getNote(noteIdFromPayload);
@@ -295,7 +333,7 @@ export function useEmbeddedChat({
           const settings = useSettingsStore.getState();
           const resolved = selectResolvedNoteFormatting(settings);
           const isCloudMode = selectIsCloudNoteFormattingMode(settings);
-          const { generatedContent, updates } = await runNoteActionOnce({
+          const { updates } = await runNoteActionOnce({
             noteId: note.id,
             note,
             action,
@@ -306,35 +344,8 @@ export function useEmbeddedChat({
               them: t("notes.speaker.them"),
             },
           });
-          if (action.output_target === "tracking") {
-            const result = await window.electronAPI.saveTrackingExtraction(
-              note.id,
-              action.id,
-              generatedContent,
-              payload.forceTracking === true
-            );
-            if (!result.success)
-              throw new Error(result.error || t("embeddedChat.confirmation.writeFailed"));
-            window.dispatchEvent(
-              new CustomEvent("superting-tracking-updated", { detail: note.id })
-            );
-            patchToolCall(toolCall.id, {
-              status: "completed",
-              result: t("trackingChat.extracted", {
-                id: result.extraction?.id,
-                status: t(`notes.trackingStatus.${result.extraction?.status}`),
-              }),
-              metadata: {
-                ...metadata,
-                confirmationStatus: "confirmed",
-                extraction: result.extraction,
-              },
-            });
-            return;
-          } else {
-            const result = await window.electronAPI.updateNote(note.id, updates);
-            if (!result.success) throw new Error(t("embeddedChat.confirmation.writeFailed"));
-          }
+          const result = await window.electronAPI.updateNote(note.id, updates);
+          if (!result.success) throw new Error(t("embeddedChat.confirmation.writeFailed"));
           patchToolCall(toolCall.id, {
             status: "completed",
             result: t("embeddedChat.confirmation.actionCompleted", { name: action.name }),

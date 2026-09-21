@@ -330,6 +330,25 @@ export default function PersonalNotesView({
         : notes,
     [notes, selectedTags]
   );
+  const [trackingSummaries, setTrackingSummaries] = useState<
+    Record<number, import("../../types/tracking").TrackingSummary>
+  >({});
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      window.electronAPI
+        .getNoteTrackingSummaries(visibleNotes.map((n) => n.id))
+        .then((rows) => {
+          if (alive) setTrackingSummaries(Object.fromEntries(rows.map((row) => [row.noteId, row])));
+        })
+        .catch((error) => logger.warn("Failed to load tracking summaries", error));
+    void load();
+    window.addEventListener("superting-tracking-updated", load);
+    return () => {
+      alive = false;
+      window.removeEventListener("superting-tracking-updated", load);
+    };
+  }, [visibleNotes]);
   const selectedTagSummary = selectedTags[0] || "";
   const remainingSelectedTagCount = Math.max(0, selectedTags.length - 1);
   const tagCheckboxItemClass =
@@ -1203,26 +1222,6 @@ export default function PersonalNotesView({
     ]
   );
 
-  const confirmTracking = useCallback(
-    async (extractionId: number, result: Record<string, unknown>) => {
-      const response = await window.electronAPI.confirmTrackingExtraction(extractionId, result);
-      if (response.success) await refreshTracking();
-      else
-        toast({
-          title: response.error || t("notes.editor.trackingConfirmFailed"),
-          variant: "destructive",
-        });
-    },
-    [refreshTracking, t, toast]
-  );
-
-  const rejectTracking = useCallback(
-    async (extractionId: number) => {
-      await window.electronAPI.rejectTrackingExtraction(extractionId);
-      await refreshTracking();
-    },
-    [refreshTracking]
-  );
   const echoCancellationMessage = isActiveNoteRecording
     ? getMeetingEchoCancellationMessage(recordingAecMode, recordingAecReason, t)
     : null;
@@ -2110,6 +2109,7 @@ export default function PersonalNotesView({
                   <NoteListItem
                     key={note.id}
                     note={note}
+                    trackingSummary={trackingSummaries[note.id]}
                     isActive={note.id === activeNoteId}
                     onClick={() => setActiveNoteId(note.id)}
                     onDelete={handleDelete}
@@ -2239,8 +2239,7 @@ export default function PersonalNotesView({
               trackingData={trackingData?.noteId === editorNote.id ? trackingData : null}
               trackingExtracting={trackingExtracting}
               onExtractTracking={extractTracking}
-              onConfirmTracking={confirmTracking}
-              onRejectTracking={rejectTracking}
+              onReviewTracking={refreshTracking}
               actionProcessingState={actionProcessingState}
               actionName={actionName}
               actionOutputTarget={actionOutputTarget}

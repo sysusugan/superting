@@ -8,13 +8,11 @@ import zh from "../../src/locales/zh-CN/translation.json";
 import TrackingCenter from "../../src/components/TrackingCenter";
 import "../../src/index.css";
 
-await i18n
-  .use(initReactI18next)
-  .init({
-    lng: "zh-CN",
-    resources: { "zh-CN": { translation: zh } },
-    interpolation: { escapeValue: false },
-  });
+await i18n.use(initReactI18next).init({
+  lng: "zh-CN",
+  resources: { "zh-CN": { translation: zh } },
+  interpolation: { escapeValue: false },
+});
 const template = {
   id: 1,
   name: "项目",
@@ -40,6 +38,44 @@ const rows = Array.from({ length: 31 }, (_, i) => ({
   updated_at: "2026-09-21 09:00:00",
 }));
 const operations: Record<number, unknown[]> = {};
+const sourceNotes = Array.from({ length: 55 }, (_, i) => ({
+  id: i + 1,
+  noteId: i + 1,
+  title: "测试笔记 " + (i + 1),
+  recordedAt: "2026-09-21 09:00:00",
+  eligible: i === 54 ? 0 : 1,
+  folder_id: null,
+  status: "notExtracted",
+  hasConfirmed: false,
+  stale: false,
+  extractionId: null,
+}));
+let pending = [
+  {
+    id: 1,
+    extractionId: 1,
+    title: "审核测试笔记",
+    folder_id: null,
+    recordedAt: "2026-09-21 09:00:00",
+    stale: false,
+    itemCount: 1,
+    updateCount: 1,
+  },
+];
+const draft = {
+  protocolVersion: 2,
+  newItems: [{ ref: "new:1", title: "验证项目 1", itemType: "项目" }],
+  matchedItems: [],
+  updates: [
+    {
+      itemRef: "new:1",
+      updateType: "进展",
+      content: "完成技术方案讨论，下一步进行客户验证。",
+      evidence: "本周已完成方案讨论。",
+    },
+  ],
+  uncertainties: [],
+};
 let failure = false;
 const detail = (id: number) => ({
   item: structuredClone(rows.find((row) => row.id === id)),
@@ -49,6 +85,35 @@ const detail = (id: number) => ({
   operations: operations[id] || [],
 });
 window.electronAPI = {
+  async listPendingTrackingNotes() {
+    return { items: pending, total: pending.length, page: 1 };
+  },
+  async getActions() {
+    return [{ id: 1, name: "提取事项", output_target: "tracking", prompt: "extract" }];
+  },
+  async listTrackingSourceNotes() {
+    return { items: sourceNotes, total: 55, page: 1 };
+  },
+  async getNoteTracking() {
+    return {
+      noteId: 1,
+      reviewSnapshot: "fixture",
+      items: [],
+      updates: [{ id: 1 }],
+      candidates: rows.slice(0, 3),
+      extractions: [{ id: 1, status: "pending", stale: false, result: structuredClone(draft) }],
+    };
+  },
+  async confirmTrackingExtraction(_id, _result, review) {
+    if (failure) return { success: false, error: "Fixture: concurrent edit; reload review" };
+    if (!review?.replaceUpdates) return { success: false, error: "Replacement required" };
+    pending = [];
+    return { success: true };
+  },
+  async rejectTrackingExtraction() {
+    pending = [];
+    return { success: true };
+  },
   async getTrackingTemplates() {
     return [template];
   },

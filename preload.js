@@ -165,18 +165,33 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.invoke("db-create-action", name, description, prompt, icon, options),
   updateAction: (id, updates) => ipcRenderer.invoke("db-update-action", id, updates),
   deleteAction: (id) => ipcRenderer.invoke("db-delete-action", id),
+  listTrackingSourceNotes: (query) => ipcRenderer.invoke("db-list-tracking-source-notes", query),
+  getNoteTrackingSummaries: (ids, actionId) =>
+    ipcRenderer.invoke("db-get-note-tracking-summaries", ids, actionId),
+  listPendingTrackingNotes: (query) => ipcRenderer.invoke("db-list-pending-tracking-notes", query),
+  prepareTrackingExtraction: (noteId, actionId) =>
+    ipcRenderer.invoke("db-prepare-tracking-extraction", noteId, actionId),
   getTrackingTemplates: () => ipcRenderer.invoke("db-get-tracking-templates"),
   listTrackingItems: (query) => ipcRenderer.invoke("db-list-tracking-items", query),
-  getTrackingItemDetail: (id, query) => ipcRenderer.invoke("db-get-tracking-item-detail", id, query),
+  getTrackingItemDetail: (id, query) =>
+    ipcRenderer.invoke("db-get-tracking-item-detail", id, query),
   updateTrackingItem: (id, request) => ipcRenderer.invoke("db-update-tracking-item", id, request),
   getNoteTracking: (noteId) => ipcRenderer.invoke("db-get-note-tracking", noteId),
-  updateNoteTracking: (noteId, request) => ipcRenderer.invoke("db-update-note-tracking", noteId, request),
+  updateNoteTracking: (noteId, request) =>
+    ipcRenderer.invoke("db-update-note-tracking", noteId, request),
   getTrackingExtraction: (noteId, actionId) =>
     ipcRenderer.invoke("db-get-tracking-extraction", noteId, actionId),
-  saveTrackingExtraction: (noteId, actionId, generatedContent, force = false) =>
-    ipcRenderer.invoke("db-save-tracking-extraction", noteId, actionId, generatedContent, force),
-  confirmTrackingExtraction: (extractionId, result) =>
-    ipcRenderer.invoke("db-confirm-tracking-extraction", extractionId, result),
+  saveTrackingExtraction: (noteId, actionId, generatedContent, force = false, requestHash) =>
+    ipcRenderer.invoke(
+      "db-save-tracking-extraction",
+      noteId,
+      actionId,
+      generatedContent,
+      force,
+      requestHash
+    ),
+  confirmTrackingExtraction: (extractionId, result, review) =>
+    ipcRenderer.invoke("db-confirm-tracking-extraction", extractionId, result, review),
   rejectTrackingExtraction: (extractionId) =>
     ipcRenderer.invoke("db-reject-tracking-extraction", extractionId),
 

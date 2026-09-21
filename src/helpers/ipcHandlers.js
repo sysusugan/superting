@@ -1898,6 +1898,18 @@ class IPCHandlers {
       return result;
     });
 
+    ipcMain.handle("db-list-tracking-source-notes", (_event, query) =>
+      this.databaseManager.listTrackingSourceNotes(query)
+    );
+    ipcMain.handle("db-get-note-tracking-summaries", (_event, ids, actionId) =>
+      this.databaseManager.getNoteTrackingSummaries(ids, actionId)
+    );
+    ipcMain.handle("db-list-pending-tracking-notes", (_event, query) =>
+      this.databaseManager.listPendingTrackingNotes(query)
+    );
+    ipcMain.handle("db-prepare-tracking-extraction", (_event, noteId, actionId) =>
+      this.databaseManager.prepareTrackingExtraction(noteId, actionId)
+    );
     ipcMain.handle("db-list-tracking-items", async (_event, query) =>
       this.databaseManager.listTrackingItems(query)
     );
@@ -1921,11 +1933,42 @@ class IPCHandlers {
     );
     ipcMain.handle(
       "db-save-tracking-extraction",
-      async (event, noteId, actionId, generatedContent, force) =>
-        this.databaseManager.saveTrackingExtraction(noteId, actionId, generatedContent, force)
+      async (event, noteId, actionId, generatedContent, force, requestHash) => {
+        if (
+          !Number.isSafeInteger(noteId) ||
+          noteId <= 0 ||
+          !Number.isSafeInteger(actionId) ||
+          actionId <= 0 ||
+          typeof requestHash !== "string" ||
+          typeof generatedContent !== "string" ||
+          generatedContent.length > 10000000
+        )
+          return { success: false, error: "Invalid extraction request" };
+        return this.databaseManager.saveTrackingExtraction(
+          noteId,
+          actionId,
+          generatedContent,
+          force,
+          requestHash
+        );
+      }
     );
-    ipcMain.handle("db-confirm-tracking-extraction", async (event, extractionId, result) =>
-      this.databaseManager.confirmTrackingExtraction(extractionId, result)
+    ipcMain.handle(
+      "db-confirm-tracking-extraction",
+      async (event, extractionId, result, review) => {
+        if (
+          !Number.isSafeInteger(extractionId) ||
+          extractionId <= 0 ||
+          typeof review?.expected !== "string" ||
+          review.expected.length !== 64 ||
+          typeof review.replaceUpdates !== "boolean" ||
+          !result ||
+          typeof result !== "object" ||
+          JSON.stringify(result).length > 10000000
+        )
+          return { success: false, error: "Reload the tracking review before confirming" };
+        return this.databaseManager.confirmTrackingExtraction(extractionId, result, review);
+      }
     );
     ipcMain.handle("db-reject-tracking-extraction", async (event, extractionId) =>
       this.databaseManager.rejectTrackingExtraction(extractionId)

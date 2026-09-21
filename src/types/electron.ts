@@ -818,6 +818,29 @@ declare global {
       ) => Promise<{ success: boolean; action?: ActionItem; error?: string }>;
       deleteAction: (id: number) => Promise<{ success: boolean; id?: number; error?: string }>;
       getTrackingTemplates: () => Promise<Array<Record<string, unknown>>>;
+      prepareTrackingExtraction: (
+        noteId: number,
+        actionId: number
+      ) => Promise<{
+        note: NoteItem;
+        action: ActionItem;
+        templates: unknown[];
+        inputHash: string;
+      }>;
+      listTrackingSourceNotes: (query: {
+        from: string;
+        to: string;
+        actionId: number;
+        page?: number;
+        selection?: boolean;
+      }) => Promise<import("./tracking").TrackingSourceList>;
+      getNoteTrackingSummaries: (
+        ids: number[],
+        actionId?: number
+      ) => Promise<import("./tracking").TrackingSummary[]>;
+      listPendingTrackingNotes: (query?: {
+        page?: number;
+      }) => Promise<import("./tracking").PendingTrackingList>;
       listTrackingItems: (
         query?: import("./tracking").TrackingQuery
       ) => Promise<import("./tracking").TrackingList>;
@@ -853,7 +876,8 @@ declare global {
         noteId: number,
         actionId: number,
         generatedContent: string,
-        force?: boolean
+        force?: boolean,
+        requestHash?: string
       ) => Promise<{
         success: boolean;
         cached?: boolean;
@@ -862,7 +886,8 @@ declare global {
       }>;
       confirmTrackingExtraction: (
         extractionId: number,
-        result?: Record<string, unknown>
+        result?: Record<string, unknown>,
+        review?: { expected: string; replaceUpdates: boolean }
       ) => Promise<{ success: boolean; error?: string; data?: Record<string, unknown> }>;
       rejectTrackingExtraction: (
         extractionId: number

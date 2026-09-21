@@ -4,6 +4,40 @@ export interface TrackingTemplate {
   version: number;
   definition: { fields: string[]; states: string[]; updateTypes: string[] };
 }
+export interface TrackingSummary {
+  noteId: number;
+  extractionId: number | null;
+  hasConfirmed: boolean;
+  stale: boolean;
+  status: string;
+}
+export interface TrackingSourceNote extends TrackingSummary {
+  id: number;
+  title: string;
+  recordedAt: string;
+  eligible: number;
+  folder_id: number | null;
+}
+export interface TrackingSourceList {
+  items: TrackingSourceNote[];
+  total: number;
+  page: number;
+}
+export interface PendingTrackingNote {
+  id: number;
+  extractionId: number;
+  title: string;
+  folder_id: number | null;
+  recordedAt: string;
+  stale: boolean;
+  itemCount: number;
+  updateCount: number;
+}
+export interface PendingTrackingList {
+  items: PendingTrackingNote[];
+  total: number;
+  page: number;
+}
 export interface TrackingItem {
   id: number;
   template_id: number;

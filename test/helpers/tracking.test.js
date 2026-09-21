@@ -24,6 +24,179 @@ function createDatabase(t) {
   return db;
 }
 
+test("batch range includes start, excludes next midnight, paginates and excludes deleted notes", (t) => {
+  const db = createDatabase(t);
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  for (let i = 0; i < 52; i++) {
+    const n = db.saveNote("Note " + i, i === 0 ? "" : "content").note;
+    db.db.prepare("UPDATE notes SET recorded_at=? WHERE id=?").run("2026-09-20 16:00:00", n.id);
+  }
+  const outside = db.saveNote("Outside", "content").note;
+  db.db.prepare("UPDATE notes SET recorded_at=? WHERE id=?").run("2026-09-21 16:00:00", outside.id);
+  const q = {
+    from: "2026-09-21T00:00:00+08:00",
+    to: "2026-09-22T00:00:00+08:00",
+    actionId: action.id,
+  };
+  assert.equal(db.listTrackingSourceNotes(q).items.length, 50);
+  assert.equal(db.listTrackingSourceNotes({ ...q, page: 2 }).items.length, 2);
+  const all = db.listTrackingSourceNotes({ ...q, selection: true });
+  assert.equal(all.total, 52);
+  assert.equal(all.items[0].eligible, 0);
+  db.db.prepare("UPDATE notes SET deleted_at=CURRENT_TIMESTAMP WHERE id=?").run(all.items[1].id);
+  assert.equal(db.listTrackingSourceNotes(q).total, 51);
+  assert.throws(() => db.listTrackingSourceNotes({ ...q, to: q.from }), /Invalid/);
+});
+
+test("in-flight source and template changes preserve a stale draft without a valid cache", (t) => {
+  const db = createDatabase(t),
+    note = db.saveNote("Input", "before").note;
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const prepared = db.prepareTrackingExtraction(note.id, action.id);
+  db.updateNote(note.id, { content: "after" });
+  const draft = db.saveTrackingExtraction(
+    note.id,
+    action.id,
+    '{"updates":[]}',
+    true,
+    prepared.inputHash
+  ).extraction;
+  assert.equal(db.getTrackingExtraction(note.id, action.id), null);
+  assert.equal(db.listPendingTrackingNotes().items[0].stale, true);
+  assert.equal(db.confirmTrackingExtraction(draft.id, { updates: [] }).success, false);
+  const fresh = db.prepareTrackingExtraction(note.id, action.id);
+  db.db
+    .prepare(
+      "UPDATE tracking_templates SET definition_json=? WHERE id=(SELECT MIN(id) FROM tracking_templates)"
+    )
+    .run(JSON.stringify({ fields: ["changed"], states: [], updateTypes: [] }));
+  assert.notEqual(db.prepareTrackingExtraction(note.id, action.id).inputHash, fresh.inputHash);
+});
+
+test("latest rejected draft does not expose an older pending cache or queue entry", (t) => {
+  const db = createDatabase(t),
+    note = db.saveNote("Input", "content").note;
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  db.saveTrackingExtraction(note.id, action.id, '{"updates":[]}', true);
+  const latest = db.saveTrackingExtraction(note.id, action.id, '{"updates":[]}', true).extraction;
+  assert.equal(db.listPendingTrackingNotes().total, 1);
+  db.rejectTrackingExtraction(latest.id);
+  assert.equal(db.listPendingTrackingNotes().total, 0);
+  assert.equal(db.getTrackingExtraction(note.id, action.id), null);
+});
+
+test("review conflicts and duplicate identities roll back, explicit replacement is required", (t) => {
+  const db = createDatabase(t),
+    a = db.saveNote("A", "content").note,
+    b = db.saveNote("B", "content").note;
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const raw = {
+    newItems: [{ ref: "new:1", title: "Same project", itemType: "项目" }],
+    updates: [{ itemRef: "new:1", updateType: "进展", content: "old", evidence: "old" }],
+    protocolVersion: 2,
+  };
+  const x = db.saveTrackingExtraction(a.id, action.id, JSON.stringify(raw)).extraction;
+  const y = db.saveTrackingExtraction(b.id, action.id, JSON.stringify(raw)).extraction;
+  const expected = db.getNoteTracking(b.id).reviewSnapshot;
+  assert.equal(confirmReviewed(db, x.id).success, true);
+  const review = { ...raw, newItems: [{ ...raw.newItems[0], createNew: true }] };
+  assert.equal(
+    db.confirmTrackingExtraction(y.id, review, { expected, replaceUpdates: false }).success,
+    false
+  );
+  assert.equal(
+    db.confirmTrackingExtraction(y.id, review, {
+      expected: db.getNoteTracking(b.id).reviewSnapshot,
+      replaceUpdates: false,
+    }).success,
+    false
+  );
+  assert.equal(db.listTrackingItems().total, 1);
+  const item = db.listTrackingItems().items[0];
+  const next = {
+    protocolVersion: 2,
+    matchedItems: [
+      { ref: "existing:" + item.id, itemId: item.id, title: item.title, itemType: "项目" },
+    ],
+    updates: [
+      { itemRef: "existing:" + item.id, updateType: "进展", content: "new", evidence: "new" },
+    ],
+  };
+  const z = db.saveTrackingExtraction(a.id, action.id, JSON.stringify(next), true).extraction;
+  const token = db.getNoteTracking(a.id).reviewSnapshot;
+  assert.equal(
+    db.confirmTrackingExtraction(z.id, next, { expected: token, replaceUpdates: false }).success,
+    false
+  );
+  assert.equal(db.getNoteTracking(a.id).updates[0].content, "old");
+  assert.equal(
+    db.confirmTrackingExtraction(z.id, next, { expected: token, replaceUpdates: true }).success,
+    true
+  );
+  assert.equal(
+    db.confirmTrackingExtraction(z.id, next, { expected: token, replaceUpdates: true }).success,
+    true
+  );
+  assert.equal(db.getNoteTracking(a.id).updates[0].content, "new");
+});
+
+test("saved drafts survive reopening, empty results cache, legacy pending is stale and deleted sources cannot save", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Persisted", "content").note;
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const prepared = db.prepareTrackingExtraction(note.id, action.id);
+  const extraction = db.saveTrackingExtraction(
+    note.id,
+    action.id,
+    '{"updates":[]}',
+    true,
+    prepared.inputHash
+  ).extraction;
+  const reopened = new DatabaseManager({ dbPath: db.dbPath });
+  t.after(() => reopened.cleanup());
+  assert.equal(reopened.getTrackingExtraction(note.id, action.id).id, extraction.id);
+  assert.equal(
+    reopened.confirmTrackingExtraction(
+      extraction.id,
+      { updates: [] },
+      {
+        expected: reopened.getNoteTracking(note.id).reviewSnapshot,
+        replaceUpdates: false,
+      }
+    ).success,
+    true
+  );
+  assert.equal(db.getTrackingExtraction(note.id, action.id).status, "confirmed");
+  const legacy = db.saveTrackingExtraction(note.id, action.id, '{"updates":[]}', true).extraction;
+  db.db.prepare("UPDATE tracking_extractions SET input_hash='legacy' WHERE id=?").run(legacy.id);
+  assert.equal(db.listPendingTrackingNotes().items[0].stale, true);
+  assert.equal(
+    db.getNoteTracking(note.id).extractions.find((e) => e.id === extraction.id).status,
+    "confirmed"
+  );
+  db.db.prepare("UPDATE notes SET deleted_at=CURRENT_TIMESTAMP WHERE id=?").run(note.id);
+  assert.throws(() => db.prepareTrackingExtraction(note.id, action.id), /unavailable/);
+  assert.equal(
+    db.saveTrackingExtraction(note.id, action.id, '{"updates":[]}', true, prepared.inputHash)
+      .success,
+    false
+  );
+  assert.equal(db.listPendingTrackingNotes().total, 0);
+});
+
+test("summary does not promise reuse for an older action result", (t) => {
+  const db = createDatabase(t);
+  const note = db.saveNote("Actions", "content").note;
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  db.saveTrackingExtraction(note.id, action.id, '{"updates":[]}', true);
+  const other = db.saveTrackingExtraction(note.id, action.id, '{"updates":[]}', true).extraction;
+  const second = db.createAction("Another", "", "Extract").action;
+  db.db.prepare("UPDATE actions SET output_target='tracking' WHERE id=?").run(second.id);
+  db.db.prepare("UPDATE tracking_extractions SET action_id=? WHERE id=?").run(second.id, other.id);
+  assert.equal(db.getTrackingExtraction(note.id, action.id), null);
+  assert.equal(db.getNoteTrackingSummaries([note.id], action.id)[0].status, "stale");
+});
+
 test("global tracking lists items without updates and resolves their source notes", (t) => {
   const db = createDatabase(t);
   const note = db.saveNote("Source", "text").note;
@@ -223,10 +396,15 @@ test("audit write failure rolls back a global edit", (t) => {
 test("failed tracking migration rolls back its schema change and preserves the source database", (t) => {
   const db = createDatabase(t);
   const note = db.saveNote("Migration failure", "Keep original").note;
-  db.db.exec("ALTER TABLE tracking_items DROP COLUMN manual_state; DROP TABLE tracking_operations; CREATE TABLE tracking_operations (unexpected TEXT)");
+  db.db.exec(
+    "ALTER TABLE tracking_items DROP COLUMN manual_state; DROP TABLE tracking_operations; CREATE TABLE tracking_operations (unexpected TEXT)"
+  );
   assert.throws(() => new DatabaseManager({ dbPath: db.dbPath }), /item_id/);
   assert.equal(db.getNote(note.id).content, "Keep original");
-  assert.equal(db.db.pragma("table_info(tracking_items)").some((column) => column.name === "manual_state"), false);
+  assert.equal(
+    db.db.pragma("table_info(tracking_items)").some((column) => column.name === "manual_state"),
+    false
+  );
   assert.ok(fs.readdirSync(path.dirname(db.dbPath)).some((file) => file.endsWith(".bak")));
 });
 

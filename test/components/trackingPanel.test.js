@@ -22,7 +22,11 @@ const compiled = ts.transpileModule(source, {
 const exportsObject = {};
 vm.runInNewContext(compiled, {
   exports: exportsObject,
-  require: (name) => (name === "react-i18next" ? { useTranslation: () => ({ t }) } : require(name)),
+  require: (name) => {
+    if (name === "react-i18next") return { useTranslation: () => ({ t }) };
+    if (name === "./TrackingReview") return { __esModule: true, default: () => null };
+    return require(name);
+  },
 });
 const render = (data) =>
   renderToStaticMarkup(
@@ -30,8 +34,7 @@ const render = (data) =>
       data,
       isExtracting: false,
       onExtract() {},
-      onConfirm() {},
-      onReject() {},
+      onReviewSaved() {},
     })
   );
 const empty = { newItems: [], matchedItems: [], updates: [], uncertainties: [] };

@@ -1,8 +1,23 @@
 # SuperTing 事项机制：架构、决策与方案落地追踪
 
+## 批量提取与全局审核（2026-09-21，已实现，未合并发布）
+
+基线 main `bc32dc35`，工作树 `codex/tracking-batch-review`。TC1 已在基线 main；本轮 B01–B06 在独立工作树实现，未提交、合并或打包。
+
+- B01：事项中心按本地日期范围选择笔记，每页 50 条，跨页默认全选；空内容不可选，强制重提取可选。
+- B02：复用后台操作串行执行，同笔记互斥；切页继续，停止只影响后续任务，失败可重试。批次仅会话内保存，退出后重新选择范围；草稿继续落 tracking_extractions，不加任务表。
+- B03：全局队列只展示每篇最新 pending，复用笔记审核组件，普通卡片呈现内容/证据/疑点，逐篇确认与放弃。
+- B04：请求开始固定输入和完整模板指纹，保存原指纹，过期草稿不可确认。旧 confirmed 继续可读，旧 pending 重提取。
+- B05：审核预览比较正式事项与本笔记进展快照；替换需明确同意，事务内检测变化，同分类同规范名称新建冲突要求关联。
+- B06：笔记列表批量读取持久摘要并叠加会话执行状态，失败不隐藏已确认结果。
+
+接口：listTrackingSourceNotes、getNoteTrackingSummaries、listPendingTrackingNotes、prepareTrackingExtraction；保存增加请求指纹，确认增加审核快照与替换同意。所有应用内调用入口统一接入，不增加外部 MCP 写入。
+
+验收：日期边界/跨页选择/删除与空内容、缓存与强制提取、执行中修改、旧数据兼容、切页/停止/失败重试/锁竞争、最新草稿过滤、并发确认/重名/幂等、两入口一致及其他笔记不受影响。使用既有测试、typecheck、i18n、完整测试。无需数据库迁移；旧二进制不理解新指纹，不支持跨版本同时写库。
+
 核对日期：2026-09-20。§1–9 的功能代码基线为 `68aa953d5d7fa136970be6d2a6b827396f489d16`；本轮文档基于本地 main `c2486a009a87fdfa78a33aafbf0b64a03de574ef`（含前次架构文档，领先 origin/main 三个提交，用户已授权以该本地基线推进）。§10 为待实施设计，不把设计意图当作运行保证；远端链接不作为代码已发布的证明。
 
-入口：[领域术语](../../CONTEXT.md) · [现行 ADR-0001](../adr/0001-tracking-ledger-and-reviewed-extractions.md) · [事项中心拟议 ADR-0002](../adr/0002-tracking-recoverable-changes.md) · [实施任务清单](../superpowers/plans/2026-09-20-tracking-center.md)。本轮仅落实文档，不修改业务代码。
+入口：[领域术语](../../CONTEXT.md) · [现行 ADR-0001](../adr/0001-tracking-ledger-and-reviewed-extractions.md) · [事项中心拟议 ADR-0002](../adr/0002-tracking-recoverable-changes.md) · [实施任务清单](../superpowers/plans/2026-09-20-tracking-center.md)。§1–9 中未特别标注的新旧差异以本页批量提取实施记录为准。
 
 ## 1. 为什么需要这套机制
 
@@ -21,31 +36,31 @@
 
 ### 1.1 设计演进与证据级别
 
-| 阶段 | 会话中的决定或问题 | 可追溯实现 |
-| --- | --- | --- |
-| 记忆层调研 | 曾考虑外部 memory 工具和图索引，随后用户要求最小化 | 当前事项调用链未接入这些工具；不是宣称仓库没有原有向量检索 |
-| 最小方案 | 笔记页面加「事项」tab；复用「操作」；提取必须落库；周报留在外部 | `174b0d9a` |
-| 重复事项修复 | 同一笔记反复提取、模型换名导致重复；改用 ID 和显式新建确认 | `174b0d9a`，身份协议 v2 |
-| 聊天方案 | 读取当前事项、读取模板、修改资料和本笔记进展、强制重新提取 | `68aa953d` |
-| 本文 | 对照 main 源码追记，揭示未完成部分 | 文档基线如页首 |
+| 阶段         | 会话中的决定或问题                                              | 可追溯实现                                                 |
+| ------------ | --------------------------------------------------------------- | ---------------------------------------------------------- |
+| 记忆层调研   | 曾考虑外部 memory 工具和图索引，随后用户要求最小化              | 当前事项调用链未接入这些工具；不是宣称仓库没有原有向量检索 |
+| 最小方案     | 笔记页面加「事项」tab；复用「操作」；提取必须落库；周报留在外部 | `174b0d9a`                                                 |
+| 重复事项修复 | 同一笔记反复提取、模型换名导致重复；改用 ID 和显式新建确认      | `174b0d9a`，身份协议 v2                                    |
+| 聊天方案     | 读取当前事项、读取模板、修改资料和本笔记进展、强制重新提取      | `68aa953d`                                                 |
+| 本文         | 对照 main 源码追记，揭示未完成部分                              | 文档基线如页首                                             |
 
 此前产品方案主要存在本会话中，没有在当前 main 找到对应完整规格文件；上表和下一节是其归档摘要，不虚构原始方案文件或批准日期。另在历史 `memory-layer-research` worktree 找到 `docs/research/2026-08-25-memory-layer-options.md`，其中 Graphiti 等建议属于早期研究材料，未纳入当前 main；本文不把其推荐当作现行 ADR，也未重新核实外部产品现状。
 
 ## 2. 需求 → 当前实现 → 缺口
 
-| 编号 | 已确认的需求 | 当前实现及边界 | 依据 |
-| --- | --- | --- | --- |
-| R01 | 不要每周失忆 | 事项 ID、跨笔记更新、持久提取记录；并非自动读取所有旧笔记 | S1、S2、T1 |
-| R02 | 页面保持简单 | 笔记「事项」tab：提取、重提取、候选绑定、新建确认、进展和历史 | S3、T2 |
-| R03 | 重新提取不能重复创建 | 已关联事项优先进入候选；模型输出 ID/ref；新建须明确选择 | S1、S2、S4、T1；不保证语义匹配百分百正确，用户仍可显式建重复项 |
-| R04 | 追踪模板可配置、可供其他用户定义 | 四种内置模板有存储和读取；没有模板 CRUD/UI，提示词仍固定四种类型 | S1、S4、S5；部分实现 |
-| R05 | 同一工作关联商机与产品 | 每个事项只有一个模板；多个事项之间以“关联”更新表达联系 | S1、S2；不是单事项多类型，也没有关联编辑界面 |
-| R06 | 产品能力可独立、关联时说明价值 | 提示词允许独立产品工作；关联可带原文证据 | S4；没有强制要求每个产品项绑定项目 |
-| R07 | 赢单转项目、输单停止追踪 | 只有状态文字及 `is_active` 字段；没有转项目、停用的写入流程 | S1；未实现自动业务规则 |
-| R08 | 持续记录项目与生态合作进展风险 | 内置模板和更新类型支持人工提取/确认；没有自动定时追踪 | S1、S3 |
-| R09 | 外部按日/周/月汇总，不内置周报模板 | MCP 可传范围读取；调用方组织报告；时间语义仍不完备 | S8、§7 |
-| R10 | 聊天读取、修改、重新提取和查模板 | 工具已注册到有当前笔记的聊天上下文；修改须确认 | S5、S6、T3、T4 |
-| R11 | 可追溯到笔记、证据和修改过程 | 更新保留 `note_id/evidence_text`，提取保留历史；没有原文版本快照；聊天确认回写审计不完整 | S1、S6、§8 |
+| 编号 | 已确认的需求                       | 当前实现及边界                                                                           | 依据                                                           |
+| ---- | ---------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| R01  | 不要每周失忆                       | 事项 ID、跨笔记更新、持久提取记录；并非自动读取所有旧笔记                                | S1、S2、T1                                                     |
+| R02  | 页面保持简单                       | 笔记「事项」tab：提取、重提取、候选绑定、新建确认、进展和历史                            | S3、T2                                                         |
+| R03  | 重新提取不能重复创建               | 已关联事项优先进入候选；模型输出 ID/ref；新建须明确选择                                  | S1、S2、S4、T1；不保证语义匹配百分百正确，用户仍可显式建重复项 |
+| R04  | 追踪模板可配置、可供其他用户定义   | 四种内置模板有存储和读取；没有模板 CRUD/UI，提示词仍固定四种类型                         | S1、S4、S5；部分实现                                           |
+| R05  | 同一工作关联商机与产品             | 每个事项只有一个模板；多个事项之间以“关联”更新表达联系                                   | S1、S2；不是单事项多类型，也没有关联编辑界面                   |
+| R06  | 产品能力可独立、关联时说明价值     | 提示词允许独立产品工作；关联可带原文证据                                                 | S4；没有强制要求每个产品项绑定项目                             |
+| R07  | 赢单转项目、输单停止追踪           | 只有状态文字及 `is_active` 字段；没有转项目、停用的写入流程                              | S1；未实现自动业务规则                                         |
+| R08  | 持续记录项目与生态合作进展风险     | 内置模板和更新类型支持人工提取/确认；没有自动定时追踪                                    | S1、S3                                                         |
+| R09  | 外部按日/周/月汇总，不内置周报模板 | MCP 可传范围读取；调用方组织报告；时间语义仍不完备                                       | S8、§7                                                         |
+| R10  | 聊天读取、修改、重新提取和查模板   | 工具已注册到有当前笔记的聊天上下文；修改须确认                                           | S5、S6、T3、T4                                                 |
+| R11  | 可追溯到笔记、证据和修改过程       | 更新保留 `note_id/evidence_text`，提取保留历史；没有原文版本快照；聊天确认回写审计不完整 | S1、S6、§8                                                     |
 
 ## 3. 组件与数据所有权
 
@@ -70,12 +85,12 @@ Renderer 负责模型调用、展示和确认交互；preload 暴露 IPC；主�
 
 ### 3.1 四张表与两个状态概念
 
-| 表 | 关键字段 | 所有权与语义 |
-| --- | --- | --- |
-| `tracking_templates` | `id/name/definition_json/version` | 定义字段、状态、更新类型；默认种子为商机、项目、产品能力、生态合作项目 |
-| `tracking_items` | `id/template_id/title/state/properties_json/is_active/state_source_update_id` | 长期身份和当前资料；共享于多篇笔记。名称不是唯一键 |
-| `tracking_updates` | `id/item_id/note_id/update_type/content/occurred_at/state_after/evidence_text/related_item_id/relation_type` | 当前生效的来源更新；关联也存这里 |
-| `tracking_extractions` | `id/note_id/action_id/input_hash/template_version/result_json/status/supersedes_id` | 某次提取及其审核状态；不是正式事项当前值 |
+| 表                     | 关键字段                                                                                                     | 所有权与语义                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `tracking_templates`   | `id/name/definition_json/version`                                                                            | 定义字段、状态、更新类型；默认种子为商机、项目、产品能力、生态合作项目 |
+| `tracking_items`       | `id/template_id/title/state/properties_json/is_active/state_source_update_id`                                | 长期身份和当前资料；共享于多篇笔记。名称不是唯一键                     |
+| `tracking_updates`     | `id/item_id/note_id/update_type/content/occurred_at/state_after/evidence_text/related_item_id/relation_type` | 当前生效的来源更新；关联也存这里                                       |
+| `tracking_extractions` | `id/note_id/action_id/input_hash/template_version/result_json/status/supersedes_id`                          | 某次提取及其审核状态；不是正式事项当前值                               |
 
 `tracking_items.state` 是业务状态，如“投标中”；`tracking_extractions.status` 是审核状态，如 `pending`。不能将“风险识别”这一更新内容天然当作整个商机的新阶段。当前实现按非空 `stateAfter` 写入事项状态，并未严格验证状态是否属于模板枚举。[S1]
 
@@ -90,7 +105,7 @@ Renderer 负责模型调用、展示和确认交互；preload 暴露 IPC；主�
 - 模型事实输入为 `note.content` 加 `note.transcript`；有一个就能运行，两者均空则失败。结构化转录拼成带说话方的文本。[S4]
 - `enhanced_content` 不作为此处的直接事实正文输入。标题、标签、增强内容参与候选召回和缓存指纹，不等同于完整传入模型；命中的候选仍会作为上下文提供。[S1、S4]
 - 事项 tab 先 flush 待保存笔记，录音中可取实时转录；聊天入口读取已持久化笔记，没有同样的 flush/实时转录路径。两个入口并不完全等价。[S3、S6]
-- 候选返回全部启用中的已有事项，已关联项优先；审核按类型过滤。停止跟踪项不会进入候选（也会影响依赖此查询的笔记正式事项展示，TC1 需修正）。不是向量检索或完整历史进展回忆。[S1]
+- 候选返回全部启用中的已有事项，已关联项优先；审核按类型过滤，并可搜索已有事项。正式关联项独立读取，停止跟踪不隐藏笔记中的正式结果。不是向量检索或完整历史进展回忆。[S1]
 - 提示词要求只用事实、原文短句证据、歧义进入 uncertainties，候选不作新证据；这些要求不是证据真实性的服务端验证。[S4]
 
 ### 4.2 身份协议 v2
@@ -101,13 +116,13 @@ Renderer 负责模型调用、展示和确认交互；preload 暴露 IPC；主�
 
 ### 4.3 缓存与并发的真实边界
 
-持久指纹为 SHA-256：标题、正文、增强正文、转录、标签、记录日期、操作 prompt、模板最大版本号。只查询同笔记/操作/指纹/模板版本的 pending 或 confirmed 最新记录；后台操作只复用 v2 结果。[S1、S9]
+持久指纹为 `v3:` + SHA-256：标题、正文、增强正文、转录、标签、记录日期、完整操作与完整模板内容。缓存必须是该笔记最新记录、相同操作与指纹的 pending 或 confirmed；仍只复用身份协议 v2 的结果。[S1、S9]
 
 - 强制重新提取：`forceTracking=true` → 模型 → `saveTrackingExtraction(..., true)`，新增 pending；不立即清除旧进展。
 - 普通后台提取：模型调用前检查缓存。
-- 普通聊天提取：先调用模型，再由保存接口检查缓存；可能付出推理成本后返回旧结果。不要宣称所有入口都避免重复推理。
-- 模板版本只是 `MAX(version)`，不是完整模板内容指纹；候选变化不在指纹里。
-- 保存时根据当时数据库内容计算指纹，没有绑定请求起始快照。模型运行期间笔记被修改，可能出现结果与指纹不一致。
+- 聊天、笔记与批量提取共用后台执行，调用模型前检查缓存。
+- 完整模板内容进入指纹；候选变化不进入输入指纹，由审核时正式账本快照和重名检查处理。
+- `prepareTrackingExtraction` 固定模型使用的输入及指纹，保存时携带同一指纹。执行期间内容变化仍保存草稿，但标记过期并禁止确认。
 - 防重复执行用 Renderer 内共享 `processingFlags`；聊天和后台路径复用，但不是数据库唯一约束或跨窗口锁。
 
 ## 5. 审核与正式数据更新
@@ -131,12 +146,12 @@ stateDiagram-v2
 
 ## 6. 聊天、页面及 IPC 契约
 
-| 聊天工具 | 输入 | 结果/副作用 |
-| --- | --- | --- |
-| `get_current_note_tracking` | 无；绑定当前笔记 | 正式 `items/updates`，最新提取状态和单独的 pending 草稿；不把候选当正式项、不自动提取 |
-| `get_tracking_templates` | 无 | 数据库全部模板和解析后的 definition；只读 |
-| `update_current_note_tracking` | `itemId`、可选 `updateId/itemPatch/updatePatch` | 要求先读；产生 confirmation metadata 和原值→新值卡片，不立即写库 |
-| `run_note_action` | `actionId` 或 `actionName`，可选 `forceTracking` | 先确认操作，再执行；强制参数仅 tracking 操作接受；提取完成还需事项 tab 审核 |
+| 聊天工具                       | 输入                                             | 结果/副作用                                                                           |
+| ------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| `get_current_note_tracking`    | 无；绑定当前笔记                                 | 正式 `items/updates`，最新提取状态和单独的 pending 草稿；不把候选当正式项、不自动提取 |
+| `get_tracking_templates`       | 无                                               | 数据库全部模板和解析后的 definition；只读                                             |
+| `update_current_note_tracking` | `itemId`、可选 `updateId/itemPatch/updatePatch`  | 要求先读；产生 confirmation metadata 和原值→新值卡片，不立即写库                      |
+| `run_note_action`              | `actionId` 或 `actionName`，可选 `forceTracking` | 先确认操作，再执行；强制参数仅 tracking 操作接受；提取完成还需事项 tab 审核           |
 
 只有传入 currentNote 时才注册这些事项工具；模型还须支持工具调用。工具能力存在，不等于所有模型每次都正确调用。[S5、S6]
 
@@ -166,14 +181,14 @@ Codex 的日/周/月总结应区分“范围内更新”“未知日期信息”
 
 ## 8. 可追溯性与尚未闭合的边界
 
-| 可追溯内容 | 当前保证 | 不应作出的承诺 |
-| --- | --- | --- |
-| 更新来源 | `note_id` 和 evidence 原文短句 | 没有原文版本、位置或真实性校验；笔记变更后不可保证逐字复现 |
-| 提取演进 | 多条 extraction、supersedes_id、审核状态 | result_json 会被归一化/确认覆盖，不是完全不可变事件日志 |
-| 事项延续 | ID 稳定、名称可改、旧名称唯一匹配回填 | 没有通用别名库、自动合并或完整实体消歧 |
-| 聊天修改 | 内存卡片含变更和确认结果；数据库事务保存业务改动 | `patchToolCall` 只 setMessages，未持久化确认/取消后的 metadata；重载可能丢失终态，不能作为完整审计日志 |
-| 模板变更 | 有 version 字段、读取工具 | 没有配置入口、动态模板提取与完整缓存失效策略 |
-| 自动工作管理 | 手动提取并积累事项 | 没有定时运行、赢单转换、输单停用、风险自动闭环 |
+| 可追溯内容   | 当前保证                                         | 不应作出的承诺                                                                                         |
+| ------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| 更新来源     | `note_id` 和 evidence 原文短句                   | 没有原文版本、位置或真实性校验；笔记变更后不可保证逐字复现                                             |
+| 提取演进     | 多条 extraction、supersedes_id、审核状态         | result_json 会被归一化/确认覆盖，不是完全不可变事件日志                                                |
+| 事项延续     | ID 稳定、名称可改、旧名称唯一匹配回填            | 没有通用别名库、自动合并或完整实体消歧                                                                 |
+| 聊天修改     | 内存卡片含变更和确认结果；数据库事务保存业务改动 | `patchToolCall` 只 setMessages，未持久化确认/取消后的 metadata；重载可能丢失终态，不能作为完整审计日志 |
+| 模板变更     | 有 version 字段、读取工具                        | 没有配置入口、动态模板提取与完整缓存失效策略                                                           |
+| 自动工作管理 | 手动提取并积累事项                               | 没有定时运行、赢单转换、输单停用、风险自动闭环                                                         |
 
 建议后续按实际问题补齐：先处理聊天确认终态持久化与请求快照一致性，再统一日期契约和模板配置链路，最后落实商机生命周期。这里是差距清单，不是已排期或获授权的新实现。
 
@@ -181,21 +196,21 @@ Codex 的日/周/月总结应区分“范围内更新”“未知日期信息”
 
 所有相对链接基于本文所在仓库；需要复核历史行为时先执行 `git show 68aa953d:<path>`。函数名比浮动行号更适合作为长期定位点。
 
-| 证据编号 | 文件与定位点 |
-| --- | --- |
-| S1 | [database.js](../../src/helpers/database.js)：建表/迁移、`_seedTrackingTemplates`、`getTrackingCandidates`、`saveTrackingExtraction`、`getNoteTracking`、`confirmTrackingExtraction`、`updateNoteTracking`、`getTrackingContext` |
-| S2 | [trackingIdentity.js](../../src/helpers/trackingIdentity.js)：`normalizeTrackingDraft` |
-| S3 | [TrackingPanel](../../src/components/notes/TrackingPanel.tsx)、[PersonalNotesView](../../src/components/notes/PersonalNotesView.tsx)：审核和 `extractTracking/flushPendingNoteSaves` |
-| S4 | [noteActionInput](../../src/components/notes/noteActionInput.ts)、[runNoteActionOnce](../../src/stores/runNoteActionOnce.ts)：模型事实输入及身份协议 |
-| S5 | [trackingChatTools](../../src/services/tools/trackingChatTools.ts)、[noteActionChatTools](../../src/services/tools/noteActionChatTools.ts)、[注册入口](../../src/services/tools/index.ts) |
-| S6 | [useEmbeddedChat](../../src/hooks/useEmbeddedChat.ts)：`confirmToolCall/patchToolCall`；[聊天持久化](../../src/components/chat/useChatPersistence.ts)、[工具开关](../../src/components/chat/useChatStreaming.ts) |
-| S7 | [preload](../../preload.js)、[IPC](../../src/helpers/ipcHandlers.js)、[接口类型](../../src/types/electron.ts) |
-| S8 | [mcpServerManager](../../src/helpers/mcpServerManager.js)：`get_tracking_context` 注册 |
-| S9 | [actionProcessingStore](../../src/stores/actionProcessingStore.ts)：缓存、forceTracking、共享执行标记 |
-| T1 | [数据库测试](../../test/helpers/tracking.test.js)：缓存、同 ID 改名、显式新建、替换范围、旧记录、快照与归属检查、人工状态保护 |
-| T2 | [事项页测试](../../test/components/trackingPanel.test.js)：空结果、疑点、拒绝记录、无进展的正式事项 |
-| T3 | [聊天工具测试](../../test/services/trackingChatTools.test.ts)：真实读取、模板读取、先读后改和提议不写库 |
-| T4 | [操作工具测试](../../test/services/noteActionChatTools.test.ts)、[后台提取测试](../../test/stores/trackingAction.test.js)：确认参数、强制提取和缓存 |
+| 证据编号 | 文件与定位点                                                                                                                                                                                                                     |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1       | [database.js](../../src/helpers/database.js)：建表/迁移、`_seedTrackingTemplates`、`getTrackingCandidates`、`saveTrackingExtraction`、`getNoteTracking`、`confirmTrackingExtraction`、`updateNoteTracking`、`getTrackingContext` |
+| S2       | [trackingIdentity.js](../../src/helpers/trackingIdentity.js)：`normalizeTrackingDraft`                                                                                                                                           |
+| S3       | [TrackingPanel](../../src/components/notes/TrackingPanel.tsx)、[PersonalNotesView](../../src/components/notes/PersonalNotesView.tsx)：审核和 `extractTracking/flushPendingNoteSaves`                                             |
+| S4       | [noteActionInput](../../src/components/notes/noteActionInput.ts)、[runNoteActionOnce](../../src/stores/runNoteActionOnce.ts)：模型事实输入及身份协议                                                                             |
+| S5       | [trackingChatTools](../../src/services/tools/trackingChatTools.ts)、[noteActionChatTools](../../src/services/tools/noteActionChatTools.ts)、[注册入口](../../src/services/tools/index.ts)                                        |
+| S6       | [useEmbeddedChat](../../src/hooks/useEmbeddedChat.ts)：`confirmToolCall/patchToolCall`；[聊天持久化](../../src/components/chat/useChatPersistence.ts)、[工具开关](../../src/components/chat/useChatStreaming.ts)                 |
+| S7       | [preload](../../preload.js)、[IPC](../../src/helpers/ipcHandlers.js)、[接口类型](../../src/types/electron.ts)                                                                                                                    |
+| S8       | [mcpServerManager](../../src/helpers/mcpServerManager.js)：`get_tracking_context` 注册                                                                                                                                           |
+| S9       | [actionProcessingStore](../../src/stores/actionProcessingStore.ts)：缓存、forceTracking、共享执行标记                                                                                                                            |
+| T1       | [数据库测试](../../test/helpers/tracking.test.js)：缓存、同 ID 改名、显式新建、替换范围、旧记录、快照与归属检查、人工状态保护                                                                                                    |
+| T2       | [事项页测试](../../test/components/trackingPanel.test.js)：空结果、疑点、拒绝记录、无进展的正式事项                                                                                                                              |
+| T3       | [聊天工具测试](../../test/services/trackingChatTools.test.ts)：真实读取、模板读取、先读后改和提议不写库                                                                                                                          |
+| T4       | [操作工具测试](../../test/services/noteActionChatTools.test.ts)、[后台提取测试](../../test/stores/trackingAction.test.js)：确认参数、强制提取和缓存                                                                              |
 
 会话记录中的上一轮基线验证为 439 项测试通过，类型与 i18n 检查通过，lint 有 5 条已有 warning；这不等于本次文档工作重新执行了全套，也不证明真实模型端到端准确率。尤其聊天重载后的确认终态、模型推理期间改笔记、跨窗口并发、完整模板配置和周期时间语义，不能以现有单元测试宣称覆盖。
 
@@ -213,19 +228,19 @@ npm run lint
 
 ## 10. 全局事项管理中心
 
-状态：TC1 核心代码已实现于未提交工作树，GC01/GC02 待完整 Electron 集成验收；GC03–GC07 未实现。§10.1–10.7 保留完整目标设计，实际接口/迁移和验证边界以 §10.8 为准。需求来自本会话用户明确追加的全局审核、进展编辑、删除、合并和模板编辑；以最后一次 ponytail review 精简后的方案为准。可恢复删除、无永久清空、同模板合并且不支持一键拆分，是本版公开的安全默认值。后续改变这些默认值需先更新设计。
+状态：TC1 已在本地 main，GC01/GC02 的原生验证边界见 §10.8；GC03–GC06 未完整实现，GC07 的最新草稿队列/共享审核已在本轮 B03/B05 实现，回收站等关联能力未实现。§10.1–10.7 保留完整目标设计，实际接口/迁移和验证边界以 §10.8 为准。需求来自本会话用户明确追加的全局审核、进展编辑、删除、合并和模板编辑；以最后一次 ponytail review 精简后的方案为准。可恢复删除、无永久清空、同模板合并且不支持一键拆分，是本版公开的安全默认值。后续改变这些默认值需先更新设计。
 
 ### 10.1 范围与需求追踪
 
-| 编号 | 本版能力与验收摘要 | 实施任务 |
-| --- | --- | --- |
-| GC01 | 全局查阅所有正常事项及跨笔记更新，无进展事项不遗漏，支持来源往返 | TC1 |
-| GC02 | 编辑名称、状态、属性及停止/恢复跟踪；共享笔记展示一致 | TC1 |
-| GC03 | 编辑进展内容、类型、发生时间、stateAfter；证据和归属不变 | TC2 |
-| GC04 | 删除与恢复事项/进展，历史替代记录不误恢复，原始笔记不删除 | TC2 |
-| GC05 | 同模板合并，冲突预览、引用迁移、旧 ID 重定向，无自动语义去重 | TC3 |
-| GC06 | 模板新增/编辑/停用/恢复/有限删除，动态提取与缓存真正生效 | TC4 |
-| GC07 | 全局待审核队列复用笔记审核，确认前展示本笔记整体替换影响 | TC5 |
+| 编号 | 本版能力与验收摘要                                               | 实施任务 |
+| ---- | ---------------------------------------------------------------- | -------- |
+| GC01 | 全局查阅所有正常事项及跨笔记更新，无进展事项不遗漏，支持来源往返 | TC1      |
+| GC02 | 编辑名称、状态、属性及停止/恢复跟踪；共享笔记展示一致            | TC1      |
+| GC03 | 编辑进展内容、类型、发生时间、stateAfter；证据和归属不变         | TC2      |
+| GC04 | 删除与恢复事项/进展，历史替代记录不误恢复，原始笔记不删除        | TC2      |
+| GC05 | 同模板合并，冲突预览、引用迁移、旧 ID 重定向，无自动语义去重     | TC3      |
+| GC06 | 模板新增/编辑/停用/恢复/有限删除，动态提取与缓存真正生效         | TC4      |
+| GC07 | 全局待审核队列复用笔记审核，确认前展示本笔记整体替换影响         | TC5      |
 
 不包含：外部 MCP 写入、无来源的手工事项/进展录入、跨模板转换或合并、赢单自动转项目、周报模板、永久清空、自动拆分合并、图谱/看板/通用事件回放。停止跟踪不等于删除。明确要求的六类管理能力不因“最小化”移出本版。
 
@@ -284,28 +299,28 @@ npm run lint
 
 继续 SQLite，扩展四表并新增一张简单操作记录表；不增加关系表、revision 全表改造、外部服务或事件回放系统。
 
-| 表 | 拟议新增/复用信息 |
-| --- | --- |
-| tracking_items | deleted_at、merged_into_id、人工状态保护标记；复用 is_active 和 state_source_update_id |
-| tracking_updates | updated_at、deleted_at、superseded_at、extraction_id（可空）、人工编辑标记；关系因合并退出有效集合的原因 |
-| tracking_templates | is_active、deleted_at；复用 version，definition_json 扩展说明/字段定义/默认状态 |
-| tracking_extractions | 请求输入和模板快照/完整指纹；复用现有 status，不增设一套审核状态机 |
-| tracking_operations（新） | 操作类型、目标类型/ID、前后快照、来源入口、时间；记录与业务写入同事务 |
+| 表                        | 拟议新增/复用信息                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| tracking_items            | deleted_at、merged_into_id、人工状态保护标记；复用 is_active 和 state_source_update_id                   |
+| tracking_updates          | updated_at、deleted_at、superseded_at、extraction_id（可空）、人工编辑标记；关系因合并退出有效集合的原因 |
+| tracking_templates        | is_active、deleted_at；复用 version，definition_json 扩展说明/字段定义/默认状态                          |
+| tracking_extractions      | 请求输入和模板快照/完整指纹；复用现有 status，不增设一套审核状态机                                       |
+| tracking_operations（新） | 操作类型、目标类型/ID、前后快照、来源入口、时间；记录与业务写入同事务                                    |
 
 操作表保存编辑、删除、恢复、合并、模板变更和审核关键前后值及所涉 ID；不复制整篇笔记正文，不写凭据。普通查看不记日志。只做简单历史列表，不提供回放或自动撤销；审计记录不作为当前数据查询真源。首个编辑任务按需引入该表，后续扩展操作种类。
 
-| 拟议应用内接口 | 最小契约 |
-| --- | --- |
-| listTrackingItems / getTrackingItemDetail | 筛选/分页/总数；按 ID 读取实时资料、分页更新、关系和来源，旧 ID 返回规范 ID |
-| updateTrackingItem / updateTrackingUpdate | 目标 ID、expected 快照、白名单 patch；属性删除用显式键列表；返回重读数据 |
-| deleteTrackingItem / restoreTrackingItem | ID 与 expected，预览影响后事务执行 |
-| deleteTrackingUpdate / restoreTrackingUpdate | ID 与 expected，校验父事项/有效版本和状态来源 |
-| listTrackingTrash / listTrackingOperations | 类型/目标筛选及分页，不混入正常查询 |
-| previewTrackingMerge / mergeTrackingItems | 来源/目标 ID、冲突选择及预览快照；规范目标 ID 与影响摘要 |
-| getTrackingTemplates / saveTrackingTemplate | 复用读取；新增/修改时校验定义及 expected version，返回真实新版本 |
-| setTrackingTemplateActive / deleteTrackingTemplate / restoreTrackingTemplate | ID、expected version；分别执行停用/恢复可用性、无引用删除及删除恢复 |
-| listPendingTrackingNotes | 按笔记分页最新 pending，含过期原因和来源可用性 |
-| 既有确认/拒绝接口 | 扩展审核影响预览与 expected，显式确认人工变更替换；复用笔记流程 |
+| 拟议应用内接口                                                               | 最小契约                                                                    |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| listTrackingItems / getTrackingItemDetail                                    | 筛选/分页/总数；按 ID 读取实时资料、分页更新、关系和来源，旧 ID 返回规范 ID |
+| updateTrackingItem / updateTrackingUpdate                                    | 目标 ID、expected 快照、白名单 patch；属性删除用显式键列表；返回重读数据    |
+| deleteTrackingItem / restoreTrackingItem                                     | ID 与 expected，预览影响后事务执行                                          |
+| deleteTrackingUpdate / restoreTrackingUpdate                                 | ID 与 expected，校验父事项/有效版本和状态来源                               |
+| listTrackingTrash / listTrackingOperations                                   | 类型/目标筛选及分页，不混入正常查询                                         |
+| previewTrackingMerge / mergeTrackingItems                                    | 来源/目标 ID、冲突选择及预览快照；规范目标 ID 与影响摘要                    |
+| getTrackingTemplates / saveTrackingTemplate                                  | 复用读取；新增/修改时校验定义及 expected version，返回真实新版本            |
+| setTrackingTemplateActive / deleteTrackingTemplate / restoreTrackingTemplate | ID、expected version；分别执行停用/恢复可用性、无引用删除及删除恢复         |
+| listPendingTrackingNotes                                                     | 按笔记分页最新 pending，含过期原因和来源可用性                              |
+| 既有确认/拒绝接口                                                            | 扩展审核影响预览与 expected，显式确认人工变更替换；复用笔记流程             |
 
 不创建通用 deleteTrackingEntity 接口；实体规则不同。所有接口经 preload → IPC → 数据库事务，SQL 参数化，校验 ID、patch、日期、枚举与分页边界。UI 用原生日期输入和已有组件。旧 API 调用者必须一并适配审核保护，不能留一个无校验的旧确认通道。
 
@@ -319,11 +334,11 @@ npm run lint
 
 不能简单降级旧 App 继续使用新库：旧查询不认识删除/替代标记。回退需要匹配版本与备份，恢复前再备份新库并提示会丢失备份后的工作；不得静默覆盖用户数据库。发布前在真实旧库副本验证升级和恢复流程，不直接拿用户唯一数据库试迁移。
 
-验收案例与依赖见[任务清单](../superpowers/plans/2026-09-20-tracking-center.md)。本轮仅文档，未跑功能测试、不声称迁移或 UI 已验证；实施时逐项回填实际提交、测试和剩余限制。本版阶段结果不自动发布；最终提交须 DCO，集成 main 使用 rebase/快进，打包另按发布规范授权。
+验收案例与依赖见[任务清单](../superpowers/plans/2026-09-20-tracking-center.md)。最初设计阶段仅交付文档；TC1 验证见 §10.8，批量提取与全局审核验证见本页新增实施记录。本版阶段结果不自动发布；最终提交须 DCO，集成 main 使用 rebase/快进，打包另按发布规范授权。
 
 ### 10.8 TC1 实施记录（2026-09-21）
 
-基线更新为获授权的 main `cef18a395bb1640dd62e10fe0e6428136d2cb9f6`；独立 codex/tracking-center 工作树尚未提交、合并或发布。TC1 核心代码和自动化验证完成，原生集成验收未完成；原文档工作树保留，TC2–TC5 未开始。
+基线更新为获授权的 main `cef18a395bb1640dd62e10fe0e6428136d2cb9f6`；该阶段随后集成到本轮基线 main `bc32dc35`。下表保留 TC1 当时的验证记录，不代表本轮新增能力的测试结果。TC2–TC4 的完整功能仍未实现；TC5 中独立可用的审核能力由本轮提前实施。
 
 实际实现：
 
@@ -336,14 +351,41 @@ npm run lint
 
 本轮实际检查（Node 24.13.1，复用 main 的 node_modules，无下载/重建共享原生依赖）：
 
-| 检查 | 结果与证据 |
-| --- | --- |
-| 完整测试 | `npm test`：449 通过、0 失败，含 [数据库测试](../../test/helpers/tracking.test.js) 和新 [页面 SSR 测试](../../test/components/trackingCenter.test.js) |
-| 类型 / 文案 | `npm run typecheck`、`npm run i18n:check` 通过，10 个 locale |
-| Lint | 0 error，5 个既有 warning（sqlite-abi 2 个，NoteEditor/PersonalNotesView/RichTextEditor 各 1 个） |
-| 迁移与事务失败 | 升级前一致性备份可读；迁移失败回滚新字段、原笔记保留；操作记录插入失败时资料改动回滚，均有数据库回归测试 |
-| Renderer 构建 | `npm run build:renderer` 通过，有既有大 chunk 提示；不是 App 打包 |
+| 检查           | 结果与证据                                                                                                                                                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 完整测试       | `npm test`：449 通过、0 失败，含 [数据库测试](../../test/helpers/tracking.test.js) 和新 [页面 SSR 测试](../../test/components/trackingCenter.test.js)                                                                   |
+| 类型 / 文案    | `npm run typecheck`、`npm run i18n:check` 通过，10 个 locale                                                                                                                                                            |
+| Lint           | 0 error，5 个既有 warning（sqlite-abi 2 个，NoteEditor/PersonalNotesView/RichTextEditor 各 1 个）                                                                                                                       |
+| 迁移与事务失败 | 升级前一致性备份可读；迁移失败回滚新字段、原笔记保留；操作记录插入失败时资料改动回滚，均有数据库回归测试                                                                                                                |
+| Renderer 构建  | `npm run build:renderer` 通过，有既有大 chunk 提示；不是 App 打包                                                                                                                                                       |
 | 隔离浏览器交互 | 使用 [内存 IPC fixture](../../test/fixtures/tracking-center.html)：31 条翻页、名称/属性预览与保存、模板展示、来源回调与返回、并发冲突保留输入、加载失败及恢复通过；760×800 和 1280×850 截图检查无横向溢出，非用户数据库 |
-| 未完成验证 | 完整 Electron 导航/旧来源加载、关闭窗口未保存提示、跨窗口并发和配套降级恢复演练；不能用浏览器 fixture 冒充原生集成测试 |
+| 未完成验证     | 完整 Electron 导航/旧来源加载、关闭窗口未保存提示、跨窗口并发和配套降级恢复演练；不能用浏览器 fixture 冒充原生集成测试                                                                                                  |
 
 复现 fixture：在仓库根运行 `./node_modules/.bin/vite --config src/vite.config.mjs --host 127.0.0.1 --port 5194`，访问 `/test/fixtures/tracking-center.html`。fixture 只有内存数据，不访问用户数据库、不属于生产构建入口。测试用服务器和浏览器已在验证结束后关闭。
+
+## 11. 批量提取实施记录与验证（B01–B06）
+
+### 实际调用链
+
+- [TrackingBatchDialog](../../src/components/TrackingBatchDialog.tsx)：本地日期零点到次日零点转换为 ISO，摘要查询上限 10,000 篇；全部摘要加载用于跨页选择，展示每页 50 条。变更范围重新全选可提取笔记，多操作时显式选择。过期草稿入口预选该笔记并启用强制重提取。
+- [actionProcessingStore](../../src/stores/actionProcessingStore.ts)：串行 await 结构化结果，单一批次、同笔记锁、停止排队、失败/忙碌重试。会话状态包含批次结果和单篇错误，成功计时器不持有锁。批次固定模型 ID 和操作 ID，单篇执行前重新读取操作内容及当前推理配置；重试是使用弹窗当前配置的新批次。
+- [runNoteActionOnce](../../src/stores/runNoteActionOnce.ts)：跟踪操作统一从 prepareTrackingExtraction 取得最新持久输入，不使用列表中的旧正文。模型运行失败不写正式账本。
+- [TrackingPending](../../src/components/TrackingPending.tsx) + [TrackingReview](../../src/components/notes/TrackingReview.tsx)：最新 pending 按笔记分页，共享笔记页审核、候选搜索、明确新建、证据/疑点、替换同意及拒绝。确认后刷新并选择下一篇；高级 JSON 非法时禁用确认。
+- [database.js](../../src/helpers/database.js)：输入摘要和正式账本快照均在主进程生成。审核事务校验实际资料未变；同模板 NFKC/去空白/小写规范名称相同的新建请求返回已有 ID，用户重新选择关联，不自动合并。相似名称由候选搜索辅助判断，不做语义自动合并。
+- [NoteListItem](../../src/components/notes/NoteListItem.tsx)：持久结果摘要与本次执行状态叠加；已确认结果不因重新提取失败而隐藏。
+
+### 数据、失败与兼容
+
+不增加表或依赖；四个新 IPC 见页首。saveTrackingExtraction 增加 requestHash，confirmTrackingExtraction 增加 expected（审核快照）和 replaceUpdates；应用 IPC 强制校验参数与 10MB 上限。快照覆盖全部正式事项及本笔记更新，是保守冲突检测：无关事项变化也可能要求刷新；大账本出现性能问题时再缩小目标集合。
+
+草稿是否过期实时比较指纹，保留模型请求开始时的 hash；旧 confirmed 继续用于正式关联和历史，但旧指纹不能作为有效缓存，旧 pending 必须重提取。最新记录已拒绝/确认不会暴露旧 pending。空结果可确认并缓存。放弃草稿不改正式数据；替换仍是按笔记物理替换旧更新，必须显式同意，其他笔记更新和人工事项状态保持原有保护。软删除、恢复、合并、模板编辑不属于本次交付。
+
+无迁移，回退不应同时运行新旧二进制写同一数据库。批次只在控制面板 Renderer 会话存活；关闭弹窗/切页继续，退出 App 不恢复队列，已保存草稿从 SQLite 重新读取。没有跨独立 Renderer 的执行锁保证，确认事务仍提供幂等与快照校验。
+
+### 验证依据
+
+自动化覆盖见 [数据库测试](../../test/helpers/tracking.test.js)、[执行测试](../../test/stores/trackingAction.test.js)、[页面测试](../../test/components/trackingCenter.test.js) 和原有聊天回归。范围包括日期左右边界、50 条分页、删除/空内容、运行期间笔记和模板变化、拒绝后不暴露旧草稿、重新打开数据库保留草稿、旧 pending、空结果确认、缓存/强制提取、停止保留当前结果、失败继续和锁竞争、并发/重名/替换同意/重复确认及其他笔记更新保护。
+
+隔离浏览器使用 test/fixtures/tracking-center.tsx 内存 IPC：55 篇默认选 54 篇、跨页保留选择、空内容禁选、无模型禁止开始、审核关联和替换勾选、确认后队列及数量归零、小窗口按钮可见已验证。未调用真实模型，未修改用户数据；不是原生 Electron 端到端验收。真实模型批次、App 退出重开和两个实际页面往返仍需原生验收。
+
+最终命令结果记录于实施清单；没有自动提交、合并、打包、安装。决策见 [ADR-0003](../adr/0003-tracking-session-batch-and-review-snapshots.md)。

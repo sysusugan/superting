@@ -654,8 +654,7 @@ interface NoteEditorProps {
   trackingData?: Record<string, unknown> | null;
   trackingExtracting?: boolean;
   onExtractTracking?: (force?: boolean) => void;
-  onConfirmTracking?: (extractionId: number, result: Record<string, unknown>) => void;
-  onRejectTracking?: (extractionId: number) => void;
+  onReviewTracking?: () => void | Promise<void>;
 }
 
 export default function NoteEditor({
@@ -701,13 +700,14 @@ export default function NoteEditor({
   trackingData = null,
   trackingExtracting = false,
   onExtractTracking,
-  onConfirmTracking,
-  onRejectTracking,
+  onReviewTracking,
   initialTrackingView = false,
 }: NoteEditorProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [viewMode, setViewMode] = useState<MeetingViewMode>(initialTrackingView ? "tracking" : "raw");
+  const [viewMode, setViewMode] = useState<MeetingViewMode>(
+    initialTrackingView ? "tracking" : "raw"
+  );
   const [editorMode, setEditorMode] = useState<EditorMode>(readEditorModePreference);
   const [chatMode, setChatMode] = useState<EmbeddedChatMode>("hidden");
   const [folderSearch, setFolderSearch] = useState("");
@@ -2765,8 +2765,7 @@ export default function NoteEditor({
                 data={trackingData as any}
                 isExtracting={trackingExtracting}
                 onExtract={onExtractTracking || (() => undefined)}
-                onConfirm={onConfirmTracking || (() => undefined)}
-                onReject={onRejectTracking || (() => undefined)}
+                onReviewSaved={onReviewTracking || (() => undefined)}
               />
             ) : viewMode === "transcript" && (hasChatSegments || isRecording) ? (
               <MeetingTranscriptChat

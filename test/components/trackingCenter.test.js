@@ -23,6 +23,16 @@ function loadComponent(file) {
   vm.runInNewContext(code, {
     exports,
     require(name) {
+      if (name.endsWith("/actionProcessingStore"))
+        return {
+          useActionProcessingStore: (select) => select({ batch: { running: false, entries: [] } }),
+        };
+      if (name.endsWith("/settingsStore"))
+        return {
+          useSettingsStore: () => ({}),
+          selectResolvedNoteFormatting: () => ({ model: "test" }),
+          selectIsCloudNoteFormattingMode: () => false,
+        };
       if (name.startsWith(".")) {
         const candidate = path.resolve(path.dirname(file), `${name}.tsx`);
         if (fs.existsSync(candidate)) return loadComponent(candidate);
@@ -53,6 +63,8 @@ test("tracking center offers localized inventory and read-only template tabs wit
   );
   assert.match(html, /事项中心/);
   assert.match(html, /搜索事项/);
+  assert.match(html, /批量提取/);
+  assert.match(html, /待确认/);
   assert.match(html, /role="tab"[^>]*>模板/);
   assert.doesNotMatch(html, /trackingCenter\./);
   assert.doesNotMatch(html, /合并事项|删除事项|确认全部/);
