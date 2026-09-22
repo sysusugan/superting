@@ -1,4 +1,12 @@
 {
+  "trackingReview": {
+    "create": "Neu",
+    "willCreate": "Wird erstellt",
+    "remove": "Entwurf entfernen: {{title}}",
+    "removed": "Eintrag und Entwurfsfortschritte entfernt. Zum Speichern bestätigen.",
+    "createHint": "Wird bei Bestätigung erstellt. Unten kann ein bestehender Eintrag verknüpft werden.",
+    "unknownType": "Eintragstyp nicht verfügbar. Bitte aktualisieren."
+  },
   "trackingUI": {
     "evidence": "Beleg",
     "assignment": "Zuordnung",

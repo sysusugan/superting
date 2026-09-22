@@ -1,4 +1,12 @@
 {
+  "trackingReview": {
+    "create": "新增",
+    "willCreate": "將新建",
+    "remove": "移除待確認事項：{{title}}",
+    "removed": "已移除事項及其草稿進展，確認後儲存。",
+    "createHint": "確認後新建此事項；也可在下方關聯已有事項。",
+    "unknownType": "事項分類無法使用，請重新整理後重試。"
+  },
   "trackingUI": { "evidence": "原文證據", "assignment": "關聯到事項", "unassigned": "未歸屬進展" },
   "trackingBatch": {
     "extract": "批次擷取",

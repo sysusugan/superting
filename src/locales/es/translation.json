@@ -1,4 +1,12 @@
 {
+  "trackingReview": {
+    "create": "Añadir",
+    "willCreate": "Se creará",
+    "remove": "Quitar borrador: {{title}}",
+    "removed": "Elemento y avances eliminados del borrador. Confirma para guardar.",
+    "createHint": "Se creará al confirmar. Puedes vincular un elemento existente abajo.",
+    "unknownType": "Tipo no disponible. Actualiza y reintenta."
+  },
   "trackingUI": {
     "evidence": "Evidencia",
     "assignment": "Asignación",

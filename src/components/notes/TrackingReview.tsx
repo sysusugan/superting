@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Search } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { TrackingItemPicker, type ItemChoice } from "../tracking/TrackingItemPicker";
+import { removeDraftItem } from "../tracking/removeDraftItem";
 import {
   TrackingItemCard,
   TrackingProgressList,
   TrackingProgressEntry,
 } from "../tracking/TrackingCards";
 import { groupTrackingUpdates } from "../tracking/groupTrackingUpdates";
-import type { TrackingItem } from "../../types/tracking";
 
 export interface ReviewData {
   noteId?: number;
@@ -45,9 +45,8 @@ export default function TrackingReview({
   const { t } = useTranslation();
   const latest = data.extractions?.[0];
   const [draft, setDraft] = useState("");
-  const [search, setSearch] = useState("");
-  const [matches, setMatches] = useState<TrackingItem[]>([]);
-  const [chosenMatches, setChosenMatches] = useState<TrackingItem[]>([]);
+  const [chosenMatches, setChosenMatches] = useState<ItemChoice[]>([]);
+  const [undoDraft, setUndoDraft] = useState<string | null>(null);
   const [replace, setReplace] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -57,24 +56,8 @@ export default function TrackingReview({
     setReplace(false);
     setError("");
     setChosenMatches([]);
+    setUndoDraft(null);
   }, [latest?.id, latest?.reviewResult, latest?.result]);
-  useEffect(() => {
-    let alive = true;
-    const timer = setTimeout(() => {
-      window.electronAPI
-        .listTrackingItems({ search, page: 1 })
-        .then((r) => {
-          if (alive) setMatches(r.items);
-        })
-        .catch((e) => {
-          if (alive) setError(String(e));
-        });
-    }, 150);
-    return () => {
-      alive = false;
-      clearTimeout(timer);
-    };
-  }, [search, latest?.id]);
   if (!latest || latest.status !== "pending") return null;
   let parsed: Record<string, unknown> | null = null;
   try {
@@ -84,7 +67,7 @@ export default function TrackingReview({
     if (
       record(value) &&
       Array.isArray(value.updates) &&
-      ["matchedItems", "newItems", "updates", "uncertainties"].every(
+      ["matchedItems", "newItems", "updates", "uncertainties", "relations"].every(
         (key) => value[key] == null || (Array.isArray(value[key]) && value[key].every(record))
       ) &&
       [
@@ -105,9 +88,7 @@ export default function TrackingReview({
     ...(Array.isArray(parsed?.matchedItems) ? parsed.matchedItems : []),
     ...(Array.isArray(parsed?.newItems) ? parsed.newItems : []),
   ] as DraftItem[];
-  const candidates = search.trim()
-    ? [...matches, ...chosenMatches]
-    : [...(data.candidates || []), ...chosenMatches];
+  const candidates = [...chosenMatches, ...(data.candidates || [])];
   const resolved =
     parsed &&
     items.every(
@@ -115,11 +96,9 @@ export default function TrackingReview({
         item.createNew === true ||
         candidates.some((c) => c.id === item.itemId && c.itemType === item.itemType)
     );
-  const choose = (ref: string, value: string) => {
+  const choose = (ref: string, selected?: ItemChoice) => {
     if (!parsed) return;
-    const selected =
-      matches.find((item) => item.id === Number(value)) ||
-      chosenMatches.find((item) => item.id === Number(value));
+    setUndoDraft(null);
     if (selected)
       setChosenMatches((previous) => [
         ...previous.filter((item) => item.id !== selected.id),
@@ -128,8 +107,8 @@ export default function TrackingReview({
     for (const key of ["matchedItems", "newItems"])
       for (const item of (parsed[key] || []) as DraftItem[])
         if (item.ref === ref) {
-          item.createNew = value === "new";
-          item.itemId = value === "new" || !value ? null : Number(value);
+          item.createNew = !selected;
+          item.itemId = selected?.id ?? null;
         }
     setDraft(JSON.stringify(parsed, null, 2));
   };
@@ -180,26 +159,25 @@ export default function TrackingReview({
   return (
     <section className="space-y-5">
       {latest.stale && <p role="alert">{t("trackingBatch.stale")}</p>}
-      <label className="ow-tracking-search block">
-        <span className="mb-1.5 block text-xs font-medium text-muted-foreground">
-          {t("trackingBatch.search")}
-        </span>
-        <span className="relative block">
-          <Search
-            aria-hidden
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70"
-            size={15}
-            strokeWidth={1.8}
-          />
-          <Input
-            className="h-10 bg-background pl-9 shadow-none"
-            aria-label={t("trackingBatch.search")}
-            placeholder={t("trackingBatch.search")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </span>
-      </label>
+      {undoDraft !== null && (
+        <div
+          role="status"
+          className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm"
+        >
+          <span>{t("trackingReview.removed")}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={saving || disabled}
+            onClick={() => {
+              setDraft(undoDraft);
+              setUndoDraft(null);
+            }}
+          >
+            {t("trackingCenter.undo")}
+          </Button>
+        </div>
+      )}
       {groups.map(({ item, updates: entries }) => (
         <TrackingItemCard
           key={item.ref}
@@ -207,28 +185,47 @@ export default function TrackingReview({
           itemType={item.itemType}
           state={item.state}
           properties={item.properties}
-          controls={
-            <label className="block text-xs font-medium text-muted-foreground">
-              {t("trackingUI.assignment")}
-              <select
-                className="mt-2 w-full rounded-lg border border-input bg-background p-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label={item.title}
-                value={item.createNew ? "new" : item.itemId || ""}
-                onChange={(e) => choose(item.ref, e.target.value)}
+          actions={
+            <>
+              <Button
+                size="sm"
+                variant={item.createNew ? "secondary" : "ghost"}
+                aria-pressed={!!item.createNew}
+                disabled={disabled || saving}
+                onClick={() => choose(item.ref)}
               >
-                <option value="">{t("notes.trackingIdentity.choose")}</option>
-                {[
-                  ...new Map(
-                    candidates.filter((c) => c.itemType === item.itemType).map((c) => [c.id, c])
-                  ).values(),
-                ].map((c) => (
-                  <option key={c.id} value={c.id}>
-                    #{c.id} · {c.title} · {c.state}
-                  </option>
-                ))}
-                <option value="new">{t("notes.trackingIdentity.create")}</option>
-              </select>
-            </label>
+                <Plus size={14} aria-hidden />
+                {t(item.createNew ? "trackingReview.willCreate" : "trackingReview.create")}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                disabled={disabled || saving}
+                aria-label={t("trackingReview.remove", { title: item.title })}
+                title={t("trackingReview.remove", { title: item.title })}
+                onClick={() => {
+                  if (!parsed) return;
+                  setUndoDraft(draft);
+                  setDraft(JSON.stringify(removeDraftItem(parsed, item.ref), null, 2));
+                }}
+              >
+                <X size={16} aria-hidden />
+              </Button>
+            </>
+          }
+          controls={
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                {t(item.createNew ? "trackingReview.createHint" : "trackingUI.assignment")}
+              </p>
+              <TrackingItemPicker
+                itemType={item.itemType}
+                selected={candidates.find((candidate) => candidate.id === item.itemId)}
+                disabled={disabled || saving}
+                onSelect={(selected) => choose(item.ref, selected)}
+              />
+            </div>
           }
         >
           {entries.length ? (
@@ -261,7 +258,11 @@ export default function TrackingReview({
           className="min-h-48 w-full rounded border bg-background p-2 font-mono text-xs"
           value={draft}
           aria-label={t("notes.editor.trackingPending")}
-          onChange={(e) => setDraft(e.target.value)}
+          disabled={disabled || saving}
+          onChange={(e) => {
+            setUndoDraft(null);
+            setDraft(e.target.value);
+          }}
         />
       </details>
       <p>

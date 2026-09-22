@@ -5,6 +5,62 @@ const os = require("node:os");
 const path = require("node:path");
 
 const DatabaseManager = require("../../src/helpers/database");
+const { removeDraftItem } = require("../../src/components/tracking/removeDraftItem.ts");
+
+test("review removal saves only remaining candidates and preserves official items", (t) => {
+  const db = createDatabase(t);
+  const action = db.getActions().find((a) => a.output_target === "tracking");
+  const note = db.saveNote("Review removal", "source").note;
+  const raw = {
+    protocolVersion: 2,
+    newItems: [
+      { ref: "a", title: "Remove", itemType: "项目", createNew: true },
+      { ref: "b", title: "Keep", itemType: "项目", createNew: true },
+    ],
+    updates: [
+      { itemRef: "a", content: "remove progress" },
+      { itemRef: "b", content: "keep progress" },
+    ],
+  };
+  const extraction = db.saveTrackingExtraction(note.id, action.id, JSON.stringify(raw)).extraction;
+  const edited = removeDraftItem(raw, "a");
+  assert.equal(
+    JSON.parse(
+      db.db.prepare("SELECT result_json FROM tracking_extractions WHERE id=?").get(extraction.id)
+        .result_json
+    ).newItems.length,
+    2
+  );
+  assert.equal(db.confirmTrackingExtraction(extraction.id, edited).success, true);
+  assert.deepEqual(
+    db.listTrackingItems().items.map((i) => i.title),
+    ["Keep"]
+  );
+  const saved = db.getNoteTracking(note.id);
+  assert.equal(saved.updates.length, 1);
+  assert.equal(saved.updates[0].content, "keep progress");
+  assert.equal(
+    JSON.parse(
+      db.db.prepare("SELECT result_json FROM tracking_extractions WHERE id=?").get(extraction.id)
+        .result_json
+    ).newItems.length,
+    1
+  );
+  const second = db.saveTrackingExtraction(
+    note.id,
+    action.id,
+    JSON.stringify(raw),
+    true
+  ).extraction;
+  const empty = removeDraftItem(removeDraftItem(raw, "a"), "b");
+  const result = db.confirmTrackingExtraction(second.id, empty, {
+    expected: db.getNoteTracking(note.id).reviewSnapshot,
+    replaceUpdates: true,
+  });
+  assert.equal(result.success, true);
+  assert.equal(db.listTrackingItems().items.length, 1);
+  assert.equal(db.getNoteTracking(note.id).updates.length, 0);
+});
 
 function confirmReviewed(db, id, override) {
   if (override) return db.confirmTrackingExtraction(id, override);

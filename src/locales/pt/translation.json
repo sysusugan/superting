@@ -1,4 +1,12 @@
 {
+  "trackingReview": {
+    "create": "Adicionar",
+    "willCreate": "Será criado",
+    "remove": "Remover rascunho: {{title}}",
+    "removed": "Item e avanços removidos do rascunho. Confirme para salvar.",
+    "createHint": "Será criado ao confirmar. Pode associar um item existente abaixo.",
+    "unknownType": "Tipo indisponível. Atualize e tente novamente."
+  },
   "trackingUI": {
     "evidence": "Evidência",
     "assignment": "Associação",

@@ -1,4 +1,12 @@
 {
+  "trackingReview": {
+    "create": "新增",
+    "willCreate": "将新建",
+    "remove": "移除待确认事项：{{title}}",
+    "removed": "已移除事项及其草稿进展，确认后保存。",
+    "createHint": "确认后新建此事项；也可在下方改为关联已有事项。",
+    "unknownType": "事项分类不可用，请刷新后重试。"
+  },
   "trackingUI": { "evidence": "原文证据", "assignment": "关联到事项", "unassigned": "未归属进展" },
   "trackingBatch": {
     "extract": "批量提取",

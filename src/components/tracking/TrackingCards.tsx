@@ -8,6 +8,7 @@ export function TrackingItemCard({
   state,
   properties,
   controls,
+  actions,
   children,
 }: {
   title: string;
@@ -15,6 +16,7 @@ export function TrackingItemCard({
   state?: string;
   properties?: Record<string, unknown>;
   controls?: ReactNode;
+  actions?: ReactNode;
   children?: ReactNode;
 }) {
   const fields = Object.entries(properties || {}).filter(
@@ -38,6 +40,7 @@ export function TrackingItemCard({
               {state && <span className="break-words text-muted-foreground">{state}</span>}
             </div>
           </div>
+          {actions && <div className="flex shrink-0 items-center gap-1">{actions}</div>}
         </div>
         {fields.length > 0 && (
           <dl className="grid gap-x-5 gap-y-2 text-sm sm:grid-cols-2">

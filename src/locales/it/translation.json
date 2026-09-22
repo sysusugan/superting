@@ -1,4 +1,12 @@
 {
+  "trackingReview": {
+    "create": "Aggiungi",
+    "willCreate": "Verrà creato",
+    "remove": "Rimuovi bozza: {{title}}",
+    "removed": "Elemento e progressi rimossi dalla bozza. Conferma per salvare.",
+    "createHint": "Verrà creato alla conferma. Puoi collegare un elemento esistente qui sotto.",
+    "unknownType": "Tipo non disponibile. Aggiorna e riprova."
+  },
   "trackingUI": {
     "evidence": "Fonte",
     "assignment": "Associazione",

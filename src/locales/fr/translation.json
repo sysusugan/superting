@@ -1,4 +1,12 @@
 {
+  "trackingReview": {
+    "create": "Ajouter",
+    "willCreate": "Sera créé",
+    "remove": "Retirer le brouillon : {{title}}",
+    "removed": "Élément et avancées retirés du brouillon. Confirmez pour enregistrer.",
+    "createHint": "Sera créé à la confirmation. Vous pouvez associer un élément existant ci-dessous.",
+    "unknownType": "Type indisponible. Actualisez et réessayez."
+  },
   "trackingUI": {
     "evidence": "Source",
     "assignment": "Association",

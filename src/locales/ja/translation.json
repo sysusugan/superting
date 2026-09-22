@@ -1,4 +1,12 @@
 {
+  "trackingReview": {
+    "create": "新規追加",
+    "willCreate": "新規作成予定",
+    "remove": "下書き項目を削除：{{title}}",
+    "removed": "項目と下書きの進捗を削除しました。確定して保存します。",
+    "createHint": "確定時に新規作成します。下で既存項目に関連付けることもできます。",
+    "unknownType": "項目の種類が利用できません。再読み込みしてください。"
+  },
   "trackingUI": {
     "evidence": "出典",
     "assignment": "項目の関連付け",
