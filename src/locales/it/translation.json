@@ -1,7 +1,12 @@
 {
   "trackingReview": {
     "create": "Aggiungi",
-    "willCreate": "Verrà creato",
+    "willCreate": "Nuovo selezionato",
+    "actions": "Azioni di revisione",
+    "remaining": "Restano {{count}} elementi da scegliere",
+    "ready": "Tutti gli elementi sono pronti per il salvataggio",
+    "saveHint": "Nulla viene salvato prima della conferma",
+    "confirmSave": "Conferma e salva",
     "remove": "Rimuovi bozza: {{title}}",
     "removed": "Elemento e progressi rimossi dalla bozza. Conferma per salvare.",
     "createHint": "Verrà creato alla conferma. Puoi collegare un elemento esistente qui sotto.",

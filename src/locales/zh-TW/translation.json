@@ -1,7 +1,12 @@
 {
   "trackingReview": {
     "create": "新增",
-    "willCreate": "將新建",
+    "willCreate": "已選新增",
+    "actions": "審核操作",
+    "remaining": "還有 {{count}} 個事項需要選擇",
+    "ready": "所有事項已處理，可以確認儲存",
+    "saveHint": "確認前不會寫入正式事項",
+    "confirmSave": "確認並儲存",
     "remove": "移除待確認事項：{{title}}",
     "removed": "已移除事項及其草稿進展，確認後儲存。",
     "createHint": "確認後新建此事項；也可在下方關聯已有事項。",

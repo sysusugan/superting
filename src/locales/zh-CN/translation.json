@@ -1,7 +1,12 @@
 {
   "trackingReview": {
     "create": "新增",
-    "willCreate": "将新建",
+    "willCreate": "已选新建",
+    "actions": "审核操作",
+    "remaining": "还有 {{count}} 个事项需要选择",
+    "ready": "所有事项已处理，可以确认保存",
+    "saveHint": "确认前不会写入正式事项",
+    "confirmSave": "确认并保存",
     "remove": "移除待确认事项：{{title}}",
     "removed": "已移除事项及其草稿进展，确认后保存。",
     "createHint": "确认后新建此事项；也可在下方改为关联已有事项。",

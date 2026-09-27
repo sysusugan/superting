@@ -1,7 +1,12 @@
 {
   "trackingReview": {
     "create": "Add new",
-    "willCreate": "Will create",
+    "willCreate": "Selected: new",
+    "actions": "Review actions",
+    "remaining": "{{count}} items still need a choice",
+    "ready": "All items are ready to save",
+    "saveHint": "Nothing is written until you confirm",
+    "confirmSave": "Confirm and save",
     "remove": "Remove draft item: {{title}}",
     "removed": "Item and draft updates removed. Confirm below to save.",
     "createHint": "Creates on confirmation; you can still link an existing item below.",

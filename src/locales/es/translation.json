@@ -1,7 +1,12 @@
 {
   "trackingReview": {
     "create": "Añadir",
-    "willCreate": "Se creará",
+    "willCreate": "Nuevo seleccionado",
+    "actions": "Acciones de revisión",
+    "remaining": "Falta elegir {{count}} elementos",
+    "ready": "Todos los elementos están listos para guardar",
+    "saveHint": "Nada se guarda hasta que confirmes",
+    "confirmSave": "Confirmar y guardar",
     "remove": "Quitar borrador: {{title}}",
     "removed": "Elemento y avances eliminados del borrador. Confirma para guardar.",
     "createHint": "Se creará al confirmar. Puedes vincular un elemento existente abajo.",

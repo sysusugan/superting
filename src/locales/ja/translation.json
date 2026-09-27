@@ -1,7 +1,12 @@
 {
   "trackingReview": {
     "create": "新規追加",
-    "willCreate": "新規作成予定",
+    "willCreate": "新規作成を選択済み",
+    "actions": "確認操作",
+    "remaining": "あと{{count}}件の選択が必要です",
+    "ready": "すべての項目を保存できます",
+    "saveHint": "確定するまで保存されません",
+    "confirmSave": "確定して保存",
     "remove": "下書き項目を削除：{{title}}",
     "removed": "項目と下書きの進捗を削除しました。確定して保存します。",
     "createHint": "確定時に新規作成します。下で既存項目に関連付けることもできます。",

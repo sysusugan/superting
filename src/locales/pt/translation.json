@@ -1,7 +1,12 @@
 {
   "trackingReview": {
     "create": "Adicionar",
-    "willCreate": "Será criado",
+    "willCreate": "Novo selecionado",
+    "actions": "Ações de revisão",
+    "remaining": "Faltam escolher {{count}} itens",
+    "ready": "Todos os itens estão prontos para salvar",
+    "saveHint": "Nada será salvo antes da confirmação",
+    "confirmSave": "Confirmar e salvar",
     "remove": "Remover rascunho: {{title}}",
     "removed": "Item e avanços removidos do rascunho. Confirme para salvar.",
     "createHint": "Será criado ao confirmar. Pode associar um item existente abaixo.",

@@ -1,7 +1,12 @@
 {
   "trackingReview": {
     "create": "Neu",
-    "willCreate": "Wird erstellt",
+    "willCreate": "Neu ausgewählt",
+    "actions": "Prüfaktionen",
+    "remaining": "Noch {{count}} Einträge auswählen",
+    "ready": "Alle Einträge können gespeichert werden",
+    "saveHint": "Änderungen werden erst nach Bestätigung gespeichert",
+    "confirmSave": "Bestätigen und speichern",
     "remove": "Entwurf entfernen: {{title}}",
     "removed": "Eintrag und Entwurfsfortschritte entfernt. Zum Speichern bestätigen.",
     "createHint": "Wird bei Bestätigung erstellt. Unten kann ein bestehender Eintrag verknüpft werden.",

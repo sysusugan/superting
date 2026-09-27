@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { TrackingItemPicker, type ItemChoice } from "../tracking/TrackingItemPicker";
 import { removeDraftItem } from "../tracking/removeDraftItem";
+import { assignReviewDraftItem } from "../tracking/trackingReviewDraft";
 import {
   TrackingItemCard,
   TrackingProgressList,
@@ -89,13 +90,14 @@ export default function TrackingReview({
     ...(Array.isArray(parsed?.newItems) ? parsed.newItems : []),
   ] as DraftItem[];
   const candidates = [...chosenMatches, ...(data.candidates || [])];
-  const resolved =
-    parsed &&
-    items.every(
-      (item) =>
-        item.createNew === true ||
-        candidates.some((c) => c.id === item.itemId && c.itemType === item.itemType)
-    );
+  const unresolvedCount = items.filter(
+    (item) =>
+      item.createNew !== true &&
+      !candidates.some(
+        (candidate) => candidate.id === item.itemId && candidate.itemType === item.itemType
+      )
+  ).length;
+  const resolved = parsed && unresolvedCount === 0;
   const choose = (ref: string, selected?: ItemChoice) => {
     if (!parsed) return;
     setUndoDraft(null);
@@ -104,13 +106,7 @@ export default function TrackingReview({
         ...previous.filter((item) => item.id !== selected.id),
         selected,
       ]);
-    for (const key of ["matchedItems", "newItems"])
-      for (const item of (parsed[key] || []) as DraftItem[])
-        if (item.ref === ref) {
-          item.createNew = !selected;
-          item.itemId = selected?.id ?? null;
-        }
-    setDraft(JSON.stringify(parsed, null, 2));
+    setDraft(JSON.stringify(assignReviewDraftItem(parsed, ref, selected?.id), null, 2));
   };
   const save = async (reject: boolean) => {
     if (lock.current) return;
@@ -178,6 +174,65 @@ export default function TrackingReview({
           </Button>
         </div>
       )}
+      <div
+        role="region"
+        aria-label={t("trackingReview.actions")}
+        className="space-y-3 rounded-xl border border-border bg-card p-3 shadow-sm"
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-48 flex-1">
+            <p className="text-sm font-semibold">
+              {t(unresolvedCount ? "trackingReview.remaining" : "trackingReview.ready", {
+                count: unresolvedCount,
+              })}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("trackingReview.saveHint")} ·{" "}
+              {t("trackingBatch.impact", {
+                created: items.filter((item) => item.createNew).length,
+                linked: items.filter((item) => item.itemId).length,
+                replaced: data.updates?.length || 0,
+              })}
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" disabled={saving} onClick={() => void onSaved()}>
+              {t("trackingCenter.refresh")}
+            </Button>
+            <Button variant="ghost" disabled={saving} onClick={() => void save(true)}>
+              {t("trackingBatch.reject")}
+            </Button>
+            <Button
+              disabled={
+                disabled ||
+                saving ||
+                !!latest.stale ||
+                !resolved ||
+                (!!data.updates?.length && !replace)
+              }
+              onClick={() => void save(false)}
+            >
+              {t("trackingReview.confirmSave")}
+            </Button>
+          </div>
+        </div>
+        {!!data.updates?.length && (
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              className="mt-0.5"
+              type="checkbox"
+              checked={replace}
+              onChange={(event) => setReplace(event.target.checked)}
+            />
+            {t("trackingBatch.replace")}
+          </label>
+        )}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
+      </div>
       {groups.map(({ item, updates: entries }) => (
         <TrackingItemCard
           key={item.ref}
@@ -194,7 +249,7 @@ export default function TrackingReview({
                 disabled={disabled || saving}
                 onClick={() => choose(item.ref)}
               >
-                <Plus size={14} aria-hidden />
+                {item.createNew ? <Check size={14} aria-hidden /> : <Plus size={14} aria-hidden />}
                 {t(item.createNew ? "trackingReview.willCreate" : "trackingReview.create")}
               </Button>
               <Button
@@ -217,7 +272,7 @@ export default function TrackingReview({
           controls={
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">
-                {t(item.createNew ? "trackingReview.createHint" : "trackingUI.assignment")}
+                {t("trackingUI.assignment")}
               </p>
               <TrackingItemPicker
                 itemType={item.itemType}
@@ -265,44 +320,6 @@ export default function TrackingReview({
           }}
         />
       </details>
-      <p>
-        {t("trackingBatch.impact", {
-          created: items.filter((i) => i.createNew).length,
-          linked: items.filter((i) => i.itemId).length,
-          replaced: data.updates?.length || 0,
-        })}
-      </p>
-      {!!data.updates?.length && (
-        <label className="flex gap-2">
-          <input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} />
-          {t("trackingBatch.replace")}
-        </label>
-      )}
-      {error && (
-        <p role="alert" className="text-destructive">
-          {error}
-        </p>
-      )}
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" disabled={saving} onClick={() => void onSaved()}>
-          {t("trackingCenter.refresh")}
-        </Button>
-        <Button variant="ghost" disabled={saving} onClick={() => void save(true)}>
-          {t("trackingBatch.reject")}
-        </Button>
-        <Button
-          disabled={
-            disabled ||
-            saving ||
-            !!latest.stale ||
-            !resolved ||
-            (!!data.updates?.length && !replace)
-          }
-          onClick={() => void save(false)}
-        >
-          {t("trackingBatch.confirm")}
-        </Button>
-      </div>
     </section>
   );
 }
