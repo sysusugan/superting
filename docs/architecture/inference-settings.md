@@ -61,4 +61,16 @@ Key 无法从此修复中恢复，需重新输入。尚未被启动清理的旧 
 - Prettier：新增测试与本文档通过；store 存在基线已有的四处模式校验格式问题，本次四行修改不引入额外格式差异。
 - `git diff --check`：通过。
 
-此测试不等同于打包应用真实退出、重启或 OS 密钥链端到端验证；尚未打包和安装修复版本。
+此测试不等同于 OS 密钥链的保存恢复端到端验证；没有使用真实 Key 进行写入测试。
+
+## 2026-11-08 构建与安装
+
+- 修复提交 `62da0684` 已通过 rebase 检查及快进方式合入 `main` 并推送；构建源码与该 `main` 提交一致。
+- 复跑上述回归测试，8/8 通过。
+- 本机 arm64 安装版本：`26.1108.2031`。沿用 `scripts/package-mac.js` 的流程和上海时区版本生成规则，命令行设置 `mac.identity=-`，使用 ad-hoc 签名。
+- 复用本地二进制、模型、图标和依赖；依赖采用实体目录副本。首次以 node_modules 符号链接构建时缺少 `file-uri-to-path`，该失败包未安装。
+- 新包通过 packaged better-sqlite3 JS 入口与原生模块加载、`hdiutil verify`、`codesign --verify --deep --strict`。
+- 已核对 app.asar 的版本与 renderer 中的安全保存修复。安装后的 `CFBundleShortVersionString`、`CFBundleVersion` 均为 `26.1108.2031`。
+- 已正常退出旧版，安装到 `/Applications/SuperTing.app` 并启动；观察到控制面板正常显示。
+- 安装包保存在主工作区 `dist/SuperTing-26.1108.2031-arm64.dmg`；旧 App 备份在 `~/Library/Application Support/SuperTing-install-backups/26.1108.2031/SuperTing.app`。
+- 此次未更改用户密钥或执行真实 API 调用；重输真实 Key 后跨重启使用仍需用户验证。没有改变关键架构决策。
