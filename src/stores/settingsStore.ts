@@ -1630,6 +1630,10 @@ export function setResolvedLLMConfig(
     if (value === undefined) continue;
     const storeKey = def.storeKeys[field as keyof InferenceScopeStoreKeys];
     if (!storeKey) continue;
+    if (storeKey === "cleanupCustomApiKey") {
+      useSettingsStore.getState().setCleanupCustomApiKey(value as string);
+      continue;
+    }
     if (isBrowser) {
       localStorage.setItem(
         storeKey as string,
